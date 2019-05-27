@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -7,6 +8,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	/// A system
 	/// </summary>
 	[DataContract]
+	[DebuggerDisplay("{Type}: {Name}")]
 	public class ConnectedSystem : NamedItem
 	{
 		/// <summary>
@@ -24,7 +26,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// DataSets available on the connected system
 		/// </summary>
-		[DataMember(Name = "DataSets")]
-		public List<ConnectedSystemDataSet> Datasets {get;set;}
+		[DataMember(Name = "Datasets")]
+		public List<ConnectedSystemDataSet> Datasets { get; set; }
 	}
 }

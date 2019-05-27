@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -7,6 +8,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	/// Credentials
 	/// </summary>
 	[DataContract]
+	[DebuggerDisplay("{PublicText}")]
 	public class Credentials : Item
 	{
 		/// <summary>

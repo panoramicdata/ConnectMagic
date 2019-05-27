@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
 {
@@ -6,6 +7,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	/// A named and described item
 	/// </summary>
 	[DataContract]
+	[DebuggerDisplay("{Name}")]
 	public abstract class NamedItem : Item
 	{
 		/// <summary>

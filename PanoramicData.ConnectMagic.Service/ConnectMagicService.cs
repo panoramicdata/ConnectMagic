@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PanoramicData.ConnectMagic.Service.Config;
+using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
+using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
@@ -144,7 +146,10 @@ namespace PanoramicData.ConnectMagic.Service
 			// Create RemoteSystemTasks
 			foreach (var connectedSystem in _configuration.ConnectedSystems)
 			{
-				_connectedSystemTasks.Add(ConnectedSystemTask(connectedSystem, _cancellationTokenSource.Token));
+				_connectedSystemTasks.Add(ConnectedSystemTask(connectedSystem, _cancellationTokenSource.Token).ContinueWith((a) =>
+				{
+					_logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {a?.Exception?.Message}'");
+				}, TaskContinuationOptions.OnlyOnFaulted));
 			}
 
 			_logger.LogDebug($"Started {Program.ProductName}...");
@@ -162,9 +167,28 @@ namespace PanoramicData.ConnectMagic.Service
 		{
 			try
 			{
+				IConnectedSystemManager connectedSystemManager;
+				switch(connectedSystem.Type)
+				{
+					case SystemType.AutoTask:
+						connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem);
+						break;
+					case SystemType.Certify:
+						connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem);
+						break;
+					case SystemType.SalesForce:
+						connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem);
+						break;
+					default:
+						throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
+				}
+
+
 				while (true)
 				{
-					// TODO - work here
+					await connectedSystemManager
+						.RefreshDataSetsAsync(cancellationToken)
+						.ConfigureAwait(false);
 
 					await Task
 						.Delay(1000, cancellationToken)
