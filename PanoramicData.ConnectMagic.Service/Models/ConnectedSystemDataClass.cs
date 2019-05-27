@@ -1,13 +1,21 @@
-﻿namespace PanoramicData.ConnectMagic.Service.Models
+﻿using System.Collections.Generic;
+
+namespace PanoramicData.ConnectMagic.Service.Models
 {
 	/// <summary>
 	/// A connected system data class
 	/// </summary>
-	public class ConnectedSystemDataClass : NamedItem
+	public class ConnectedSystemDataSet : DataSet
 	{
 		/// <summary>
-		/// The expression by which the connected system is identified
+		/// The expression by which the connected system is queried
+		/// The language for this will vary per system
 		/// </summary>
-		public string IdentifiedBy { get; set; }
+		public string QueryExpression { get; set; }
+
+		/// <summary>
+		/// The associated State dataset's name
+		/// </summary>
+		public string StateDataSetName { get; set; }
 	}
 }

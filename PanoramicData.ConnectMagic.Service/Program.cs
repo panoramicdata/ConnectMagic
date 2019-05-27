@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PanoramicData.ConnectMagic.Service.Config;
 using PanoramicData.ConnectMagic.Service.Models;
 using Serilog;
 using Serilog.Events;
@@ -58,10 +59,10 @@ namespace PanoramicData.ConnectMagic.Service
 
 				return (int)ExitCode.Ok;
 			}
-			catch (OperationCanceledException)
+			catch (OperationCanceledException e)
 			{
 				// This is normal for using CTRL+C to exit the run
-				Console.WriteLine("** Execution run cancelled - exiting **");
+				Console.WriteLine($"** Execution run canceled - exiting ** : '{e.Message}'");
 				return (int)ExitCode.RunCancelled;
 			}
 			catch (Exception ex)
@@ -103,31 +104,32 @@ namespace PanoramicData.ConnectMagic.Service
 			});
 
 			// Set up SeriLog
+			var config = context.Configuration.GetSection("Logging");
 			LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
-				.WriteTo.Console(
-					outputTemplate: IncludeSourceContextAtConsole
-					? "[{Timestamp:HH:mm:ss} {Level:u3}] ({SourceContext}){NewLine}                {Message:lj}{NewLine}{Exception}"
-					: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-					)
+				.ReadFrom.Configuration(config)
 #if DEBUG
-				.MinimumLevel.Is(LogEventLevel.Debug)
 				.WriteTo.Debug()
-#else
-				.MinimumLevel.Is(LogEventLevel.Information)
 #endif
 				.MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
 
-			// TODO - get from config
-			const string slackUrl = null;
-			var slackMinimumLevel = LogEventLevel.Warning;
-			if(slackUrl != null)
-			{
-				loggerConfiguration.WriteTo.Slack(
-					slackUrl,
-					null,
-					slackMinimumLevel,
-					null);
-			}
+			// ------------ THIS NOW DONE IN REGULAR CONFIG -------------
+			// Get slack config from appsettings
+			//var slackMinimumLogLevelText = context.Configuration.GetSection("Logging")["SlackMinimumLogLevel"];
+			//if (!Enum.TryParse<LogEventLevel>(slackMinimumLogLevelText, out var slackMinimumLevel))
+			//{
+			//	slackMinimumLevel = LogEventLevel.Warning;
+			//}
+
+			//var slackUrl = context.Configuration.GetSection("Logging")["SlackUrl"];
+			//if (slackUrl != null)
+			//{
+			//	loggerConfiguration.WriteTo.Slack(
+			//		slackUrl,
+			//		null,
+			//		slackMinimumLevel,
+			//		null);
+			//}
+			// ------------ THIS NOW DONE IN REGULAR CONFIG -------------
 
 			Log.Logger = loggerConfiguration.CreateLogger();
 
@@ -139,6 +141,7 @@ namespace PanoramicData.ConnectMagic.Service
 		private static void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection serviceCollection)
 		{
 			serviceCollection
+				.Configure<Configuration>(hostBuilderContext.Configuration.GetSection("Configuration"))
 				// The Service itself
 				.AddSingleton<ConnectMagicService>()
 				.AddHostedService<ConnectMagicService>()

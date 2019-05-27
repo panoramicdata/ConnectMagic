@@ -1,6 +1,12 @@
-﻿namespace PanoramicData.ConnectMagic.Service.Models
+﻿using System.Runtime.Serialization;
+
+namespace PanoramicData.ConnectMagic.Service.Models
 {
-	public class NamedItem : Item
+	/// <summary>
+	/// A named and described item
+	/// </summary>
+	[DataContract]
+	public abstract class NamedItem : Item
 	{
 		/// <summary>
 		/// The name

@@ -3,7 +3,7 @@
 	/// <summary>
 	/// A data class
 	/// </summary>
-	public class DataClass
+	public class DataClass : NamedItem
 	{
 	}
 }
