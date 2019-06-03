@@ -27,7 +27,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The actual data is stored here
 		/// </summary>
-		public Dictionary<string, FieldSet> FieldSets { get; set; } = new Dictionary<string, FieldSet>();
+		public Dictionary<string, ItemList> ItemLists { get; set; } = new Dictionary<string, ItemList>();
 
 		public static State FromFile(FileInfo fileInfo)
 		{
@@ -40,7 +40,8 @@ namespace PanoramicData.ConnectMagic.Service.Models
 
 			// Deserialize JSON directly from a file
 			using (StreamReader file = File.OpenText(fileInfo.FullName))
-			{ var serializer = new JsonSerializer();
+			{
+				var serializer = new JsonSerializer();
 				return (State)serializer.Deserialize(file, typeof(State));
 			}
 		}

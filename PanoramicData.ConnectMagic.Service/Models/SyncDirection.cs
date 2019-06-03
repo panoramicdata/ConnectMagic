@@ -9,6 +9,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	public enum SyncDirection
 	{
 		/// <summary>
+		/// None
+		/// </summary>
+		[EnumMember(Value = "None")]
+		None,
+
+		/// <summary>
 		/// In
 		/// </summary>
 		[EnumMember(Value = "In")]
@@ -18,6 +24,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// Out
 		/// </summary>
 		[EnumMember(Value = "Out")]
-		Out
+		Out,
+
+		/// <summary>
+		/// Join
+		/// </summary>
+		[EnumMember(Value = "Join")]
+		Join
 	}
 }

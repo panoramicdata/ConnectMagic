@@ -6,17 +6,17 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	{
 		private static readonly Regex tokenRegex = new Regex("{{(.+?):(.+?)}}");
 
-		private string inputText;
+		private readonly string _inputText;
 
 		public SubstitutionString(string inputText)
 		{
-			this.inputText = inputText;
+			_inputText = inputText;
 		}
 
 		public override string ToString()
 		{
-			var result = inputText;
-			var tokenMatches = tokenRegex.Matches(inputText);
+			var result = _inputText;
+			var tokenMatches = tokenRegex.Matches(_inputText);
 			foreach (var tokenMatch in tokenMatches)
 			{
 				result = result.Replace(tokenMatch.ToString(), "XXX");

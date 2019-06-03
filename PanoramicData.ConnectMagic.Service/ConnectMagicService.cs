@@ -18,7 +18,7 @@ namespace PanoramicData.ConnectMagic.Service
 	/// <summary>
 	/// A ConnectMagic Service
 	/// </summary>
-	partial class ConnectMagicService : ServiceBase, IHostedService
+	internal partial class ConnectMagicService : ServiceBase, IHostedService
 	{
 		private const string EventLogSourceName = Program.ProductName;
 		private readonly EventLogClient _eventLogClient;
@@ -121,7 +121,7 @@ namespace PanoramicData.ConnectMagic.Service
 		/// </summary>
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		public async Task StartAsync(CancellationToken cancellationToken)
+		public Task StartAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogInformation($"Starting {Program.ProductName}...");
 			_waitManualResetEvent.Reset();
@@ -132,13 +132,13 @@ namespace PanoramicData.ConnectMagic.Service
 
 			_state = _configuration.State;
 
-			// Load lastKnownState
+			// Load FieldSets
 			try
 			{
 				var loadedState = State.FromFile(_stateFileInfo);
-				_state.FieldSets = loadedState.FieldSets;
+				_state.ItemLists = loadedState.ItemLists;
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				_logger.LogError(e, $"Could not load state from file: '{e.Message}'");
 			}
@@ -146,13 +146,13 @@ namespace PanoramicData.ConnectMagic.Service
 			// Create RemoteSystemTasks
 			foreach (var connectedSystem in _configuration.ConnectedSystems)
 			{
-				_connectedSystemTasks.Add(ConnectedSystemTask(connectedSystem, _cancellationTokenSource.Token).ContinueWith((a) =>
-				{
-					_logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {a?.Exception?.Message}'");
-				}, TaskContinuationOptions.OnlyOnFaulted));
+				_connectedSystemTasks.Add(ConnectedSystemTask(connectedSystem, _state, _cancellationTokenSource.Token).ContinueWith((a)
+					=> _logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {a?.Exception?.Message}'"), TaskContinuationOptions.OnlyOnFaulted));
 			}
 
 			_logger.LogDebug($"Started {Program.ProductName}...");
+
+			return Task.CompletedTask;
 		}
 
 		/// <summary>
@@ -163,26 +163,26 @@ namespace PanoramicData.ConnectMagic.Service
 		/// <returns></returns>
 		public async Task ConnectedSystemTask(
 			ConnectedSystem connectedSystem,
+			State state,
 			CancellationToken cancellationToken)
 		{
 			try
 			{
 				IConnectedSystemManager connectedSystemManager;
-				switch(connectedSystem.Type)
+				switch (connectedSystem.Type)
 				{
 					case SystemType.AutoTask:
-						connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem);
+						connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state);
 						break;
 					case SystemType.Certify:
-						connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem);
+						connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state);
 						break;
 					case SystemType.SalesForce:
-						connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem);
+						connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state);
 						break;
 					default:
 						throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
 				}
-
 
 				while (true)
 				{
@@ -195,7 +195,7 @@ namespace PanoramicData.ConnectMagic.Service
 						.ConfigureAwait(false);
 				}
 			}
-			catch(OperationCanceledException e)
+			catch (OperationCanceledException e)
 			{
 				// This is OK - happens when a termination message is sent via the CancellationToken
 				_logger.LogTrace(e, $"Task for connected system '{connectedSystem.Name}' canceled.");
@@ -206,7 +206,7 @@ namespace PanoramicData.ConnectMagic.Service
 		/// Tasks to perform on stop
 		/// </summary>
 		/// <param name="cancellationToken"></param>
-		public async Task StopAsync(CancellationToken cancellationToken)
+		public Task StopAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogDebug($"Stopping {Program.ProductName}...");
 
@@ -224,6 +224,8 @@ namespace PanoramicData.ConnectMagic.Service
 			_waitManualResetEvent.Set();
 
 			_logger.LogInformation($"Stopped {nameof(ConnectMagicService)}.");
+
+			return Task.CompletedTask;
 		}
 
 		/// <summary>

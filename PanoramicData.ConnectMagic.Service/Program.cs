@@ -80,10 +80,10 @@ namespace PanoramicData.ConnectMagic.Service
 			var currentDirectory = Directory.GetCurrentDirectory();
 #if DEBUG
 			// Use the project folder
-			var jsonFilePath = "../../../appsettings.json";
+			const string jsonFilePath = "../../../appsettings.json";
 #else
 			// Use binaries folder
-			var jsonFilePath = "appsettings.json";
+			const string jsonFilePath = "appsettings.json";
 #endif
 			var jsonFileInfo = new FileInfo(Path.Combine(currentDirectory, jsonFilePath));
 			configurationBuilder
@@ -94,9 +94,6 @@ namespace PanoramicData.ConnectMagic.Service
 
 		private static void ConfigureLogging(HostBuilderContext context, ILoggingBuilder loggingBuilder)
 		{
-			// Change this value to include the source context or not
-			const bool IncludeSourceContextAtConsole = true;
-
 			Serilog.Debugging.SelfLog.Enable(msg =>
 			{
 				Debug.WriteLine(msg);

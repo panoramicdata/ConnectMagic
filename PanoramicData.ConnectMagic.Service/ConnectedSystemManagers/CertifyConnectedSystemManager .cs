@@ -1,3 +1,4 @@
+using Certify.Api;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
@@ -6,19 +7,21 @@ using System.Threading;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal class CertifyConnectedSystemManager : IConnectedSystemManager
+	internal class CertifyConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
 	{
-		private readonly ConnectedSystem connectedSystem;
+		private CertifyClient _certifyClient;
 
-		public CertifyConnectedSystemManager(ConnectedSystem connectedSystem)
+		public CertifyConnectedSystemManager(
+			ConnectedSystem connectedSystem,
+			State state
+			) : base(connectedSystem, state)
 		{
-			this.connectedSystem = connectedSystem;
-			//CertifyClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
+			_certifyClient = new CertifyClient(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 		}
 
-		public async System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
-			foreach (var dataSet in connectedSystem.Datasets)
+			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
 				var query = new SubstitutionString(new JObject(dataSet.QueryConfig)["Query"]?.ToString() ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'"));
 
@@ -26,6 +29,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				//	.ExecuteQueryAsync(query.ToString())
 				//	.ConfigureAwait(false);
 			}
+
+			return System.Threading.Tasks.Task.CompletedTask;
 		}
+
+		/// <inheritdoc />
+		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new System.NotImplementedException();
+
+		/// <inheritdoc />
+		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new System.NotImplementedException();
+
+		/// <inheritdoc />
+		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new System.NotImplementedException();
 	}
 }

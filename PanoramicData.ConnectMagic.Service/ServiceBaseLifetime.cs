@@ -11,7 +11,9 @@ namespace PanoramicData.ConnectMagic.Service
 		private readonly TaskCompletionSource<object> _delayStart = new TaskCompletionSource<object>();
 
 		public ServiceBaseLifetime(IApplicationLifetime applicationLifetime)
-			=> ApplicationLifetime = applicationLifetime ?? throw new ArgumentNullException(nameof(applicationLifetime));
+		{
+			ApplicationLifetime = applicationLifetime ?? throw new ArgumentNullException(nameof(applicationLifetime));
+		}
 
 		private IApplicationLifetime ApplicationLifetime { get; }
 

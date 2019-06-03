@@ -9,21 +9,21 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	public class Mapping
 	{
 		/// <summary>
-		/// Name
+		/// An expression to evaluated against the source
 		/// </summary>
-		[DataMember(Name = "SystemExpression")]
-		public string SystemExpression { get; set; }
-
-		/// <summary>
-		/// Name
-		/// </summary>
-		[DataMember(Name = "StateExpression")]
-		public string StateExpression { get; set; }
+		[DataMember(Name = "Expression")]
+		public string Expression { get; set; }
 
 		/// <summary>
 		/// Name
 		/// </summary>
 		[DataMember(Name = "Direction")]
 		public SyncDirection Direction { get; set; }
+
+		/// <summary>
+		/// The destination field name
+		/// </summary>
+		[DataMember(Name = "Field")]
+		public string FieldName { get; set; }
 	}
 }
