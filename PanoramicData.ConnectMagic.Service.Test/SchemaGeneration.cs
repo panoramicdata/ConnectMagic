@@ -1,6 +1,5 @@
 using Newtonsoft.Json.Schema.Generation;
 using PanoramicData.ConnectMagic.Service.Config;
-using System;
 using System.IO;
 using Xunit;
 
@@ -9,7 +8,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 	public class SchemaGeneration
 	{
 		[Fact]
-		public async void GenerateDeviceGroupStructureSchemaAsync()
+		public async void GenerateConfigurationSchemaAsync()
 		{
 			var generator = new JSchemaGenerator();
 			var schema = generator.Generate(typeof(Configuration)).ToString();
