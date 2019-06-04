@@ -53,7 +53,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public void Save(FileInfo fileInfo)
 		{
 			// Serialize JSON directly to a file
-			using (StreamWriter file = File.CreateText(fileInfo.FullName))
+			using (var file = File.CreateText(fileInfo.FullName))
 			{
 				var serializer = new JsonSerializer();
 				serializer.Serialize(file, this);

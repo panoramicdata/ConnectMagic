@@ -26,6 +26,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
+				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 				var query = new SubstitutionString(new JObject(dataSet.QueryConfig)["Query"]?.ToString() ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'"));
 
 				//var items = await autoTaskClient

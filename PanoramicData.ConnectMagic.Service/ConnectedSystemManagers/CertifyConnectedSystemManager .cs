@@ -5,6 +5,7 @@ using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
@@ -23,10 +24,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_logger = logger;
 		}
 
-		public System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
+				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 				var query = new SubstitutionString(new JObject(dataSet.QueryConfig)["Query"]?.ToString() ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'"));
 
 				//var items = await autoTaskClient
@@ -34,7 +36,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				//	.ConfigureAwait(false);
 			}
 
-			return System.Threading.Tasks.Task.CompletedTask;
+			return Task.CompletedTask;
 		}
 
 		/// <inheritdoc />
