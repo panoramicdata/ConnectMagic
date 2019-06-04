@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.ServiceProcess;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -144,7 +145,22 @@ namespace PanoramicData.ConnectMagic.Service
 				// TODO - DA: What to do if one of the connected systems faults? Restart all, or continue to attempt to restart that system?
 				_connectedSystemTasks.Add(
 					ConnectedSystemTask(connectedSystem, _state, _cancellationTokenSource.Token)
-					.ContinueWith(faultingTask => _logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {faultingTask?.Exception?.Message}'"), TaskContinuationOptions.OnlyOnFaulted)
+					.ContinueWith(faultingTask =>
+					{
+						var sb = new StringBuilder();
+						if (faultingTask.Exception != null)
+						{
+							foreach (var e in faultingTask.Exception.Flatten().InnerExceptions)
+							{
+								sb.AppendLine(e.ToString());
+							}
+						}
+						else
+						{
+							sb.AppendLine("The exception was not set");
+						}
+						_logger.LogError($"Exception in system task for connected system {connectedSystem?.Name}: {sb}");
+					}, TaskContinuationOptions.OnlyOnFaulted)
 				);
 			}
 
@@ -165,21 +181,7 @@ namespace PanoramicData.ConnectMagic.Service
 		{
 			try
 			{
-				IConnectedSystemManager connectedSystemManager;
-				switch (connectedSystem.Type)
-				{
-					case SystemType.AutoTask:
-						connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>());
-						break;
-					case SystemType.Certify:
-						connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
-						break;
-					case SystemType.SalesForce:
-						connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesForceConnectedSystemManager>());
-						break;
-					default:
-						throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
-				}
+				var connectedSystemManager = CreateConnectedSystemManager(connectedSystem, state);
 
 				while (true)
 				{
@@ -198,6 +200,27 @@ namespace PanoramicData.ConnectMagic.Service
 				// This is OK - happens when a termination message is sent via the CancellationToken
 				_logger.LogTrace(e, $"Task for connected system '{connectedSystem.Name}' canceled.");
 			}
+		}
+
+		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state)
+		{
+			IConnectedSystemManager connectedSystemManager;
+			switch (connectedSystem.Type)
+			{
+				case SystemType.AutoTask:
+					connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>());
+					break;
+				case SystemType.Certify:
+					connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
+					break;
+				case SystemType.SalesForce:
+					connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesForceConnectedSystemManager>());
+					break;
+				default:
+					throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
+			}
+
+			return connectedSystemManager;
 		}
 
 		/// <summary>

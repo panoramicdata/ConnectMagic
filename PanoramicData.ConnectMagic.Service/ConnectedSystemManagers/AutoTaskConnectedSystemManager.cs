@@ -31,9 +31,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 				var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
 				var query = new SubstitutionString(inputText);
-
+				var substitutedQuery = query.ToString();
 				var connectedSystemItems = (await autoTaskClient
-					.ExecuteQueryAsync(query.ToString())
+					.ExecuteQueryAsync(substitutedQuery)
 					.ConfigureAwait(false))
 					.Select(entity => new JObject(entity))
 					.ToList();
