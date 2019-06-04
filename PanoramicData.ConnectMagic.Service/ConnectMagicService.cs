@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,7 +23,6 @@ namespace PanoramicData.ConnectMagic.Service
 	{
 		private const string EventLogSourceName = Program.ProductName;
 		private readonly EventLogClient _eventLogClient;
-		private readonly ManualResetEvent _waitManualResetEvent = new ManualResetEvent(false);
 		private readonly ILogger _logger;
 		private readonly Configuration _configuration;
 		private readonly CancellationTokenSource _cancellationTokenSource;
@@ -114,19 +114,12 @@ namespace PanoramicData.ConnectMagic.Service
 		}
 
 		/// <summary>
-		///     This will block until the event is fired indicated that the engine has stopped
-		/// </summary>
-		public void WaitUntilStopped() => _waitManualResetEvent.WaitOne();
-
-		/// <summary>
 		/// Starts work
 		/// </summary>
 		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogInformation($"Starting {Program.ProductName} {ThisAssembly.AssemblyInformationalVersion}...");
-			_waitManualResetEvent.Reset();
 
 			// Add an unhandled exception handler
 			var currentDomain = AppDomain.CurrentDomain;
@@ -146,15 +139,16 @@ namespace PanoramicData.ConnectMagic.Service
 			}
 
 			// Create RemoteSystemTasks
-			foreach (var connectedSystem in _configuration.ConnectedSystems)
+			foreach (var connectedSystem in _configuration.ConnectedSystems.Where(cs => !cs.IsDisabled))
 			{
+				// TODO - DA: What to do if one of the connected systems faults? Restart all, or continue to attempt to restart that system?
 				_connectedSystemTasks.Add(
 					ConnectedSystemTask(connectedSystem, _state, _cancellationTokenSource.Token)
 					.ContinueWith(faultingTask => _logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {faultingTask?.Exception?.Message}'"), TaskContinuationOptions.OnlyOnFaulted)
 				);
 			}
 
-			_logger.LogDebug($"Started {Program.ProductName}...");
+			_logger.LogDebug($"Started {Program.ProductName}.");
 
 			return Task.CompletedTask;
 		}
@@ -164,7 +158,6 @@ namespace PanoramicData.ConnectMagic.Service
 		/// </summary>
 		/// <param name="connectedSystem">The connected system</param>
 		/// <param name="cancellationToken">The cancellation token</param>
-		/// <returns></returns>
 		public async Task ConnectedSystemTask(
 			ConnectedSystem connectedSystem,
 			State state,
@@ -218,18 +211,22 @@ namespace PanoramicData.ConnectMagic.Service
 			// Stop Remote System Tasks
 			_cancellationTokenSource.Cancel();
 
-			// Wait for them all to finish
+			_logger.LogDebug("Waiting for ConnectedSystemTasks to complete...");
 			Task.WaitAll(_connectedSystemTasks.ToArray());
 
 			// Save lastKnownState
-			_state
-				.Save(_stateFileInfo);
-
-			// Confirm we are finished
-			_waitManualResetEvent.Set();
-
-			_logger.LogInformation($"Stopped {nameof(ConnectMagicService)}.");
-
+			try
+			{
+				_state.Save(_stateFileInfo);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, ex.Message);
+			}
+			finally
+			{
+				_logger.LogInformation($"Stopped {Program.ProductName}.");
+			}
 			return Task.CompletedTask;
 		}
 
