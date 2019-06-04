@@ -28,7 +28,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				{
 					case "ncalc":
 						var nCalcExpression = new Expression(expressionText);
-						nCalcExpression.EvaluateFunction += NCalcExtensions.NCalcExtensions.NCalcExtensionFunctions;
+						nCalcExpression.EvaluateFunction += NCalcExtensions.NCalcExtensions.Extend;
 						nCalcExpression.Evaluate().ToString();
 						break;
 					default:
