@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
@@ -19,10 +20,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		protected State State { get; }
 
-		protected ConnectedSystemManagerBase(ConnectedSystem connectedSystem, State state)
+		private readonly ILogger _logger;
+
+		protected ConnectedSystemManagerBase(ConnectedSystem connectedSystem, State state, ILogger logger)
 		{
 			ConnectedSystem = connectedSystem ?? throw new ArgumentNullException(nameof(connectedSystem));
 			State = state ?? throw new ArgumentNullException(nameof(state));
+			_logger = logger;
 		}
 
 		/// <summary>
@@ -36,6 +40,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		protected void ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 		{
+			_logger.LogDebug($"Processing DataSet {dataSet.Name}");
+
 			// Get the fieldSet
 			if (!State.ItemLists.TryGetValue(dataSet.Name, out var stateItemList))
 			{

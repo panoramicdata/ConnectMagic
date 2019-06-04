@@ -1,4 +1,5 @@
 using Certify.Api;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
@@ -10,13 +11,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	internal class CertifyConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
 	{
 		private readonly CertifyClient _certifyClient;
+		private readonly ILogger _logger;
 
 		public CertifyConnectedSystemManager(
 			ConnectedSystem connectedSystem,
-			State state
-			) : base(connectedSystem, state)
+			State state,
+			ILogger<CertifyConnectedSystemManager> logger)
+			: base(connectedSystem, state, logger)
 		{
 			_certifyClient = new CertifyClient(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
+			_logger = logger;
 		}
 
 		public System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)

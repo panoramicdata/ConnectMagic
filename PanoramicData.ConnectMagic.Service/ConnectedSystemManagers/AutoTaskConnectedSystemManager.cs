@@ -1,4 +1,5 @@
 using AutoTask.Api;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
@@ -11,19 +12,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	internal class AutoTaskConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
 	{
 		private readonly Client autoTaskClient;
+		private readonly ILogger _logger;
 
 		public AutoTaskConnectedSystemManager(
 			ConnectedSystem connectedSystem,
-			State state
-			) : base(connectedSystem, state)
+			State state,
+			ILogger<AutoTaskConnectedSystemManager> logger)
+			: base(connectedSystem, state, logger)
 		{
 			autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
+			_logger = logger;
 		}
 
 		public async System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
+				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 				var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
 				var query = new SubstitutionString(inputText);
 

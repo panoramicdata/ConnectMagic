@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
@@ -9,11 +10,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class SalesForceConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
 	{
+		private readonly ILogger _logger;
+
 		public SalesForceConnectedSystemManager(
 			ConnectedSystem connectedSystem,
-			State state
-			) : base(connectedSystem, state)
+			State state,
+			ILogger<SalesForceConnectedSystemManager> logger)
+			: base(connectedSystem, state, logger)
 		{
+			_logger = logger;
 			//salesForceClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 		}
 

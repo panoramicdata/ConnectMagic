@@ -29,6 +29,7 @@ namespace PanoramicData.ConnectMagic.Service
 		private State _state;
 		private readonly List<Task> _connectedSystemTasks;
 		private readonly FileInfo _stateFileInfo;
+		private readonly ILoggerFactory _loggerFactory;
 
 		/// <summary>
 		/// Constructor
@@ -70,6 +71,7 @@ namespace PanoramicData.ConnectMagic.Service
 			}
 
 			_stateFileInfo = new FileInfo(_configuration.State.CacheFileName);
+			_loggerFactory = loggerFactory;
 		}
 
 		/// <summary>
@@ -172,13 +174,13 @@ namespace PanoramicData.ConnectMagic.Service
 				switch (connectedSystem.Type)
 				{
 					case SystemType.AutoTask:
-						connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state);
+						connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>());
 						break;
 					case SystemType.Certify:
-						connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state);
+						connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
 						break;
 					case SystemType.SalesForce:
-						connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state);
+						connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesForceConnectedSystemManager>());
 						break;
 					default:
 						throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
@@ -186,6 +188,7 @@ namespace PanoramicData.ConnectMagic.Service
 
 				while (true)
 				{
+					_logger.LogInformation($"{connectedSystem.Type}: Refreshing DataSets");
 					await connectedSystemManager
 						.RefreshDataSetsAsync(cancellationToken)
 						.ConfigureAwait(false);
