@@ -33,17 +33,20 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public static State FromFile(FileInfo fileInfo)
 		{
 			// On first start-up, there will be no file
-			// In this case, just return a new State
+			// In this case, just return a new State.
 			if (!fileInfo.Exists)
 			{
-				return new State();
+				return new State { CacheFileName = fileInfo.FullName };
 			}
 
 			// Deserialize JSON directly from a file
-			using (StreamReader file = File.OpenText(fileInfo.FullName))
+			using (var file = File.OpenText(fileInfo.FullName))
 			{
 				var serializer = new JsonSerializer();
-				return (State)serializer.Deserialize(file, typeof(State));
+				var state = (State)serializer.Deserialize(file, typeof(State));
+				// Set the name of the file that state was loaded from
+				state.CacheFileName = fileInfo.FullName;
+				return state;
 			}
 		}
 
