@@ -102,7 +102,7 @@ namespace PanoramicData.ConnectMagic.Service
 
 			// Set up SeriLog
 			var config = context.Configuration.GetSection("Logging");
-			LoggerConfiguration loggerConfiguration = new LoggerConfiguration()
+			var loggerConfiguration = new LoggerConfiguration()
 				.ReadFrom.Configuration(config)
 #if DEBUG
 				.WriteTo.Debug()

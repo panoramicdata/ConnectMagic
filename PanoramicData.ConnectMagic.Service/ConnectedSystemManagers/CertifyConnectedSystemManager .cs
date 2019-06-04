@@ -9,7 +9,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class CertifyConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
 	{
-		private CertifyClient _certifyClient;
+		private readonly CertifyClient _certifyClient;
 
 		public CertifyConnectedSystemManager(
 			ConnectedSystem connectedSystem,
