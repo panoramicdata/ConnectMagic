@@ -73,6 +73,11 @@ namespace PanoramicData.ConnectMagic.Service
 				Console.WriteLine(ex.Message);
 				return (int)ExitCode.UnexpectedException;
 			}
+			finally
+			{
+				// Flush Serilog Sinks
+				Log.CloseAndFlush();
+			}
 		}
 
 		private static void BuildConfig(HostBuilderContext context, IConfigurationBuilder configurationBuilder)

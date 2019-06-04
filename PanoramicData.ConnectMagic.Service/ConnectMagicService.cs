@@ -125,7 +125,7 @@ namespace PanoramicData.ConnectMagic.Service
 		/// <returns></returns>
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
-			_logger.LogInformation($"Starting {Program.ProductName}...");
+			_logger.LogInformation($"Starting {Program.ProductName} {ThisAssembly.AssemblyInformationalVersion}...");
 			_waitManualResetEvent.Reset();
 
 			// Add an unhandled exception handler
@@ -148,8 +148,10 @@ namespace PanoramicData.ConnectMagic.Service
 			// Create RemoteSystemTasks
 			foreach (var connectedSystem in _configuration.ConnectedSystems)
 			{
-				_connectedSystemTasks.Add(ConnectedSystemTask(connectedSystem, _state, _cancellationTokenSource.Token).ContinueWith((a)
-					=> _logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {a?.Exception?.Message}'"), TaskContinuationOptions.OnlyOnFaulted));
+				_connectedSystemTasks.Add(
+					ConnectedSystemTask(connectedSystem, _state, _cancellationTokenSource.Token)
+					.ContinueWith(faultingTask => _logger.LogError($"Exception in system task for connected system '{connectedSystem?.Name}: {faultingTask?.Exception?.Message}'"), TaskContinuationOptions.OnlyOnFaulted)
+				);
 			}
 
 			_logger.LogDebug($"Started {Program.ProductName}...");
