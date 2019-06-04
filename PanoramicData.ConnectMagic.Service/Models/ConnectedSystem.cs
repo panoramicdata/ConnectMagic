@@ -26,7 +26,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// DataSets available on the connected system
 		/// </summary>
-		[DataMember(Name = "Datasets")]
+		[DataMember(Name = "DataSets")]
 		public List<ConnectedSystemDataSet> Datasets { get; set; }
 	}
 }

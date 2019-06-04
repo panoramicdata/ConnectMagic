@@ -1,4 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
+using NCalc;
+using PanoramicData.NCalcExtensions;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
@@ -17,11 +20,22 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			var result = _inputText;
 			var tokenMatches = tokenRegex.Matches(_inputText);
-			foreach (var tokenMatch in tokenMatches)
+			foreach (Match tokenMatch in tokenMatches)
 			{
-				result = result.Replace(tokenMatch.ToString(), "XXX");
-			}
-
+				var tokenType = tokenMatch.Groups[1].ToString();
+				var expressionText = tokenMatch.Groups[2].ToString();
+				switch(tokenType)
+				{
+					case "ncalc":
+						var nCalcExpression = new Expression(expressionText);
+						nCalcExpression.EvaluateFunction += NCalcExtensions.NCalcExtensions.NCalcExtensionFunctions;
+						nCalcExpression.Evaluate().ToString();
+						break;
+					default:
+						throw new NotSupportedException($"Unsupported token type {tokenType}");
+				}
+				result = result.Replace(tokenMatch.ToString(), result);
+		}
 			return result;
 		}
 	}

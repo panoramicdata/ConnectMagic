@@ -136,31 +136,29 @@ namespace PanoramicData.ConnectMagic.Service
 		}
 
 		private static void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection serviceCollection)
-		{
-			serviceCollection
+			=> serviceCollection
 				.Configure<Configuration>(hostBuilderContext.Configuration.GetSection("Configuration"))
 				// The Service itself
 				.AddSingleton<ConnectMagicService>()
 				.AddHostedService<ConnectMagicService>()
 				;
-		}
 
-		private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
-		{
-			var exitCode = 0;
-			try
-			{
-				if (e?.ExceptionObject != null)
-				{
-					File.WriteAllText($"%TEMP%\\{ProductName}-Service-CrashLog.txt", e.ExceptionObject.ToString());
-				}
-			}
-			catch
-			{
-				exitCode |= 1;
-			}
+		//private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+		//{
+		//	var exitCode = 0;
+		//	try
+		//	{
+		//		if (e?.ExceptionObject != null)
+		//		{
+		//			File.WriteAllText($"%TEMP%\\{ProductName}-Service-CrashLog.txt", e.ExceptionObject.ToString());
+		//		}
+		//	}
+		//	catch
+		//	{
+		//		exitCode |= 1;
+		//	}
 
-			Environment.Exit(exitCode);
-		}
+		//	Environment.Exit(exitCode);
+		//}
 	}
 }

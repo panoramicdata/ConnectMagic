@@ -25,6 +25,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			State = state ?? throw new ArgumentNullException(nameof(state));
 		}
 
+		/// <summary>
+		/// NCalc? evaluation
+		/// </summary>
+		/// <param name="systemExpression"></param>
+		/// <param name="item"></param>
+		/// <returns></returns>
 		internal string Evaluate(string systemExpression, JObject item)
 			=> throw new NotImplementedException();
 

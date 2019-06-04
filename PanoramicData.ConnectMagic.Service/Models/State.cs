@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
@@ -27,7 +28,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The actual data is stored here
 		/// </summary>
-		public Dictionary<string, ItemList> ItemLists { get; set; } = new Dictionary<string, ItemList>();
+		public ConcurrentDictionary<string, ItemList> ItemLists { get; set; } = new ConcurrentDictionary<string, ItemList>();
 
 		public static State FromFile(FileInfo fileInfo)
 		{

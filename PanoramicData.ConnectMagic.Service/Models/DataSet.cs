@@ -12,7 +12,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The fields to retrieve from the connected system
 		/// </summary>
-		[DataMember(Name="Fields")]
+		[DataMember(Name = "Fields")]
 		public List<Field> Fields { get; set; }
 	}
 }

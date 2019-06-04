@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -14,19 +15,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The language for this will vary per system
 		/// </summary>
 		[DataMember(Name = "QueryConfig")]
-		public object QueryConfig { get; set; }
-
-		/// <summary>
-		/// The associated State dataset's name
-		/// </summary>
-		[DataMember(Name = "StateDataSetName")]
-		public string StateDataSetName { get; set; }
-
-		/// <summary>
-		/// The system fields to fetch
-		/// </summary>
-		[DataMember(Name = "SystemFields")]
-		public List<SystemField> SystemFields { get; set; }
+		public QueryConfig QueryConfig { get; set; }
 
 		/// <summary>
 		/// Creation direction
