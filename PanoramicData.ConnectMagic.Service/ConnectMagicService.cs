@@ -126,6 +126,8 @@ namespace PanoramicData.ConnectMagic.Service
 			var currentDomain = AppDomain.CurrentDomain;
 			currentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
+			_configuration.Validate();
+
 			_state = _configuration.State;
 
 			// Load FieldSets
@@ -139,8 +141,16 @@ namespace PanoramicData.ConnectMagic.Service
 				_logger.LogError(e, $"Could not load state from file: '{e.Message}'");
 			}
 
+			var enabledSystems = _configuration.ConnectedSystems.Where(cs => cs.IsEnabled);
+
+			// Initialise the ConnectedSystemStats
+			foreach (var connectedSystem in enabledSystems)
+			{
+				_state.ConnectedSystemStats[connectedSystem.Name] = new ConnectedSystemStats();
+			}
+
 			// Create RemoteSystemTasks
-			foreach (var connectedSystem in _configuration.ConnectedSystems.Where(cs => !cs.IsDisabled))
+			foreach (var connectedSystem in enabledSystems)
 			{
 				// TODO - DA: What to do if one of the connected systems faults? Restart all, or continue to attempt to restart that system?
 				_connectedSystemTasks.Add(
@@ -186,9 +196,14 @@ namespace PanoramicData.ConnectMagic.Service
 				while (true)
 				{
 					_logger.LogInformation($"{connectedSystem.Type}: Refreshing DataSets");
+
+					state.MarkSyncStarted(connectedSystem);
+
 					await connectedSystemManager
 						.RefreshDataSetsAsync(cancellationToken)
 						.ConfigureAwait(false);
+
+					state.MarkSyncCompleted(connectedSystem);
 
 					await Task
 						.Delay(1000, cancellationToken)

@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -29,6 +31,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The actual data is stored here
 		/// </summary>
 		public ConcurrentDictionary<string, ItemList> ItemLists { get; set; } = new ConcurrentDictionary<string, ItemList>();
+
+		/// <summary>
+		/// Used internally to centrally store stats for systems
+		/// </summary>
+		[IgnoreDataMember]
+		internal ConcurrentDictionary<string, ConnectedSystemStats> ConnectedSystemStats { get; set; } = new ConcurrentDictionary<string, ConnectedSystemStats>();
 
 		public static State FromFile(FileInfo fileInfo)
 		{
@@ -59,5 +67,30 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				serializer.Serialize(file, this);
 			}
 		}
+
+		public void MarkSyncStarted(ConnectedSystem connectedSystem)
+		{
+			var stats = GetStats(connectedSystem);
+			stats.LastSyncStarted = DateTimeOffset.UtcNow;
+		}
+
+		public void MarkSyncCompleted(ConnectedSystem connectedSystem)
+		{
+			var stats = GetStats(connectedSystem);
+			stats.LastSyncCompleted = DateTimeOffset.UtcNow;
+		}
+
+		/// <summary>
+		/// Determines whether all ConnectedSystems have finished sync at least once
+		/// </summary>
+		/// <returns>True if all ConnectedSystems have finished sync at least once</returns>
+		public bool IsConnectedSystemsSyncCompletedOnce
+			// TODO - Cache this as true once all have completed
+			=> ConnectedSystemStats.All(css => css.Value.LastSyncCompleted > DateTimeOffset.MinValue);
+
+		private ConnectedSystemStats GetStats(ConnectedSystem connectedSystem)
+			=> ConnectedSystemStats.TryGetValue(connectedSystem.Name, out var stats)
+				? stats
+				: ConnectedSystemStats[connectedSystem.Name] = new ConnectedSystemStats();
 	}
 }

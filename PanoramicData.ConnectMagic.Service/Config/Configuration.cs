@@ -1,6 +1,8 @@
-﻿using PanoramicData.ConnectMagic.Service.Models;
+﻿using PanoramicData.ConnectMagic.Service.Exceptions;
+using PanoramicData.ConnectMagic.Service.Models;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Config
@@ -38,5 +40,103 @@ namespace PanoramicData.ConnectMagic.Service.Config
 
 		[DataMember(Name = "State")]
 		public State State { get; set; }
+
+		/// <summary>
+		/// Validates the configuration and throws an exception if an issue is found
+		/// </summary>
+		internal void Validate()
+		{
+			ThereShouldBeAtLeastOneConnectedSystem();
+			AllConnectedSystemsShouldHaveCredentials();
+			AllConnectedSystemsShouldHaveAtLeastOneDataset();
+			AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping();
+			AllConnectedSystemsDataSetsShouldHaveOneJoinMapping();
+		}
+
+		private void ThereShouldBeAtLeastOneConnectedSystem()
+		{
+			if (ConnectedSystems == null || ConnectedSystems.Count == 0)
+			{
+				throw new ConfigurationException($"There should be at least 1 entry in {nameof(ConnectedSystems)}");
+			}
+		}
+
+		private void AllConnectedSystemsShouldHaveCredentials()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				if (connectedSystem.Credentials == null)
+				{
+					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no Credentials set");
+				}
+
+				if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PublicText))
+				{
+					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} set");
+				}
+
+				if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PublicText))
+				{
+					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} set");
+				}
+
+				switch (connectedSystem.Type)
+				{
+					case SystemType.AutoTask:
+					case SystemType.SalesForce:
+					case SystemType.Certify:
+					case SystemType.SolarWinds:
+						// No other rules
+						break;
+					case SystemType.LogicMonitor:
+					case SystemType.ServiceNow:
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.Account))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.Account)} set");
+						}
+						break;
+					default:
+						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has unsupported ConnectedSystem Type {connectedSystem.Type}");
+				}
+			}
+		}
+		private void AllConnectedSystemsShouldHaveAtLeastOneDataset()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				if (connectedSystem.Datasets == null || connectedSystem.Datasets.Count == 0)
+				{
+					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Datasets)} set");
+				}
+			}
+		}
+
+		private void AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				foreach (var dataSet in connectedSystem.Datasets)
+				{
+					if (dataSet.Mappings == null || dataSet.Mappings.Count == 0)
+					{
+						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(ConnectedSystemDataSet.Mappings)} set in {dataSet.Name}");
+					}
+				}
+			}
+		}
+
+		private void AllConnectedSystemsDataSetsShouldHaveOneJoinMapping()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				foreach (var dataSet in connectedSystem.Datasets)
+				{
+					if (dataSet.Mappings == null || dataSet.Mappings.Count(m => m.Direction == SyncDirection.Join) != 1)
+					{
+						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(ConnectedSystemDataSet.Mappings)} set in {dataSet.Name}");
+					}
+				}
+			}
+		}
 	}
 }

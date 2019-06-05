@@ -87,7 +87,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.Where(m => m.Direction == SyncDirection.Out)
 				.ToList();
 
-			// Go through each ConnectedSyatem item and see if it is present in the State FieldSet
+			// Go through each ConnectedSystem item and see if it is present in the State FieldSet
 			foreach (var connectedSystemItem in connectedSystemItems)
 			{
 				var systemJoinValue = Evaluate(joinMapping.Expression, connectedSystemItem);
@@ -118,7 +118,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								break;
 							case SyncDirection.Out:
 								// Remove it from ConnectedSystem
-								DeleteOutwards(dataSet, connectedSystemItem);
+								if (State.IsConnectedSystemsSyncCompletedOnce)
+								{
+									DeleteOutwards(dataSet, connectedSystemItem);
+								}
+								else
+								{
+									_logger.LogInformation("Delaying deletes until all ConnectedSystems have retrieved data");
+								}
 								break;
 							default:
 								throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");
@@ -159,7 +166,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						}
 						if (outwardUpdateRequired)
 						{
-							UpdateOutwards(dataSet, connectedSystemItem);
+							if (State.IsConnectedSystemsSyncCompletedOnce)
+							{
+								UpdateOutwards(dataSet, connectedSystemItem);
+							}
+							else
+							{
+								_logger.LogInformation("Delaying updates until all ConnectedSystems have retrieved data");
+							}
 						}
 						break;
 					default:
@@ -187,7 +201,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						{
 							newItem[outwardMapping.Field] = Evaluate(outwardMapping.Expression, unseenStateItem);
 						}
-						CreateOutwards(dataSet, newItem);
+						if (State.IsConnectedSystemsSyncCompletedOnce)
+						{
+							CreateOutwards(dataSet, newItem);
+						}
+						else
+						{
+							_logger.LogInformation("Delaying creates until all ConnectedSystems have retrieved data");
+						}
 						break;
 					default:
 						throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");

@@ -30,9 +30,9 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public List<ConnectedSystemDataSet> Datasets { get; set; }
 
 		/// <summary>
-		/// The disabled state of the system, defaults to false
+		/// The enabled state of the system, defaults to true
 		/// </summary>
-		[DataMember(Name = "IsDisabled")]
-		public bool IsDisabled { get; set; }
+		[DataMember(Name = "IsEnabled")]
+		public bool IsEnabled { get; set; } = true;
 	}
 }
