@@ -90,10 +90,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Go through each ConnectedSyatem item and see if it is present in the State FieldSet
 			foreach (var connectedSystemItem in connectedSystemItems)
 			{
-				var systemValue = Evaluate(joinMapping.Expression, connectedSystemItem);
+				var systemJoinValue = Evaluate(joinMapping.Expression, connectedSystemItem);
 
 				var stateMatches = stateItemList
-					.Where(fs => fs[joinMapping.Field].ToString() == systemValue)
+					.Where(fs => fs[joinMapping.Field].ToString() == systemJoinValue)
 					.ToList();
 
 				// There should be zero or one matches.
@@ -112,6 +112,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								{
 									newItem[inwardMapping.Field] = Evaluate(inwardMapping.Expression, connectedSystemItem);
 								}
+								// Need to add the join field also so we can compare as part of the check to see whether it exists above
+								newItem[joinMapping.Field] = Evaluate(joinMapping.Expression, connectedSystemItem);
 								stateItemList.Add(newItem);
 								break;
 							case SyncDirection.Out:
@@ -130,10 +132,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 						// TODO - later, might want to log/count that a change has happened.
 						// For now, just overwrite in each direction.
+						var updateCount = 0;
 						foreach (var inwardMapping in inwardMappings)
 						{
-							stateItem[inwardMapping.Field] = Evaluate(inwardMapping.Expression, connectedSystemItem);
+							var newValue = Evaluate(inwardMapping.Expression, connectedSystemItem);
+							var existing = stateItem[inwardMapping.Field];
+							if (existing.ToString() != newValue)
+							{
+								_logger.LogDebug($"Updated entry with {joinMapping.Field} {systemJoinValue}. {inwardMapping.Field} changed from '{existing}' to '{newValue}'");
+								stateItem[inwardMapping.Field] = newValue;
+								updateCount++;
+							}
 						}
+
+						_logger.LogTrace($"{updateCount} field updates for entry with {joinMapping.Field} {systemJoinValue}");
 
 						var outwardUpdateRequired = false;
 						foreach (var outwardMapping in outwardMappings)
