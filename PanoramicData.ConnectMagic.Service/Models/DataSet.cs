@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
 {
@@ -12,7 +11,8 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The fields to retrieve from the connected system
 		/// </summary>
-		[DataMember(Name = "Fields")]
-		public List<Field> Fields { get; set; }
+		/// THIS SHOULD BE DERIVED FROM THE MAPPINGS?
+		//[DataMember(Name = "Fields")]
+		//public List<Field> Fields { get; set; }
 	}
 }

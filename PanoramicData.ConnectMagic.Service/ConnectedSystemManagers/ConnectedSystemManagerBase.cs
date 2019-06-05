@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using NCalc;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
@@ -36,7 +37,24 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="item"></param>
 		/// <returns></returns>
 		internal string Evaluate(string systemExpression, JObject item)
-			=> throw new NotImplementedException();
+		{
+			var nCalcExpression = new Expression(systemExpression);
+			nCalcExpression.EvaluateFunction += NCalcExtensions.NCalcExtensions.Extend;
+			nCalcExpression.Parameters = item.ToObject<Dictionary<string, object>>();
+			try
+			{
+				var evaluationResult = nCalcExpression.Evaluate().ToString();
+				return evaluationResult;
+			}
+			catch (ArgumentException ex)
+			{
+				if (ex.Message.StartsWith("Parameter was not defined"))
+				{
+					throw new ArgumentException($"{ex.Message}. Available parameters: {string.Join(", ", nCalcExpression.Parameters.Keys.OrderBy(k => k))}", ex);
+				}
+				throw;
+			}
+		}
 
 		protected void ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 		{
@@ -55,15 +73,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Clone the fieldSet, removing items that we have seen
 			var unseenStateItems = new List<JObject>(stateItemList);
 
-			// Only a single mapping may be of type "Join"
-			// The join evaluation is always on the connected system
-			var joinMapping = dataSet.Mappings.SingleOrDefault(m => m.Direction == SyncDirection.Join);
-			if (joinMapping == null)
-			{
-				throw new ConfigurationException($"DataSet {dataSet.Name} does not have exactly one mapping of type Join.");
-			}
-			// We have a single mapping
-			var stateFieldName = joinMapping.FieldName;
+			var joinMapping = GetJoinMapping(dataSet);
 
 			// Inward mappings
 			var inwardMappings = dataSet
@@ -83,7 +93,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				var systemValue = Evaluate(joinMapping.Expression, connectedSystemItem);
 
 				var stateMatches = stateItemList
-					.Where(fs => fs[stateFieldName].ToString() == systemValue)
+					.Where(fs => fs[joinMapping.Field].ToString() == systemValue)
 					.ToList();
 
 				// There should be zero or one matches.
@@ -100,7 +110,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								var newItem = new JObject();
 								foreach (var inwardMapping in inwardMappings)
 								{
-									newItem[inwardMapping.FieldName] = Evaluate(inwardMapping.Expression, connectedSystemItem);
+									newItem[inwardMapping.Field] = Evaluate(inwardMapping.Expression, connectedSystemItem);
 								}
 								stateItemList.Add(newItem);
 								break;
@@ -122,16 +132,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						// For now, just overwrite in each direction.
 						foreach (var inwardMapping in inwardMappings)
 						{
-							stateItem[inwardMapping.FieldName] = Evaluate(inwardMapping.Expression, connectedSystemItem);
+							stateItem[inwardMapping.Field] = Evaluate(inwardMapping.Expression, connectedSystemItem);
 						}
 
 						var outwardUpdateRequired = false;
 						foreach (var outwardMapping in outwardMappings)
 						{
 							var evaluatedValue = Evaluate(outwardMapping.Expression, stateItem);
-							if (connectedSystemItem[outwardMapping.FieldName].ToString() != evaluatedValue)
+							if (connectedSystemItem[outwardMapping.Field].ToString() != evaluatedValue)
 							{
-								connectedSystemItem[outwardMapping.FieldName] = evaluatedValue;
+								connectedSystemItem[outwardMapping.Field] = evaluatedValue;
 								outwardUpdateRequired = true;
 							}
 						}
@@ -142,6 +152,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						break;
 					default:
 						// TODO - handle this
+						_logger.LogWarning($"Got {stateMatches.Count} matches, expected 0 or 1");
 						break;
 				}
 			}
@@ -162,7 +173,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						var newItem = new JObject();
 						foreach (var outwardMapping in outwardMappings)
 						{
-							newItem[outwardMapping.FieldName] = Evaluate(outwardMapping.Expression, unseenStateItem);
+							newItem[outwardMapping.Field] = Evaluate(outwardMapping.Expression, unseenStateItem);
 						}
 						CreateOutwards(dataSet, newItem);
 						break;
@@ -170,6 +181,30 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");
 				}
 			}
+		}
+
+		private static Mapping GetJoinMapping(ConnectedSystemDataSet dataSet)
+		{
+			// Only a single mapping may be of type "Join"
+			// The join evaluation is always on the connected system
+			var joinMapping = dataSet.Mappings.SingleOrDefault(m => m.Direction == SyncDirection.Join);
+			if (joinMapping == null)
+			{
+				throw new ConfigurationException($"DataSet {dataSet.Name} does not have exactly one mapping of type Join.");
+			}
+			// We have a single Join mapping
+
+			if (string.IsNullOrWhiteSpace(joinMapping.Field))
+			{
+				throw new ConfigurationException($"DataSet {dataSet.Name} Join mapping does not have a non-empty {nameof(joinMapping.Field)} defined.");
+			}
+
+			if (string.IsNullOrWhiteSpace(joinMapping.Expression))
+			{
+				throw new ConfigurationException($"DataSet {dataSet.Name} Join mapping does not have a non-empty {nameof(joinMapping.Expression)} defined.");
+			}
+
+			return joinMapping;
 		}
 
 		/// <summary>

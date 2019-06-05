@@ -24,6 +24,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The destination field name
 		/// </summary>
 		[DataMember(Name = "Field")]
-		public string FieldName { get; set; }
+		public string Field { get; set; }
 	}
 }
