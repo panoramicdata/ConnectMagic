@@ -1,4 +1,4 @@
-﻿using NCalc;
+﻿using PanoramicData.NCalcExtensions;
 using System;
 using System.Text.RegularExpressions;
 
@@ -27,8 +27,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				switch (tokenType)
 				{
 					case "ncalc":
-						var nCalcExpression = new Expression(expressionText);
-						nCalcExpression.EvaluateFunction += NCalcExtensions.NCalcExtensions.Extend;
+						var nCalcExpression = new ExtendedExpression(expressionText);
 						evaluationResult = nCalcExpression.Evaluate().ToString();
 						break;
 					default:

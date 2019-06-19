@@ -3,6 +3,7 @@ using NCalc;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
+using PanoramicData.NCalcExtensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,13 +39,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <returns></returns>
 		internal string Evaluate(string systemExpression, JObject item)
 		{
-			var nCalcExpression = new Expression(systemExpression);
-			nCalcExpression.EvaluateFunction += NCalcExtensions.NCalcExtensions.Extend;
+			var nCalcExpression = new ExtendedExpression(systemExpression);
 			nCalcExpression.Parameters = item.ToObject<Dictionary<string, object>>();
 			try
 			{
-				var evaluationResult = nCalcExpression.Evaluate().ToString();
-				return evaluationResult;
+				return nCalcExpression.Evaluate().ToString();
 			}
 			catch (ArgumentException ex)
 			{
