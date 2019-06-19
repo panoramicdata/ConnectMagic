@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -10,6 +9,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	[DataContract]
 	public class ConnectedSystemDataSet : DataSet
 	{
+		/// <summary>
+		/// The name of the State DataSet to sync with
+		/// </summary>
+		public string StateDataSetName { get; set; }
+
 		/// <summary>
 		/// The expression by which the connected system is queried
 		/// The language for this will vary per system

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using NCalc;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
@@ -57,12 +56,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		protected void ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 		{
-			_logger.LogDebug($"Processing DataSet {dataSet.Name}");
+			_logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
 
 			// Get the fieldSet
-			if (!State.ItemLists.TryGetValue(dataSet.Name, out var stateItemList))
+			if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
 			{
-				stateItemList = State.ItemLists[dataSet.Name] = new ItemList();
+				stateItemList = State.ItemLists[dataSet.StateDataSetName] = new ItemList();
 			}
 
 			// Get the list of items present in both
