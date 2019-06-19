@@ -191,17 +191,30 @@ namespace PanoramicData.ConnectMagic.Service
 				while (true)
 				{
 					_logger.LogInformation($"{connectedSystemManager.ConnectedSystem.Type}: Refreshing DataSets");
-
 					connectedSystemManager.Stats.LastSyncStarted = DateTimeOffset.UtcNow;
 
-					await connectedSystemManager
-						.RefreshDataSetsAsync(cancellationToken)
-						.ConfigureAwait(false);
+					try
+					{
+						await connectedSystemManager
+							.RefreshDataSetsAsync(cancellationToken)
+							.ConfigureAwait(false);
+					}
+					catch (Exception e)
+					{
+						_logger.LogError(e, $"Unexpected exception in ConnectedSystemTask: {e.Message}");
+					}
 
 					connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;
 
+					var lastDurationMs = (connectedSystemManager.Stats.LastSyncCompleted - connectedSystemManager.Stats.LastSyncStarted).TotalMilliseconds;
+
+					var desiredDelayMs = (connectedSystemManager.ConnectedSystem.LoopPeriodicitySeconds * 1000) - lastDurationMs;
+
+					var delayMs = (int)Math.Max(1000, desiredDelayMs);
+
+					_logger.LogDebug($"Delaying {delayMs}ms before next sync.");
 					await Task
-						.Delay(1000, cancellationToken)
+						.Delay(delayMs, cancellationToken)
 						.ConfigureAwait(false);
 				}
 			}

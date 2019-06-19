@@ -1,10 +1,13 @@
 using Certify.Api;
+using Certify.Api.Models;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,42 +32,54 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
+				List<JObject> connectedSystemItems;
 				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
-				var query = new SubstitutionString(new JObject(dataSet.QueryConfig)["Query"]?.ToString() ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'")).ToString();
+				var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
 
 				var configItems = query.Split('/');
 				var type = configItems[0];
-				switch(type)
+				try
 				{
-					default:
-						// TODO HERE!!!!
-						throw new NotSupportedException();
+					switch (type)
+					{
+						case "exprptglds":
+							var exprptgldsConfig = new ExprptgldsConfig(configItems.Skip(1).ToList());
+							// We have the index
+							ExpenseReportGldPage expenseReportGldPage = await _certifyClient
+								.ExpenseReportGlds
+								.GetPageAsync(exprptgldsConfig.Index, active: 1)
+								.ConfigureAwait(false);
+
+							connectedSystemItems = expenseReportGldPage
+								.ExpenseReportGlds
+								.Select(entity => JObject.FromObject(entity))
+								.ToList();
+							break;
+						default:
+							throw new NotSupportedException();
+					}
+				}
+				catch (Exception e)
+				{
+					_logger.LogError($"Could not fetch {type} due to {e.Message}");
+					throw;
 				}
 
-				var index = uint.Parse(query);
-				var id = Guid.Empty;
-
-				var items = await _certifyClient.ExpenseReportGlds
-					.GetAsync(index, id)
-					.ConfigureAwait(false);
-
-				// TODO populate the list from the source system
-				var connectedSystemItems = new List<JObject>();
 				ProcessConnectedSystemItems(dataSet, connectedSystemItems);
 			}
 		}
 
 		/// <inheritdoc />
 		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> _logger.LogInformation("Create entry in Certify");
+			=> _logger.LogInformation($"Create '{dataSet.Name}' entry in Certify:\n{connectedSystemItem.ToString(Formatting.Indented)}");
 
 		/// <inheritdoc />
 		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> _logger.LogInformation("Update entry in Certify");
+			=> _logger.LogInformation($"Update '{dataSet.Name}' entry in Certify:\n{connectedSystemItem.ToString(Formatting.Indented)}");
 
 		/// <inheritdoc />
 		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> _logger.LogInformation($"Delete entry in Certify");
+			=> _logger.LogInformation($"Delete '{dataSet.Name}' entry in Certify:\n{connectedSystemItem.ToString(Formatting.Indented)}");
 
 		public override Task<object> QueryLookupAsync(string query, string field)
 			=> throw new NotSupportedException();

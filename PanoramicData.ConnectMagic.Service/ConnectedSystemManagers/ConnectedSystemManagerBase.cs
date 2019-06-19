@@ -4,7 +4,6 @@ using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicData.ConnectMagic.Service.Ncalc;
-using PanoramicData.NCalcExtensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,161 +63,168 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		protected void ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 		{
-			_logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
-
-			// Get the fieldSet
-			if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
+			try
 			{
-				stateItemList = State.ItemLists[dataSet.StateDataSetName] = new ItemList();
-			}
+				_logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
 
-			// Get the list of items present in both
-			// Get the list of items present in the ConnectedSystem, but not present in the FieldSet
-			// Get the list of items present in the FieldSet, but not present in the ConnectedSystem
+				// Get the fieldSet
+				if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
+				{
+					stateItemList = State.ItemLists[dataSet.StateDataSetName] = new ItemList();
+				}
 
-			// Clone the fieldSet, removing items that we have seen
-			var unseenStateItems = new List<JObject>(stateItemList);
+				// Get the list of items present in both
+				// Get the list of items present in the ConnectedSystem, but not present in the FieldSet
+				// Get the list of items present in the FieldSet, but not present in the ConnectedSystem
 
-			var joinMapping = GetJoinMapping(dataSet);
+				// Clone the fieldSet, removing items that we have seen
+				var unseenStateItems = new List<JObject>(stateItemList);
 
-			// Inward mappings
-			var inwardMappings = dataSet
-				.Mappings
-				.Where(m => m.Direction == SyncDirection.In)
-				.ToList();
+				var joinMapping = GetJoinMapping(dataSet);
 
-			// Outward mappings
-			var outwardMappings = dataSet
-				.Mappings
-				.Where(m => m.Direction == SyncDirection.Out)
-				.ToList();
-
-			// Go through each ConnectedSystem item and see if it is present in the State FieldSet
-			foreach (var connectedSystemItem in connectedSystemItems)
-			{
-				var systemJoinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem);
-
-				var stateMatches = stateItemList
-					.Where(fs => fs[joinMapping.StateExpression].ToString() == systemJoinValue)
+				// Inward mappings
+				var inwardMappings = dataSet
+					.Mappings
+					.Where(m => m.Direction == SyncDirection.In)
 					.ToList();
 
-				// There should be zero or one matches.
-				// Any more and there is a matching issue
-				switch (stateMatches.Count)
+				// Outward mappings
+				var outwardMappings = dataSet
+					.Mappings
+					.Where(m => m.Direction == SyncDirection.Out)
+					.ToList();
+
+				// Go through each ConnectedSystem item and see if it is present in the State FieldSet
+				foreach (var connectedSystemItem in connectedSystemItems)
 				{
-					case 0:
-						switch (dataSet.CreateDeleteDirection)
-						{
-							case SyncDirection.None:
-								break;
-							case SyncDirection.In:
-								// Add it to State
-								var newItem = new JObject();
-								foreach (var inwardMapping in inwardMappings)
+					var systemJoinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem);
+
+					var stateMatches = stateItemList
+						.Where(fs => Evaluate(joinMapping.StateExpression, fs) == systemJoinValue)
+						.ToList();
+
+					// There should be zero or one matches.
+					// Any more and there is a matching issue
+					switch (stateMatches.Count)
+					{
+						case 0:
+							switch (dataSet.CreateDeleteDirection)
+							{
+								case SyncDirection.None:
+									break;
+								case SyncDirection.In:
+									// Add it to State
+									var newItem = new JObject();
+									foreach (var inwardMapping in inwardMappings)
+									{
+										newItem[inwardMapping.StateExpression] = Evaluate(inwardMapping.SystemExpression, connectedSystemItem);
+									}
+									// Need to add the join field also so we can compare as part of the check to see whether it exists above
+									newItem[joinMapping.StateExpression] = Evaluate(joinMapping.SystemExpression, connectedSystemItem);
+									stateItemList.Add(newItem);
+									break;
+								case SyncDirection.Out:
+									// Remove it from ConnectedSystem
+									if (State.IsConnectedSystemsSyncCompletedOnce())
+									{
+										DeleteOutwards(dataSet, connectedSystemItem);
+									}
+									else
+									{
+										_logger.LogDebug("Delaying deletes until all ConnectedSystems have retrieved data");
+									}
+									break;
+								default:
+									throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");
+							}
+							break;
+						case 1:
+							var stateItem = stateMatches.Single();
+
+							// Remove the stateItem from the unseen list
+							unseenStateItems.Remove(stateItem);
+
+							// TODO - later, might want to log/count that a change has happened.
+							// For now, just overwrite in each direction.
+							var updateCount = 0;
+							foreach (var inwardMapping in inwardMappings)
+							{
+								var newValue = Evaluate(inwardMapping.SystemExpression, connectedSystemItem);
+								var existing = stateItem[inwardMapping.StateExpression];
+								if (existing.ToString() != newValue)
 								{
-									newItem[inwardMapping.StateExpression] = Evaluate(inwardMapping.SystemExpression, connectedSystemItem);
+									_logger.LogDebug($"Updated entry with {joinMapping.StateExpression} {systemJoinValue}. {inwardMapping.StateExpression} changed from '{existing}' to '{newValue}'");
+									stateItem[inwardMapping.StateExpression] = newValue;
+									updateCount++;
 								}
-								// Need to add the join field also so we can compare as part of the check to see whether it exists above
-								newItem[joinMapping.StateExpression] = Evaluate(joinMapping.SystemExpression, connectedSystemItem);
-								stateItemList.Add(newItem);
-								break;
-							case SyncDirection.Out:
-								// Remove it from ConnectedSystem
+							}
+
+							_logger.LogTrace($"{updateCount} field updates for entry with {joinMapping.StateExpression} {systemJoinValue}");
+
+							var outwardUpdateRequired = false;
+							foreach (var outwardMapping in outwardMappings)
+							{
+								var evaluatedValue = Evaluate(outwardMapping.SystemExpression, stateItem);
+								if (connectedSystemItem[outwardMapping.StateExpression].ToString() != evaluatedValue)
+								{
+									connectedSystemItem[outwardMapping.StateExpression] = evaluatedValue;
+									outwardUpdateRequired = true;
+								}
+							}
+							if (outwardUpdateRequired)
+							{
 								if (State.IsConnectedSystemsSyncCompletedOnce())
 								{
-									DeleteOutwards(dataSet, connectedSystemItem);
+									UpdateOutwards(dataSet, connectedSystemItem);
 								}
 								else
 								{
-									_logger.LogInformation("Delaying deletes until all ConnectedSystems have retrieved data");
+									_logger.LogDebug("Delaying updates until all ConnectedSystems have retrieved data");
 								}
-								break;
-							default:
-								throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");
-						}
-						break;
-					case 1:
-						var stateItem = stateMatches.Single();
-
-						// Remove the stateItem from the unseen list
-						unseenStateItems.Remove(stateItem);
-
-						// TODO - later, might want to log/count that a change has happened.
-						// For now, just overwrite in each direction.
-						var updateCount = 0;
-						foreach (var inwardMapping in inwardMappings)
-						{
-							var newValue = Evaluate(inwardMapping.SystemExpression, connectedSystemItem);
-							var existing = stateItem[inwardMapping.StateExpression];
-							if (existing.ToString() != newValue)
-							{
-								_logger.LogDebug($"Updated entry with {joinMapping.StateExpression} {systemJoinValue}. {inwardMapping.StateExpression} changed from '{existing}' to '{newValue}'");
-								stateItem[inwardMapping.StateExpression] = newValue;
-								updateCount++;
 							}
-						}
+							break;
+						default:
+							// TODO - handle this
+							_logger.LogWarning($"Got {stateMatches.Count} matches, expected 0 or 1");
+							break;
+					}
+				}
 
-						_logger.LogTrace($"{updateCount} field updates for entry with {joinMapping.StateExpression} {systemJoinValue}");
-
-						var outwardUpdateRequired = false;
-						foreach (var outwardMapping in outwardMappings)
-						{
-							var evaluatedValue = Evaluate(outwardMapping.SystemExpression, stateItem);
-							if (connectedSystemItem[outwardMapping.StateExpression].ToString() != evaluatedValue)
+				// Push the unseen items
+				foreach (var unseenStateItem in unseenStateItems)
+				{
+					switch (dataSet.CreateDeleteDirection)
+					{
+						case SyncDirection.None:
+							break;
+						case SyncDirection.In:
+							// Remove it from State
+							stateItemList.Remove(unseenStateItem);
+							break;
+						case SyncDirection.Out:
+							// Add it to the ConnectedSystem
+							var newItem = new JObject();
+							foreach (var outwardMapping in outwardMappings)
 							{
-								connectedSystemItem[outwardMapping.StateExpression] = evaluatedValue;
-								outwardUpdateRequired = true;
+								newItem[outwardMapping.SystemExpression] = Evaluate(outwardMapping.StateExpression, unseenStateItem);
 							}
-						}
-						if (outwardUpdateRequired)
-						{
 							if (State.IsConnectedSystemsSyncCompletedOnce())
 							{
-								UpdateOutwards(dataSet, connectedSystemItem);
+								CreateOutwards(dataSet, newItem);
 							}
 							else
 							{
-								_logger.LogInformation("Delaying updates until all ConnectedSystems have retrieved data");
+								_logger.LogDebug("Delaying creates until all ConnectedSystems have retrieved data");
 							}
-						}
-						break;
-					default:
-						// TODO - handle this
-						_logger.LogWarning($"Got {stateMatches.Count} matches, expected 0 or 1");
-						break;
+							break;
+						default:
+							throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");
+					}
 				}
 			}
-
-			// Push the unseen items
-			foreach (var unseenStateItem in unseenStateItems)
+			catch (Exception e)
 			{
-				switch (dataSet.CreateDeleteDirection)
-				{
-					case SyncDirection.None:
-						break;
-					case SyncDirection.In:
-						// Remove it from State
-						stateItemList.Remove(unseenStateItem);
-						break;
-					case SyncDirection.Out:
-						// Add it to the ConnectedSystem
-						var newItem = new JObject();
-						foreach (var outwardMapping in outwardMappings)
-						{
-							newItem[outwardMapping.SystemExpression] = Evaluate(outwardMapping.StateExpression, unseenStateItem);
-						}
-						if (State.IsConnectedSystemsSyncCompletedOnce())
-						{
-							CreateOutwards(dataSet, newItem);
-						}
-						else
-						{
-							_logger.LogInformation("Delaying creates until all ConnectedSystems have retrieved data");
-						}
-						break;
-					default:
-						throw new NotSupportedException($"Unexpected dataSet.CreateDeleteDirection {dataSet.CreateDeleteDirection} in DataSet {dataSet.Name}");
-				}
+				_logger.LogError(e, $"Unhandled exception in ProcessConnectedSystemItems {e.Message}");
 			}
 		}
 

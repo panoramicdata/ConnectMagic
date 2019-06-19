@@ -34,5 +34,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		[DataMember(Name = "IsEnabled")]
 		public bool IsEnabled { get; set; } = true;
+
+		/// <summary>
+		/// The desired loop periodicity, in seconds
+		/// </summary>
+		[DataMember(Name = "LoopPeriodicitySeconds")]
+		public int LoopPeriodicitySeconds { get; set; } = 30;
 	}
 }
