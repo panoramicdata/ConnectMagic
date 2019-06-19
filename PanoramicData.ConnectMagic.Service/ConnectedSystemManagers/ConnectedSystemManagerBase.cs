@@ -1,20 +1,24 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
+using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
+using PanoramicData.ConnectMagic.Service.Ncalc;
 using PanoramicData.NCalcExtensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal abstract class ConnectedSystemManagerBase
+	internal abstract class ConnectedSystemManagerBase : IConnectedSystemManager
 	{
 		/// <summary>
 		/// The connected system
 		/// </summary>
-		protected ConnectedSystem ConnectedSystem { get; }
+		public ConnectedSystem ConnectedSystem { get; }
 
 		/// <summary>
 		/// The state
@@ -38,8 +42,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <returns></returns>
 		internal string Evaluate(string systemExpression, JObject item)
 		{
-			var nCalcExpression = new ExtendedExpression(systemExpression);
-			nCalcExpression.Parameters = item.ToObject<Dictionary<string, object>>();
+			var parameters = item.ToObject<Dictionary<string, object>>();
+			parameters.Add("State", State);
+			var nCalcExpression = new ConnectMagicExpression(systemExpression)
+			{
+				Parameters = parameters
+			};
 			try
 			{
 				return nCalcExpression.Evaluate().ToString();
@@ -116,7 +124,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								break;
 							case SyncDirection.Out:
 								// Remove it from ConnectedSystem
-								if (State.IsConnectedSystemsSyncCompletedOnce)
+								if (State.IsConnectedSystemsSyncCompletedOnce())
 								{
 									DeleteOutwards(dataSet, connectedSystemItem);
 								}
@@ -164,7 +172,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						}
 						if (outwardUpdateRequired)
 						{
-							if (State.IsConnectedSystemsSyncCompletedOnce)
+							if (State.IsConnectedSystemsSyncCompletedOnce())
 							{
 								UpdateOutwards(dataSet, connectedSystemItem);
 							}
@@ -197,9 +205,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						var newItem = new JObject();
 						foreach (var outwardMapping in outwardMappings)
 						{
-							newItem[outwardMapping.StateExpression] = Evaluate(outwardMapping.SystemExpression, unseenStateItem);
+							newItem[outwardMapping.SystemExpression] = Evaluate(outwardMapping.StateExpression, unseenStateItem);
 						}
-						if (State.IsConnectedSystemsSyncCompletedOnce)
+						if (State.IsConnectedSystemsSyncCompletedOnce())
 						{
 							CreateOutwards(dataSet, newItem);
 						}
@@ -258,5 +266,25 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, to be created in the ConnectedSystem.</param>
 		internal abstract void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+
+		/// <summary>
+		/// Refresh DataSets
+		/// </summary>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public abstract Task RefreshDataSetsAsync(CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Query Lookup
+		/// </summary>
+		/// <param name="query"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
+		public abstract Task<object> QueryLookupAsync(string query, string field);
+
+		/// <summary>
+		/// Stats
+		/// </summary
+		public ConnectedSystemStats Stats { get; } = new ConnectedSystemStats();
 	}
 }

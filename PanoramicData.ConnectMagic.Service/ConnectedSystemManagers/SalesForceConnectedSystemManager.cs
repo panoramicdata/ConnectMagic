@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
-using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal class SalesForceConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
+	internal class SalesForceConnectedSystemManager : ConnectedSystemManagerBase
 	{
 		private readonly ILogger _logger;
 
@@ -22,7 +22,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			//salesForceClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 		}
 
-		public Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
@@ -48,5 +48,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <inheritdoc />
 		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new System.NotImplementedException();
+
+		public override Task<object> QueryLookupAsync(string query, string field)
+			=> throw new NotSupportedException();
 	}
 }

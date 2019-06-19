@@ -120,7 +120,7 @@ namespace PanoramicData.ConnectMagic.Service
 		/// <param name="cancellationToken"></param>
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
-			_logger.LogInformation($"Starting {Program.ProductName} {ThisAssembly.AssemblyInformationalVersion}...");
+			_logger.LogInformation($"Starting {Program.ProductName} {ThisAssembly.AssemblyFileVersion}...");
 
 			// Add an unhandled exception handler
 			var currentDomain = AppDomain.CurrentDomain;
@@ -141,20 +141,18 @@ namespace PanoramicData.ConnectMagic.Service
 				_logger.LogError(e, $"Could not load state from file: '{e.Message}'");
 			}
 
-			var enabledSystems = _configuration.ConnectedSystems.Where(cs => cs.IsEnabled);
-
-			// Initialise the ConnectedSystemStats
-			foreach (var connectedSystem in enabledSystems)
-			{
-				_state.ConnectedSystemStats[connectedSystem.Name] = new ConnectedSystemStats();
-			}
+			_state.ConnectedSystemManagers = _configuration
+				.ConnectedSystems
+				.Where(cs => cs.IsEnabled)
+				.Select(cs => CreateConnectedSystemManager(cs, _state))
+				.ToDictionary(csm => csm.ConnectedSystem.Name);
 
 			// Create RemoteSystemTasks
-			foreach (var connectedSystem in enabledSystems)
+			foreach (var connectedSystemManager in _state.ConnectedSystemManagers.Values)
 			{
 				// TODO - DA: What to do if one of the connected systems faults? Restart all, or continue to attempt to restart that system?
 				_connectedSystemTasks.Add(
-					ConnectedSystemTask(connectedSystem, _state, _cancellationTokenSource.Token)
+					ConnectedSystemTask(connectedSystemManager, _cancellationTokenSource.Token)
 					.ContinueWith(faultingTask =>
 					{
 						var sb = new StringBuilder();
@@ -169,7 +167,7 @@ namespace PanoramicData.ConnectMagic.Service
 						{
 							sb.AppendLine("The exception was not set");
 						}
-						_logger.LogError($"Exception in system task for connected system {connectedSystem?.Name}: {sb}");
+						_logger.LogError($"Exception in system task for connected system {connectedSystemManager.ConnectedSystem.Name}: {sb}");
 					}, TaskContinuationOptions.OnlyOnFaulted)
 				);
 			}
@@ -182,28 +180,25 @@ namespace PanoramicData.ConnectMagic.Service
 		/// <summary>
 		/// Performs all activity relating to one system
 		/// </summary>
-		/// <param name="connectedSystem">The connected system</param>
+		/// <param name="connectedSystemManager">The connected system manager</param>
 		/// <param name="cancellationToken">The cancellation token</param>
 		public async Task ConnectedSystemTask(
-			ConnectedSystem connectedSystem,
-			State state,
+			IConnectedSystemManager connectedSystemManager,
 			CancellationToken cancellationToken)
 		{
 			try
 			{
-				var connectedSystemManager = CreateConnectedSystemManager(connectedSystem, state);
-
 				while (true)
 				{
-					_logger.LogInformation($"{connectedSystem.Type}: Refreshing DataSets");
+					_logger.LogInformation($"{connectedSystemManager.ConnectedSystem.Type}: Refreshing DataSets");
 
-					state.MarkSyncStarted(connectedSystem);
+					connectedSystemManager.Stats.LastSyncStarted = DateTimeOffset.UtcNow;
 
 					await connectedSystemManager
 						.RefreshDataSetsAsync(cancellationToken)
 						.ConfigureAwait(false);
 
-					state.MarkSyncCompleted(connectedSystem);
+					connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;
 
 					await Task
 						.Delay(1000, cancellationToken)
@@ -213,7 +208,7 @@ namespace PanoramicData.ConnectMagic.Service
 			catch (OperationCanceledException e)
 			{
 				// This is OK - happens when a termination message is sent via the CancellationToken
-				_logger.LogTrace(e, $"Task for connected system '{connectedSystem.Name}' canceled.");
+				_logger.LogTrace(e, $"Task for connected system '{connectedSystemManager.ConnectedSystem.Name}' canceled.");
 			}
 		}
 

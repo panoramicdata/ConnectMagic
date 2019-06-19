@@ -2,14 +2,15 @@ using AutoTask.Api;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
-using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
+using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal class AutoTaskConnectedSystemManager : ConnectedSystemManagerBase, IConnectedSystemManager
+	internal class AutoTaskConnectedSystemManager : ConnectedSystemManagerBase
 	{
 		private readonly Client autoTaskClient;
 		private readonly ILogger _logger;
@@ -24,7 +25,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_logger = logger;
 		}
 
-		public async System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override async System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
@@ -57,5 +58,38 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <inheritdoc />
 		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new System.NotImplementedException();
+
+		public override async Task<object> QueryLookupAsync(string query, string field)
+		{
+			try
+			{
+				_logger.LogDebug("Performing lookup.");
+				var autoTaskResult = (await autoTaskClient
+							.ExecuteQueryAsync(query)
+							.ConfigureAwait(false))
+							.ToList();
+
+				if (autoTaskResult.Count != 1)
+				{
+					throw new ConfigurationException($"Got {autoTaskResult.Count} results for QueryLookup.  There can be only 1!");
+				}
+
+				// Convert to JObjects for easier generic manipulation
+				var connectedSystemItem = autoTaskResult
+					.Select(entity => JObject.FromObject(entity))
+					.Single();
+
+				if (!connectedSystemItem.TryGetValue(field, out var result))
+				{
+					throw new ConfigurationException($"Field {field} not present for QueryLookup.");
+				}
+				return result;
+			}
+			catch (Exception e)
+			{
+				_logger.LogError(e, "Failed to Lookup");
+				throw;
+			}
+		}
 	}
 }

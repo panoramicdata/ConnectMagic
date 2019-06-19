@@ -1,4 +1,4 @@
-﻿using PanoramicData.NCalcExtensions;
+﻿using PanoramicData.ConnectMagic.Service.Ncalc;
 using System;
 using System.Text.RegularExpressions;
 
@@ -27,8 +27,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				switch (tokenType)
 				{
 					case "ncalc":
-						var nCalcExpression = new ExtendedExpression(expressionText);
-						evaluationResult = nCalcExpression.Evaluate().ToString();
+						var connectMagicExpression = new ConnectMagicExpression(expressionText);
+						evaluationResult = connectMagicExpression.Evaluate().ToString();
 						break;
 					default:
 						throw new NotSupportedException($"Unsupported token type {tokenType}");

@@ -1,10 +1,13 @@
 ﻿using Newtonsoft.Json;
+using PanoramicData.ConnectMagic.Service.Exceptions;
+using PanoramicData.ConnectMagic.Service.Interfaces;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.Models
 {
@@ -34,12 +37,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		public ConcurrentDictionary<string, ItemList> ItemLists { get; set; } = new ConcurrentDictionary<string, ItemList>();
 
-		/// <summary>
-		/// Used internally to centrally store stats for systems
-		/// </summary>
-		[IgnoreDataMember]
-		internal ConcurrentDictionary<string, ConnectedSystemStats> ConnectedSystemStats { get; set; } = new ConcurrentDictionary<string, ConnectedSystemStats>();
-
 		public static State FromFile(FileInfo fileInfo)
 		{
 			// On first start-up, there will be no file
@@ -60,6 +57,17 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			}
 		}
 
+		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, string queryLookupQuery, string queryLookupField)
+		{
+			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
+			{
+				throw new ConfigurationException($"Could not find QueryLookup connected system manager for connected system {queryLookupConnectedSystemName}");
+			}
+			return await connectedSystemManager
+				.QueryLookupAsync(queryLookupQuery, queryLookupField)
+				.ConfigureAwait(false);
+		}
+
 		public void Save(FileInfo fileInfo)
 		{
 			// Serialize JSON directly to a file
@@ -70,28 +78,16 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			}
 		}
 
-		public void MarkSyncStarted(ConnectedSystem connectedSystem)
-		{
-			var stats = GetStats(connectedSystem);
-			stats.LastSyncStarted = DateTimeOffset.UtcNow;
-		}
-
-		public void MarkSyncCompleted(ConnectedSystem connectedSystem)
-		{
-			var stats = GetStats(connectedSystem);
-			stats.LastSyncCompleted = DateTimeOffset.UtcNow;
-		}
-
 		/// <summary>
 		/// Determines whether all ConnectedSystems have finished sync at least once
 		/// </summary>
 		/// <returns>True if all ConnectedSystems have finished sync at least once</returns>
-		public bool IsConnectedSystemsSyncCompletedOnce
-			=> _allHaveSyncedOnce || (_allHaveSyncedOnce = ConnectedSystemStats.All(css => css.Value.LastSyncCompleted > DateTimeOffset.MinValue));
+		public bool IsConnectedSystemsSyncCompletedOnce()
+			=> _allHaveSyncedOnce || (_allHaveSyncedOnce = ConnectedSystemManagers.Values.All(csm => csm.Stats.LastSyncCompleted > DateTimeOffset.MinValue));
 
-		private ConnectedSystemStats GetStats(ConnectedSystem connectedSystem)
-			=> ConnectedSystemStats.TryGetValue(connectedSystem.Name, out var stats)
-				? stats
-				: ConnectedSystemStats[connectedSystem.Name] = new ConnectedSystemStats();
+		/// <summary>
+		/// The ConnectedSystemManagers
+		/// </summary>
+		public Dictionary<string, IConnectedSystemManager> ConnectedSystemManagers { get; set; }
 	}
 }
