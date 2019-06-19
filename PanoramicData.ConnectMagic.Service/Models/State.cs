@@ -14,6 +14,8 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	[DataContract]
 	public class State
 	{
+		private bool _allHaveSyncedOnce;
+
 		/// <summary>
 		/// The cache filename
 		/// </summary>
@@ -85,8 +87,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		/// <returns>True if all ConnectedSystems have finished sync at least once</returns>
 		public bool IsConnectedSystemsSyncCompletedOnce
-			// TODO - Cache this as true once all have completed
-			=> ConnectedSystemStats.All(css => css.Value.LastSyncCompleted > DateTimeOffset.MinValue);
+			=> _allHaveSyncedOnce || (_allHaveSyncedOnce = ConnectedSystemStats.All(css => css.Value.LastSyncCompleted > DateTimeOffset.MinValue));
 
 		private ConnectedSystemStats GetStats(ConnectedSystem connectedSystem)
 			=> ConnectedSystemStats.TryGetValue(connectedSystem.Name, out var stats)

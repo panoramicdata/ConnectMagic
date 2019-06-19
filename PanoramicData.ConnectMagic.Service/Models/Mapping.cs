@@ -11,8 +11,8 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// An expression to evaluated against the source
 		/// </summary>
-		[DataMember(Name = "Expression")]
-		public string Expression { get; set; }
+		[DataMember(Name = "SystemExpression")]
+		public string SystemExpression { get; set; }
 
 		/// <summary>
 		/// Name
@@ -23,7 +23,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The destination field name
 		/// </summary>
-		[DataMember(Name = "Field")]
-		public string Field { get; set; }
+		[DataMember(Name = "StateField")]
+		public string StateExpression { get; set; }
 	}
 }
