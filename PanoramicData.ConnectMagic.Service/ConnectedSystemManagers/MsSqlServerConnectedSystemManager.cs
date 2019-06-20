@@ -57,12 +57,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		public override Task<object> QueryLookupAsync(string query, string field) => throw new NotImplementedException();
+		public override Task<object> QueryLookupAsync(string query, string field)
+			=> throw new NotSupportedException();
 
-		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem) => throw new NotImplementedException();
+		// TODO - Use a query "Create" template with token substitution
+		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new NotSupportedException();
 
-		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem) => throw new NotImplementedException();
+		// TODO - Use a query "Delete" template with token substitution
+		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new NotSupportedException();
 
-		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem) => throw new NotImplementedException();
+		// TODO - Use a query "Update" template with token substitution
+		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new NotSupportedException();
 	}
 }
