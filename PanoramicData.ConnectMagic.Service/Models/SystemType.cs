@@ -49,5 +49,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		[EnumMember(Value = "SolarWinds")]
 		SolarWinds,
+
+		/// <summary>
+		/// Microsoft SQL Server
+		/// </summary>
+		[EnumMember(Value = "MsSqlServer")]
+		MsSqlServer,
 	}
 }

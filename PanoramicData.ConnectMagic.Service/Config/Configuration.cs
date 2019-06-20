@@ -46,18 +46,18 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		/// </summary>
 		internal void Validate()
 		{
-			ThereShouldBeAtLeastOneConnectedSystem();
+			ThereShouldBeAtLeastOneEnabledConnectedSystem();
 			AllConnectedSystemsShouldHaveCredentials();
 			AllConnectedSystemsShouldHaveAtLeastOneDataset();
 			AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping();
 			AllConnectedSystemsDataSetsShouldHaveOneJoinMapping();
 		}
 
-		private void ThereShouldBeAtLeastOneConnectedSystem()
+		private void ThereShouldBeAtLeastOneEnabledConnectedSystem()
 		{
-			if (ConnectedSystems == null || ConnectedSystems.Count == 0)
+			if (ConnectedSystems?.All(cs => !cs.IsEnabled) != false)
 			{
-				throw new ConfigurationException($"There should be at least 1 entry in {nameof(ConnectedSystems)}");
+				throw new ConfigurationException($"There should be at least 1 enabled {nameof(ConnectedSystem)}");
 			}
 		}
 
@@ -70,24 +70,30 @@ namespace PanoramicData.ConnectMagic.Service.Config
 					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no Credentials set");
 				}
 
-				if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PublicText))
-				{
-					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} set");
-				}
-
-				if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PublicText))
-				{
-					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} set");
-				}
-
+				// Enforce PublicText & PrivateText
 				switch (connectedSystem.Type)
 				{
 					case SystemType.AutoTask:
 					case SystemType.SalesForce:
 					case SystemType.Certify:
+					case SystemType.LogicMonitor:
+					case SystemType.ServiceNow:
 					case SystemType.SolarWinds:
-						// No other rules
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PublicText))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} set");
+						}
+
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PrivateText))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} set");
+						}
 						break;
+				}
+
+				// Enforce Account
+				switch (connectedSystem.Type)
+				{
 					case SystemType.LogicMonitor:
 					case SystemType.ServiceNow:
 						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.Account))
@@ -95,11 +101,21 @@ namespace PanoramicData.ConnectMagic.Service.Config
 							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.Account)} set");
 						}
 						break;
-					default:
-						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has unsupported ConnectedSystem Type {connectedSystem.Type}");
+				}
+
+				// Enforce ConnectionString
+				switch (connectedSystem.Type)
+				{
+					case SystemType.MsSqlServer:
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.ConnectionString))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ConnectionString)} set");
+						}
+						break;
 				}
 			}
 		}
+
 		private void AllConnectedSystemsShouldHaveAtLeastOneDataset()
 		{
 			foreach (var connectedSystem in ConnectedSystems)

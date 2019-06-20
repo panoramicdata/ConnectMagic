@@ -50,7 +50,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			};
 			try
 			{
-				return nCalcExpression.Evaluate().ToString();
+				return nCalcExpression.Evaluate()?.ToString();
 			}
 			catch (ArgumentException ex)
 			{
@@ -160,8 +160,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							foreach (var inwardMapping in inwardMappings)
 							{
 								var newValue = Evaluate(inwardMapping.SystemExpression, connectedSystemItem);
-								var existing = stateItem[inwardMapping.StateExpression];
-								if (existing.ToString() != newValue)
+								var existing = stateItem.Value<string>(inwardMapping.StateExpression);
+								if (existing != newValue)
 								{
 									_logger.LogDebug($"Updated entry with {joinMapping.StateExpression} {systemJoinValue}. {inwardMapping.StateExpression} changed from '{existing}' to '{newValue}'");
 									stateItem[inwardMapping.StateExpression] = newValue;

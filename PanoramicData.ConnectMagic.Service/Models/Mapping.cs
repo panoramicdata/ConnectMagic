@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
 {
@@ -6,6 +7,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	/// A mapping
 	/// </summary>
 	[DataContract]
+	[DebuggerDisplay("{" + nameof(Direction) + "} | System: '{" + nameof(SystemExpression) + "}' - State: '{" + nameof(StateExpression) + "}'")]
 	public class Mapping
 	{
 		/// <summary>
@@ -23,7 +25,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The destination field name
 		/// </summary>
-		[DataMember(Name = "StateField")]
+		[DataMember(Name = "StateExpression")]
 		public string StateExpression { get; set; }
 	}
 }

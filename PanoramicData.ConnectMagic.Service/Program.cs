@@ -99,11 +99,11 @@ namespace PanoramicData.ConnectMagic.Service
 
 		private static void ConfigureLogging(HostBuilderContext context, ILoggingBuilder loggingBuilder)
 		{
-			Serilog.Debugging.SelfLog.Enable(msg =>
-			{
-				Debug.WriteLine(msg);
-				Console.Error.WriteLine(msg);
-			});
+			//Serilog.Debugging.SelfLog.Enable(msg =>
+			//{
+			//	Debug.WriteLine(msg);
+			//	Console.Error.WriteLine(msg);
+			//});
 
 			// Set up SeriLog
 			var config = context.Configuration.GetSection("Logging");

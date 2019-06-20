@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -14,7 +13,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// Account
 		/// </summary>
-		[DataMember(Name="Account")]
+		[DataMember(Name = "Account")]
 		public string Account { get; set; }
 
 		/// <summary>
@@ -28,5 +27,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		[DataMember(Name = "PrivateText")]
 		public string PrivateText { get; set; }
+
+		/// <summary>
+		/// Connection string, commonly used for database connections
+		/// </summary>
+		[DataMember(Name = "ConnectionString")]
+		public string ConnectionString { get; set; }
 	}
 }

@@ -192,6 +192,9 @@ namespace PanoramicData.ConnectMagic.Service
 				case SystemType.SalesForce:
 					connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesForceConnectedSystemManager>());
 					break;
+				case SystemType.MsSqlServer:
+					connectedSystemManager = new MsSqlServerConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>());
+					break;
 				default:
 					throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
 			}
