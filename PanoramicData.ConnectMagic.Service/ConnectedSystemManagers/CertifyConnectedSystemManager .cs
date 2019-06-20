@@ -1,9 +1,7 @@
 using Certify.Api;
 using Certify.Api.Models;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
@@ -36,7 +34,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 				var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
 
-				var configItems = query.Split('/');
+				var configItems = query.Split('|');
 				var type = configItems[0];
 				try
 				{
@@ -71,15 +69,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		/// <inheritdoc />
 		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> _logger.LogInformation($"Create '{dataSet.Name}' entry in Certify:\n{connectedSystemItem.ToString(Formatting.Indented)}");
+			=> throw new NotImplementedException();
 
 		/// <inheritdoc />
 		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> _logger.LogInformation($"Update '{dataSet.Name}' entry in Certify:\n{connectedSystemItem.ToString(Formatting.Indented)}");
+			=> throw new NotImplementedException();
 
 		/// <inheritdoc />
 		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> _logger.LogInformation($"Delete '{dataSet.Name}' entry in Certify:\n{connectedSystemItem.ToString(Formatting.Indented)}");
+			=> throw new NotImplementedException();
 
 		public override Task<object> QueryLookupAsync(string query, string field)
 			=> throw new NotSupportedException();

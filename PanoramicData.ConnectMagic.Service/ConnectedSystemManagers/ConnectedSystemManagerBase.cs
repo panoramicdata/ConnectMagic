@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
@@ -127,6 +128,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									// Remove it from ConnectedSystem
 									if (State.IsConnectedSystemsSyncCompletedOnce())
 									{
+										// Ensure that creation is permitted
+										if (!CanDelete(dataSet))
+										{
+											_logger.LogInformation($"NOT Deleting '{dataSet.Name}' entry in {ConnectedSystem.Type} :\n{connectedSystemItem.ToString(Formatting.Indented)}");
+											break;
+										}
+
+										// We are making a change
+										_logger.LogInformation($"Deleting '{dataSet.Name}' entry in {ConnectedSystem.Type} :\n{connectedSystemItem.ToString(Formatting.Indented)}");
 										DeleteOutwards(dataSet, connectedSystemItem);
 									}
 									else
@@ -175,6 +185,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							{
 								if (State.IsConnectedSystemsSyncCompletedOnce())
 								{
+									// Ensure that creation is permitted
+									if (!CanUpdate(dataSet))
+									{
+										_logger.LogInformation($"NOT Updating '{dataSet.Name}' entry in {ConnectedSystem.Type} :\n{connectedSystemItem.ToString(Formatting.Indented)}");
+										break;
+									}
+
+									// We are making a change
+									_logger.LogInformation($"Updating '{dataSet.Name}' entry in {ConnectedSystem.Type} :\n{connectedSystemItem.ToString(Formatting.Indented)}");
 									UpdateOutwards(dataSet, connectedSystemItem);
 								}
 								else
@@ -210,6 +229,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 							if (State.IsConnectedSystemsSyncCompletedOnce())
 							{
+								// Ensure that creation is permitted
+								if (!CanCreate(dataSet))
+								{
+									_logger.LogInformation($"NOT Creating '{dataSet.Name}' entry in {ConnectedSystem.Type} :\n{newItem.ToString(Formatting.Indented)}");
+									break;
+								}
+
+								// We are making a change
+								_logger.LogInformation($"Creating '{dataSet.Name}' entry in {ConnectedSystem.Type} :\n{newItem.ToString(Formatting.Indented)}");
 								CreateOutwards(dataSet, newItem);
 							}
 							else
@@ -227,6 +255,24 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				_logger.LogError(e, $"Unhandled exception in ProcessConnectedSystemItems {e.Message}");
 			}
 		}
+
+		private bool CanCreate(ConnectedSystemDataSet dataSet)
+			=> ConnectedSystem.Permissions.CanWrite
+			&& ConnectedSystem.Permissions.CanCreate
+			&& dataSet.Permissions.CanWrite
+			&& dataSet.Permissions.CanCreate;
+
+		private bool CanUpdate(ConnectedSystemDataSet dataSet)
+			=> ConnectedSystem.Permissions.CanWrite
+			&& ConnectedSystem.Permissions.CanUpdate
+			&& dataSet.Permissions.CanWrite
+			&& dataSet.Permissions.CanUpdate;
+
+		private bool CanDelete(ConnectedSystemDataSet dataSet)
+			=> ConnectedSystem.Permissions.CanWrite
+			&& ConnectedSystem.Permissions.CanDelete
+			&& dataSet.Permissions.CanWrite
+			&& dataSet.Permissions.CanDelete;
 
 		private static Mapping GetJoinMapping(ConnectedSystemDataSet dataSet)
 		{

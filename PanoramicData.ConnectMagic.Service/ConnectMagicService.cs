@@ -151,8 +151,9 @@ namespace PanoramicData.ConnectMagic.Service
 			foreach (var connectedSystemManager in _state.ConnectedSystemManagers.Values)
 			{
 				// TODO - DA: What to do if one of the connected systems faults? Restart all, or continue to attempt to restart that system?
+				var connectedSystemPeriodLoop = new ConnectedSystemPeriodLoop(connectedSystemManager, _loggerFactory.CreateLogger<ConnectedSystemPeriodLoop>());
 				_connectedSystemTasks.Add(
-					ConnectedSystemTask(connectedSystemManager, _cancellationTokenSource.Token)
+					connectedSystemPeriodLoop.LoopAsync(TimeSpan.FromSeconds(connectedSystemManager.ConnectedSystem.LoopPeriodicitySeconds), _cancellationTokenSource.Token)
 					.ContinueWith(faultingTask =>
 					{
 						var sb = new StringBuilder();
@@ -175,54 +176,6 @@ namespace PanoramicData.ConnectMagic.Service
 			_logger.LogDebug($"Started {Program.ProductName}.");
 
 			return Task.CompletedTask;
-		}
-
-		/// <summary>
-		/// Performs all activity relating to one system
-		/// </summary>
-		/// <param name="connectedSystemManager">The connected system manager</param>
-		/// <param name="cancellationToken">The cancellation token</param>
-		public async Task ConnectedSystemTask(
-			IConnectedSystemManager connectedSystemManager,
-			CancellationToken cancellationToken)
-		{
-			try
-			{
-				while (true)
-				{
-					_logger.LogInformation($"{connectedSystemManager.ConnectedSystem.Type}: Refreshing DataSets");
-					connectedSystemManager.Stats.LastSyncStarted = DateTimeOffset.UtcNow;
-
-					try
-					{
-						await connectedSystemManager
-							.RefreshDataSetsAsync(cancellationToken)
-							.ConfigureAwait(false);
-					}
-					catch (Exception e)
-					{
-						_logger.LogError(e, $"Unexpected exception in ConnectedSystemTask: {e.Message}");
-					}
-
-					connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;
-
-					var lastDurationMs = (connectedSystemManager.Stats.LastSyncCompleted - connectedSystemManager.Stats.LastSyncStarted).TotalMilliseconds;
-
-					var desiredDelayMs = (connectedSystemManager.ConnectedSystem.LoopPeriodicitySeconds * 1000) - lastDurationMs;
-
-					var delayMs = (int)Math.Max(1000, desiredDelayMs);
-
-					_logger.LogDebug($"Delaying {delayMs}ms before next sync.");
-					await Task
-						.Delay(delayMs, cancellationToken)
-						.ConfigureAwait(false);
-				}
-			}
-			catch (OperationCanceledException e)
-			{
-				// This is OK - happens when a termination message is sent via the CancellationToken
-				_logger.LogTrace(e, $"Task for connected system '{connectedSystemManager.ConnectedSystem.Name}' canceled.");
-			}
 		}
 
 		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state)

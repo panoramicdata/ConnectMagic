@@ -43,5 +43,10 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		[DataMember(Name = "Mappings")]
 		public List<Mapping> Mappings { get; set; }
+
+		/// <summary>
+		/// Permissions
+		/// </summary>
+		public Permissions Permissions { get; set; }
 	}
 }

@@ -7,9 +7,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	{
 		public ExprptgldsConfig(List<string> configItems)
 		{
-			if (configItems.Count < 2 || !uint.TryParse(configItems[1], out var index))
+			if (configItems.Count < 1 || !uint.TryParse(configItems[0], out var index))
 			{
-				throw new ConfigurationException($"An exprptglds query should be in the form: exprptglds/<indexUint>, e.g. exprptglds/3.");
+				throw new ConfigurationException("An exprptglds query should be in the form: exprptglds|<indexUint>, e.g. exprptglds|3.");
 			}
 
 			Index = index;
