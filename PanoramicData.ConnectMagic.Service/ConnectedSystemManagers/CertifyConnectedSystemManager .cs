@@ -1,14 +1,15 @@
 using Certify.Api;
-using Certify.Api.Models;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+[assembly: InternalsVisibleTo("PanoramicData.ConnectMagic.Service.Test")]
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class CertifyConnectedSystemManager : ConnectedSystemManagerBase
@@ -43,7 +44,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						case "exprptglds":
 							var exprptgldsConfig = new ExprptgldsConfig(configItems.Skip(1).ToList());
 							// We have the index
-							ExpenseReportGldPage expenseReportGldPage = await _certifyClient
+							var expenseReportGldPage = await _certifyClient
 								.ExpenseReportGlds
 								.GetPageAsync(exprptgldsConfig.Index, active: 1)
 								.ConfigureAwait(false);

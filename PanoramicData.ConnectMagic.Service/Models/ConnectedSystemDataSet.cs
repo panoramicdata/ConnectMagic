@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using PanoramicData.ConnectMagic.Service.Exceptions;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -48,5 +50,33 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// Permissions
 		/// </summary>
 		public Permissions Permissions { get; set; }
+
+		internal void Validate()
+		{
+			if (string.IsNullOrWhiteSpace(Name))
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)}'s {nameof(Name)} must not be null or empty.");
+			}
+
+			if (string.IsNullOrWhiteSpace(StateDataSetName))
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(StateDataSetName)} must not be null or empty.");
+			}
+
+			if (Mappings == null)
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mappings)} must not be null.");
+			}
+
+			if (Mappings.Count == 0)
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mappings)} must not be empty.");
+			}
+
+			if (Mappings.SingleOrDefault(m => m.Direction == SyncDirection.Join) == null)
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not have exactly one mapping of type Join.");
+			}
+		}
 	}
 }

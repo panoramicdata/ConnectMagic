@@ -6,7 +6,9 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 {
 	public static class NcalcExtensions
 	{
+#pragma warning disable RCS1224 // Make method an extension method.
 		public static void Extend(string functionName, FunctionArgs functionArgs)
+#pragma warning restore RCS1224 // Make method an extension method.
 		{
 			switch (functionName)
 			{

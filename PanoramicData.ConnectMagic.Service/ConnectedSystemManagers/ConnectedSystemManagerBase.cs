@@ -61,8 +61,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		protected void ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
+		protected List<SyncAction> ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 		{
+			// Make sure arguments meet minimum requirements
+			if (dataSet == null)
+			{
+				throw new ArgumentNullException(nameof(dataSet));
+			}
+			dataSet.Validate();
+
+			if (connectedSystemItems == null)
+			{
+				throw new ArgumentNullException(nameof(connectedSystemItems));
+			}
+
 			var actionList = new List<SyncAction>();
 			try
 			{
@@ -71,6 +83,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				// Get the DataSet from state or create it if it doesn't exist
 				if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
 				{
+					_logger.LogDebug($"Observed request to access State DataSet {dataSet.StateDataSetName} for the first time - creating...");
 					stateItemList = State.ItemLists[dataSet.StateDataSetName] = new ItemList();
 				}
 
@@ -207,7 +220,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				// Process the actionlist
 				foreach (var action in actionList)
 				{
-					var permission = DeterminePermission(dataSet, action.Type);
+					var permission = DeterminePermission(ConnectedSystem, dataSet, action.Type);
 
 					switch (action.Type)
 					{
@@ -338,24 +351,25 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 							break;
 					}
-					// TODO this is temp object showing what we want to store
-					var forExcel = new
-					{
-						Permission = permission,
-						Action = action
-					};
+					action.Permission = permission;
 				}
+
+				// Pass the SyncActions out for logging/examining
+				return actionList;
 			}
 			catch (Exception e)
 			{
 				_logger.LogError(e, $"Unhandled exception in ProcessConnectedSystemItems {e.Message}");
+				throw;
 			}
 		}
 
-		// TODO Unit test this!
-		private DataSetPermission DeterminePermission(ConnectedSystemDataSet dataSet, SyncActionType type)
+		/// <summary>
+		/// Determines permissions
+		/// </summary>
+		internal static DataSetPermission DeterminePermission(ConnectedSystem connectedSystem, ConnectedSystemDataSet dataSet, SyncActionType type)
 		{
-			if (!ConnectedSystem.Permissions.CanWrite)
+			if (!connectedSystem.Permissions.CanWrite)
 			{
 				return DataSetPermission.DeniedAtConnectedSystem;
 			}
@@ -367,27 +381,26 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			switch (type)
 			{
 				case SyncActionType.Create:
-					return ConnectedSystem.Permissions.CanCreate && dataSet.Permissions.CanCreate
+					return connectedSystem.Permissions.CanCreate && dataSet.Permissions.CanCreate
 						? DataSetPermission.Allowed
-						: !ConnectedSystem.Permissions.CanCreate
+						: !connectedSystem.Permissions.CanCreate
 							? DataSetPermission.DeniedAtConnectedSystem
 							: DataSetPermission.DeniedAtConnectedSystemDataSet;
 				case SyncActionType.Delete:
-					return ConnectedSystem.Permissions.CanDelete && dataSet.Permissions.CanDelete
+					return connectedSystem.Permissions.CanDelete && dataSet.Permissions.CanDelete
 						? DataSetPermission.Allowed
-						: !ConnectedSystem.Permissions.CanDelete
+						: !connectedSystem.Permissions.CanDelete
 							? DataSetPermission.DeniedAtConnectedSystem
 							: DataSetPermission.DeniedAtConnectedSystemDataSet;
 				case SyncActionType.Update:
-					return ConnectedSystem.Permissions.CanUpdate && dataSet.Permissions.CanUpdate
+					return connectedSystem.Permissions.CanUpdate && dataSet.Permissions.CanUpdate
 						? DataSetPermission.Allowed
-						: !ConnectedSystem.Permissions.CanUpdate
+						: !connectedSystem.Permissions.CanUpdate
 							? DataSetPermission.DeniedAtConnectedSystem
 							: DataSetPermission.DeniedAtConnectedSystemDataSet;
 				default:
 					throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.");
 			}
-
 		}
 
 		private static Mapping GetJoinMapping(ConnectedSystemDataSet dataSet)
