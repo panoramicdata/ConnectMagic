@@ -52,7 +52,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						.Select(entity => JObject.FromObject(entity))
 						.ToList();
 
-					ProcessConnectedSystemItems(dataSet, connectedSystemItems);
+					await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false);
 				}
 			}
 		}

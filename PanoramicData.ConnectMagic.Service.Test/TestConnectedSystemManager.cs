@@ -34,10 +34,11 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			Items.Add("DataSet1", items);
 		}
 
-		public List<SyncAction> TestProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
-			=> ProcessConnectedSystemItems(dataSet, connectedSystemItems);
+		public async Task<List<SyncAction>> TestProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
+			=> await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false);
 
 		public override Task<object> QueryLookupAsync(string query, string field) => throw new System.NotImplementedException();
+
 		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
 			//foreach (var dataSet in ConnectedSystem.Datasets)

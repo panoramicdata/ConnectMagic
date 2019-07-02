@@ -66,7 +66,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					throw;
 				}
 
-				var syncActions = ProcessConnectedSystemItems(dataSet, connectedSystemItems);
+				var syncActions = ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems);
 			}
 		}
 

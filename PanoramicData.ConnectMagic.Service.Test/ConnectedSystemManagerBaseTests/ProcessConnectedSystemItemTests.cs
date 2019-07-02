@@ -18,7 +18,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		}
 
 		[Fact]
-		public void Test()
+		public async System.Threading.Tasks.Task TestAsync()
 		{
 			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
@@ -72,7 +72,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
 			);
 
-			var actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, testConnectedSystemManger.Items[dataSet.Name]);
+			var actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
 			actionList.Should().NotBeNullOrEmpty();
 			actionList.Should().HaveCount(6);
 			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
@@ -81,7 +81,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Delete).Should().HaveCount(1);
 
 			// Process a second time - should be in stable state
-			actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, testConnectedSystemManger.Items[dataSet.Name]);
+			actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
 			actionList.Should().NotBeNullOrEmpty();
 			actionList.Should().HaveCount(5);
 			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();

@@ -61,7 +61,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		protected List<SyncAction> ProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
+		protected async Task<List<SyncAction>> ProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 		{
 			// Make sure arguments meet minimum requirements
 			if (dataSet == null)
@@ -253,7 +253,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											CreateOutwardsAsync(dataSet, newConnectedSystemItem);
+											await CreateOutwardsAsync(dataSet, newConnectedSystemItem).ConfigureAwait(false);
 											// TODO Create should return created object, call update state afterwards
 										}
 									}
@@ -282,7 +282,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											DeleteOutwardsAsync(dataSet, action.StateItem);
+											await DeleteOutwardsAsync(dataSet, action.StateItem).ConfigureAwait(false);
 										}
 									}
 									else
@@ -340,7 +340,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									// We are making a change
 									if (permission == DataSetPermission.Allowed)
 									{
-										UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem);
+										await UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem).ConfigureAwait(false);
 									}
 								}
 								else

@@ -21,10 +21,16 @@ namespace PanoramicData.ConnectMagic.Service
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
 			Logger.LogInformation($"{_connectedSystemManager.ConnectedSystem.Type}: Refreshing DataSets");
+
+			// Note when we last started
 			_connectedSystemManager.Stats.LastSyncStarted = DateTimeOffset.UtcNow;
+
+			// Do the work
 			await _connectedSystemManager
 				.RefreshDataSetsAsync(cancellationToken)
 				.ConfigureAwait(false);
+
+			// This should only be updated if the above went as planned
 			_connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;
 		}
 	}
