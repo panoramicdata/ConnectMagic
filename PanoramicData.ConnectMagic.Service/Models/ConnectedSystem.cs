@@ -33,7 +33,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// DataSets available on the connected system
 		/// </summary>
 		[DataMember(Name = "DataSets")]
-		public List<ConnectedSystemDataSet> Datasets { get; set; }
+		public List<ConnectedSystemDataSet> Datasets { get; set; } = new List<ConnectedSystemDataSet>();
 
 		/// <summary>
 		/// The enabled state of the system, defaults to true
@@ -50,6 +50,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// Permissions
 		/// </summary>
-		public Permissions Permissions { get; set; }
+		public Permissions Permissions { get; set; } = new Permissions();
 	}
 }

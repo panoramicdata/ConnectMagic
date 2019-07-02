@@ -1,5 +1,5 @@
 ﻿using FluentAssertions;
-using Newtonsoft.Json.Linq;
+using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
 using System.Collections.Generic;
 using Xunit;
@@ -19,30 +19,70 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void Test()
 		{
-			var testConnectedSystemManger = new TestConnectedSystemManager(
-				new ConnectedSystem(SystemType.Test, "Test"),
-				new State(),
-				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
-				);
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
+			{
+				Permissions = new Permissions { CanCreate = true, CanDelete = true, CanUpdate = true, CanWrite = true }
+			};
+			var state = new State();
 
 			var dataSet = new ConnectedSystemDataSet
 			{
-				Name = "TestDataSet",
+				CreateDeleteDirection = SyncDirection.In,
+				Name = "DataSet1",
 				StateDataSetName = "TestDataSet",
 				Mappings = new List<Mapping>
 				{
 					new Mapping
 					{
 						Direction = SyncDirection.Join,
-						SystemExpression = "ConnectedSystemKeyA",
-						StateExpression = "StateKeyA"
+						SystemExpression = "ConnectedSystemKey",
+						StateExpression = "Id"
+					},
+					new Mapping
+					{
+						Direction = SyncDirection.In,
+						SystemExpression = "ConnectedSystemKey",
+						StateExpression = "Id"
+					},
+					new Mapping
+					{
+						Direction = SyncDirection.In,
+						SystemExpression = "FirstName +' ' + LastName",
+						StateExpression = "FullName"
+					},
+					new Mapping
+					{
+						Direction = SyncDirection.In,
+						SystemExpression = "Description",
+						StateExpression = "Description"
 					}
-				}
+				},
+				Permissions = new Permissions { CanCreate = true, CanDelete = true, CanUpdate = true, CanWrite = true }
 			};
-			var connectedSystemItems = new List<JObject>();
-			var actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, connectedSystemItems);
-			actionList.Should().NotBeNull();
-			actionList.Should().BeEmpty();
+
+			var testConnectedSystemManger = new TestConnectedSystemManager(
+				connectedSystem,
+				state,
+				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
+			);
+
+			var actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, testConnectedSystemManger.Items[dataSet.Name]);
+			actionList.Should().NotBeNullOrEmpty();
+			// All actions should have been creates
+			foreach (var action in actionList)
+			{
+				action.Type.Should().Be(SyncActionType.Create);
+				action.Permission.Should().Be(DataSetPermission.Allowed);
+			}
+
+			actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, testConnectedSystemManger.Items[dataSet.Name]);
+			actionList.Should().NotBeNullOrEmpty();
+			// All actions should have been none
+			foreach (var action in actionList)
+			{
+				action.Type.Should().Be(SyncActionType.AlreadyInSync);
+				action.Permission.Should().Be(DataSetPermission.Allowed);
+			}
 		}
 	}
 }

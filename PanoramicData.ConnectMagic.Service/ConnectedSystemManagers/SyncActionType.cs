@@ -7,5 +7,6 @@
 		Delete,
 		Update,
 		RemedyMultipleStateItemsMatchedAConnectedSystemItem,
+		AlreadyInSync,
 	}
 }

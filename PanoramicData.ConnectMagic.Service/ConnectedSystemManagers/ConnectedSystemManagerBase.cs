@@ -234,8 +234,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										newStateItem[inwardMapping.StateExpression] = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem);
 									}
-									// Need to add the join field also so we can compare as part of the check to see whether it exists above
-									newStateItem[joinMapping.StateExpression] = Evaluate(joinMapping.SystemExpression, action.ConnectedSystemItem);
 									// Save our new item
 									action.StateItem = newStateItem;
 
@@ -304,8 +302,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							foreach (var inwardMapping in inwardMappings)
 							{
 								var newValue = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem);
-								var existing = action.StateItem.Value<string>(inwardMapping.StateExpression);
-								if (existing != newValue)
+								var existingValue = action.StateItem.Value<string>(inwardMapping.StateExpression);
+								if (existingValue != newValue)
 								{
 									inwardUpdateRequired = true;
 									stateItemClone[inwardMapping.StateExpression] = newValue;
@@ -316,7 +314,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							{
 								if (permission == DataSetPermission.Allowed)
 								{
-									var x = stateItemList.IndexOf(action.StateItem);
 									// Add the new one so there is at least 2 versions of the truth and accidental deletions on a parallel dataset processing will not occur
 									stateItemList.Add(stateItemClone);
 									// Remove the old one
@@ -348,6 +345,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								{
 									permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
 								}
+							}
+
+							// If nothing was done then we're in sync
+							if (!inwardUpdateRequired && !outwardUpdateRequired)
+							{
+								action.Type = SyncActionType.AlreadyInSync;
 							}
 							break;
 					}

@@ -73,9 +73,19 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mappings)} must not be empty.");
 			}
 
-			if (Mappings.SingleOrDefault(m => m.Direction == SyncDirection.Join) == null)
+			if (!Mappings.Any(m => m.Direction == SyncDirection.Join))
 			{
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not have exactly one mapping of type Join.");
+			}
+
+			if (CreateDeleteDirection == SyncDirection.In && !Mappings.Any(m => m.Direction == SyncDirection.In))
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no inbound mappings.");
+			}
+
+			if (CreateDeleteDirection == SyncDirection.Out && !Mappings.Any(m => m.Direction == SyncDirection.Out))
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no outbound mappings.");
 			}
 		}
 	}
