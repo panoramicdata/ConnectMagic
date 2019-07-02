@@ -1,10 +1,12 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	/// <summary>
 	/// Information required for a sync action
 	/// </summary>
+	[DebuggerDisplay("{" + nameof(Type) + "} {" + nameof(Permission) + "}; State: {" + nameof(StateItem) + "}; ConnectedSystem: {" + nameof(ConnectedSystemItem) + "}")]
 	public class SyncAction
 	{
 		/// <summary>

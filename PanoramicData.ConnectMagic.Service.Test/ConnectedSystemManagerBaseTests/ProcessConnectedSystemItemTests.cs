@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
 using System.Collections.Generic;
@@ -24,6 +25,11 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanCreate = true, CanDelete = true, CanUpdate = true, CanWrite = true }
 			};
 			var state = new State();
+			state.ItemLists["TestDataSet"] = new ItemList
+			{
+				new JObject(new JProperty("Id", "ExistingKey1"), new JProperty("FullName", "Sarah Jane"), new JProperty("Description", "Is lovely")),
+				new JObject(new JProperty("Id", "Key1"), new JProperty("FullName", "Bob1 Smith1"),  new JProperty("Description", "OldDescription1"))
+			};
 
 			var dataSet = new ConnectedSystemDataSet
 			{

@@ -32,7 +32,6 @@ namespace PanoramicData.ConnectMagic.Service.Test
 				new JObject(new JProperty("ConnectedSystemKey", "Key5"), new JProperty("FirstName", "Bob5"), new JProperty("LastName", "Smith5"), new JProperty("Description", "Description1"))
 			};
 			Items.Add("DataSet1", items);
-
 		}
 
 		public List<SyncAction> TestProcessConnectedSystemItems(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)

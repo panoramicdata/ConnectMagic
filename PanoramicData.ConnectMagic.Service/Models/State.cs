@@ -27,12 +27,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public string CacheFileName { get; set; }
 
 		/// <summary>
-		/// The DataSets
-		/// </summary>
-		[DataMember(Name = "DataSets")]
-		public List<StateDataSet> DataSets { get; set; }
-
-		/// <summary>
 		/// The actual data is stored here
 		/// </summary>
 		public ConcurrentDictionary<string, ItemList> ItemLists { get; set; } = new ConcurrentDictionary<string, ItemList>();
