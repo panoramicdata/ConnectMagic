@@ -15,6 +15,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		Unknown,
 
 		/// <summary>
+		/// Test
+		/// </summary>
+		[EnumMember(Value = "test")]
+		Test,
+
+		/// <summary>
 		/// AutoTask
 		/// </summary>
 		[EnumMember(Value = "AutoTask")]

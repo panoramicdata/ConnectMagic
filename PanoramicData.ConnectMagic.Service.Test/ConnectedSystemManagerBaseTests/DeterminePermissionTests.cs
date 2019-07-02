@@ -10,7 +10,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_AllAllowed_Allowed()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
@@ -29,7 +29,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystem_Create_WriteFalse_DeniedAtConnectedSystem()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = false, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
@@ -46,7 +46,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystem_Create_WriteFalse_DeniedAtConnectedSystemDataSet()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
@@ -63,7 +63,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystem_Create_False_DeniedAtConnectedSystem()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = false, CanDelete = false }
 			};
@@ -80,7 +80,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystem_CreateUpdateAllowed()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = false }
 			};
@@ -97,7 +97,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystem_CreateDeleteAllowed()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = false, CanDelete = true }
 			};
@@ -114,7 +114,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystemDataSet_Create_False_DeniedAtConnectedSystem()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
@@ -131,7 +131,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystemDataSet_CreateUpdateAllowed()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
@@ -148,7 +148,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		[Fact]
 		public void DeterminePermission_ConnectedSystemDataSet_CreateDeleteAllowed()
 		{
-			var connectedSystem = new ConnectedSystem
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};

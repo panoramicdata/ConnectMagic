@@ -20,7 +20,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		public void Test()
 		{
 			var testConnectedSystemManger = new TestConnectedSystemManager(
-				new ConnectedSystem(),
+				new ConnectedSystem(SystemType.Test, "Test"),
 				new State(),
 				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
 				);

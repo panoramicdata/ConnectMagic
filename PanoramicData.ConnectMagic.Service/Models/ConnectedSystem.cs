@@ -11,11 +11,17 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	[DebuggerDisplay("{Type}: {Name}")]
 	public class ConnectedSystem : NamedItem
 	{
+		public ConnectedSystem(SystemType type, string name)
+		{
+			Type = type;
+			Name = name;
+		}
+
 		/// <summary>
 		/// The system type
 		/// </summary>
 		[DataMember(Name = "Type")]
-		public SystemType Type { get; set; }
+		public SystemType Type { get; private set; }
 
 		/// <summary>
 		/// The system credentials
