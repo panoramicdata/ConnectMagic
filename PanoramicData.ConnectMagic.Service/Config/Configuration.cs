@@ -55,7 +55,12 @@ namespace PanoramicData.ConnectMagic.Service.Config
 
 		private void ThereShouldBeAtLeastOneEnabledConnectedSystem()
 		{
-			if (ConnectedSystems?.All(cs => !cs.IsEnabled) != false)
+			if (ConnectedSystems == null)
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystem)} should be defined");
+			}
+
+			if (!ConnectedSystems.Any(cs => cs.IsEnabled))
 			{
 				throw new ConfigurationException($"There should be at least 1 enabled {nameof(ConnectedSystem)}");
 			}

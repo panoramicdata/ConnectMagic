@@ -11,6 +11,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	[DebuggerDisplay("{Type}: {Name}")]
 	public class ConnectedSystem : NamedItem
 	{
+		public ConnectedSystem()
+		{
+			// Needed for JSON deserialisation
+		}
+
 		public ConnectedSystem(SystemType type, string name)
 		{
 			Type = type;
@@ -21,7 +26,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The system type
 		/// </summary>
 		[DataMember(Name = "Type")]
-		public SystemType Type { get; private set; }
+		public SystemType Type { get; set; }
 
 		/// <summary>
 		/// The system credentials

@@ -1,4 +1,5 @@
 using Certify.Api;
+using Certify.Api.Extensions;
 using Certify.Api.Models;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -46,13 +47,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						case "exprptglds":
 							var exprptgldsConfig = new ExprptgldsConfig(configItems.Skip(1).ToList());
 							// We have the index
-							var expenseReportGldPage = await _certifyClient
+							var expenseReportGlds = await _certifyClient
 								.ExpenseReportGlds
-								.GetPageAsync(exprptgldsConfig.Index, active: 1)
+								.GetAllAsync(exprptgldsConfig.Index, active: 1)
 								.ConfigureAwait(false);
 
-							connectedSystemItems = expenseReportGldPage
-								.ExpenseReportGlds
+							connectedSystemItems = expenseReportGlds
 								.Select(entity => JObject.FromObject(entity))
 								.ToList();
 							break;
@@ -66,7 +66,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					throw;
 				}
 
-				ProcessConnectedSystemItems(dataSet, connectedSystemItems);
+				var syncActions = ProcessConnectedSystemItems(dataSet, connectedSystemItems);
 			}
 		}
 

@@ -325,10 +325,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							var outwardUpdateRequired = false;
 							foreach (var outwardMapping in outwardMappings)
 							{
-								var evaluatedValue = Evaluate(outwardMapping.SystemExpression, action.StateItem);
-								if (action.ConnectedSystemItem[outwardMapping.StateExpression].ToString() != evaluatedValue)
+								var newEvaluatedValue = Evaluate(outwardMapping.StateExpression, action.StateItem);
+								var existingConnectedSystemValue = action.ConnectedSystemItem[outwardMapping.SystemExpression].ToString();
+								if (existingConnectedSystemValue != newEvaluatedValue)
 								{
-									action.ConnectedSystemItem[outwardMapping.StateExpression] = evaluatedValue;
+									action.ConnectedSystemItem[outwardMapping.SystemExpression] = newEvaluatedValue;
 									outwardUpdateRequired = true;
 								}
 							}
