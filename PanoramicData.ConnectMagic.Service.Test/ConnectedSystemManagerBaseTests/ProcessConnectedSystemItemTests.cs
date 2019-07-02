@@ -1,8 +1,8 @@
 ﻿using FluentAssertions;
 using Newtonsoft.Json.Linq;
-using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -74,21 +74,18 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 
 			var actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, testConnectedSystemManger.Items[dataSet.Name]);
 			actionList.Should().NotBeNullOrEmpty();
-			// All actions should have been creates
-			foreach (var action in actionList)
-			{
-				action.Type.Should().Be(SyncActionType.Create);
-				action.Permission.Should().Be(DataSetPermission.Allowed);
-			}
+			actionList.Should().HaveCount(6);
+			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
+			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Create).Should().HaveCount(4);
+			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Update).Should().HaveCount(1);
+			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Delete).Should().HaveCount(1);
 
+			// Process a second time - should be in stable state
 			actionList = testConnectedSystemManger.TestProcessConnectedSystemItems(dataSet, testConnectedSystemManger.Items[dataSet.Name]);
 			actionList.Should().NotBeNullOrEmpty();
-			// All actions should have been none
-			foreach (var action in actionList)
-			{
-				action.Type.Should().Be(SyncActionType.AlreadyInSync);
-				action.Permission.Should().Be(DataSetPermission.Allowed);
-			}
+			actionList.Should().HaveCount(5);
+			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
+			actionList.All(a => a.Type == ConnectedSystemManagers.SyncActionType.AlreadyInSync).Should().BeTrue();
 		}
 	}
 }
