@@ -66,7 +66,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					throw;
 				}
 
-				var syncActions = ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems);
+				var syncActions = (await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false)).OrderBy(sa => sa.Type).ToList();
 			}
 		}
 
@@ -82,17 +82,33 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					{
 						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
 					}
-
-					var created = await _certifyClient
-						.ExpenseReportGlds
-						.CreateAsync(index, new ExpenseReportGld
+					try
+					{
+						var expenseReportGld = new ExpenseReportGld
 						{
 							Name = connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Name)),
 							Code = connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Code)),
 							Description = connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Description)),
 							Active = 1
-						})
-						.ConfigureAwait(false);
+						};
+
+						_logger.LogInformation($"Creating new entry \"{expenseReportGld.Name}\" in Certify");
+
+						var created = await _certifyClient
+							.ExpenseReportGlds
+							.CreateAsync(index, expenseReportGld)
+							.ConfigureAwait(false);
+					}
+					catch (Refit.ApiException ex)
+					{
+						_logger.LogError(ex, ex.Message);
+						throw;
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, ex.Message);
+						throw;
+					}
 					break;
 				default:
 					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
@@ -128,6 +144,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// Find each property on the target class and set the value if the property was found otherwise throw an exception
 					// Update Certify
 
+					_logger.LogInformation($"Updating entry {existing.Name} in Certify");
+
 					var updated = await _certifyClient
 						.ExpenseReportGlds
 						.UpdateAsync(index, existing)
@@ -151,13 +169,17 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
 					}
 
+					var expenseReportGld = new ExpenseReportGld
+					{
+						Id = connectedSystemItem.Value<Guid>("ID"),
+						Active = 0
+					};
+
+					_logger.LogInformation($"Deleting entry {expenseReportGld.Id} in Certify");
+
 					var updated = await _certifyClient
 						.ExpenseReportGlds
-						.UpdateAsync(index, new ExpenseReportGld
-						{
-							Id = new Guid(connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Id))),
-							Active = 0
-						})
+						.UpdateAsync(index, expenseReportGld)
 						.ConfigureAwait(false);
 					break;
 				default:

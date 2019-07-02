@@ -282,7 +282,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											await DeleteOutwardsAsync(dataSet, action.StateItem).ConfigureAwait(false);
+											await DeleteOutwardsAsync(dataSet, action.ConnectedSystemItem).ConfigureAwait(false);
 										}
 									}
 									else
@@ -403,6 +403,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						: !connectedSystem.Permissions.CanUpdate
 							? DataSetPermission.DeniedAtConnectedSystem
 							: DataSetPermission.DeniedAtConnectedSystemDataSet;
+				case SyncActionType.RemedyMultipleStateItemsMatchedAConnectedSystemItem:
+				case SyncActionType.AlreadyInSync:
+					return DataSetPermission.Allowed;
 				default:
 					throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.");
 			}
