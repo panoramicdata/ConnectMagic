@@ -100,12 +100,70 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new NotImplementedException();
+		internal override async Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		{
+			var parameters = dataSet.QueryConfig.Query.Split('|');
+			switch (parameters[0])
+			{
+				case "exprptglds":
+					if (!uint.TryParse(parameters[1], out var index))
+					{
+						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
+					}
+
+					// Get the existing entry
+					var id = new Guid(connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Id)));
+					var existingPage = await _certifyClient
+						.ExpenseReportGlds
+						.GetAsync(index, id)
+						.ConfigureAwait(false);
+					var existing = existingPage.ExpenseReportGlds.SingleOrDefault();
+					if (existing == null)
+					{
+						throw new ConfigurationException($"Couldn't find Certify exprptglds entry with id {id}.");
+					}
+
+					SetPropertiesFromJObject(existing, connectedSystemItem);
+					// Loop over the connectedSystemItem properties
+					// Find each property on the target class and set the value if the property was found otherwise throw an exception
+					// Update Certify
+
+					var updated = await _certifyClient
+						.ExpenseReportGlds
+						.UpdateAsync(index, existing)
+						.ConfigureAwait(false);
+
+					break;
+				default:
+					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
+			}
+		}
 
 		/// <inheritdoc />
-		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new NotImplementedException();
+		internal override async Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		{ // Split out the parameters in the query
+			var parameters = dataSet.QueryConfig.Query.Split('|');
+			switch (parameters[0])
+			{
+				case "exprptglds":
+					if (!uint.TryParse(parameters[1], out var index))
+					{
+						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
+					}
+
+					var updated = await _certifyClient
+						.ExpenseReportGlds
+						.UpdateAsync(index, new ExpenseReportGld
+						{
+							Id = new Guid(connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Id))),
+							Active = 0
+						})
+						.ConfigureAwait(false);
+					break;
+				default:
+					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
+			}
+		}
 
 		public override Task<object> QueryLookupAsync(string query, string field)
 			=> throw new NotSupportedException();

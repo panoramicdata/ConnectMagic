@@ -431,6 +431,48 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			return joinMapping;
 		}
 
+		internal static void SetPropertiesFromJObject(object existing, JObject connectedSystemItem)
+		{
+			var objectType = existing.GetType();
+			foreach (var item in connectedSystemItem.Properties())
+			{
+				var propertyInfo = objectType.GetProperty(item.Name);
+
+				switch (propertyInfo.PropertyType.Name)
+				{
+					case nameof(String):
+						propertyInfo.SetValue(existing, item.Value<string>());
+						break;
+					case nameof(Int32):
+						propertyInfo.SetValue(existing, item.Value<int>());
+						break;
+					case nameof(Int64):
+						propertyInfo.SetValue(existing, item.Value<long>());
+						break;
+					case nameof(UInt32):
+						propertyInfo.SetValue(existing, item.Value<uint>());
+						break;
+					case nameof(UInt64):
+						propertyInfo.SetValue(existing, item.Value<ulong>());
+						break;
+					case nameof(Boolean):
+						propertyInfo.SetValue(existing, item.Value<bool>());
+						break;
+					case nameof(Single):
+						propertyInfo.SetValue(existing, item.Value<float>());
+						break;
+					case nameof(Double):
+						propertyInfo.SetValue(existing, item.Value<double>());
+						break;
+					case nameof(Guid):
+						propertyInfo.SetValue(existing, item.Value<Guid>());
+						break;
+					default:
+						throw new NotSupportedException();
+				}
+			}
+		}
+
 		/// <summary>
 		/// Deletes a specific item
 		/// </summary>
