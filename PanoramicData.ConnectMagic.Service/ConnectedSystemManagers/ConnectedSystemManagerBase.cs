@@ -253,7 +253,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											CreateOutwards(dataSet, newConnectedSystemItem);
+											CreateOutwardsAsync(dataSet, newConnectedSystemItem);
+											// TODO Create should return created object, call update state afterwards
 										}
 									}
 									else
@@ -281,7 +282,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											DeleteOutwards(dataSet, action.StateItem);
+											DeleteOutwardsAsync(dataSet, action.StateItem);
 										}
 									}
 									else
@@ -338,7 +339,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									// We are making a change
 									if (permission == DataSetPermission.Allowed)
 									{
-										UpdateOutwards(dataSet, action.ConnectedSystemItem);
+										UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem);
 									}
 								}
 								else
@@ -435,21 +436,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, to be deleted from the ConnectedSystem.</param>
-		internal abstract void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+		internal abstract Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
 
 		/// <summary>
 		/// Updates a specific item
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, as updated to be pushed to the ConnectedSystem.</param>
-		internal abstract void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+		internal abstract Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
 
 		/// <summary>
 		/// Updates a specific item
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, to be created in the ConnectedSystem.</param>
-		internal abstract void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+		internal abstract Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
 
 		/// <summary>
 		/// Refresh DataSets

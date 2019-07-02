@@ -38,7 +38,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			=> ProcessConnectedSystemItems(dataSet, connectedSystemItems);
 
 		public override Task<object> QueryLookupAsync(string query, string field) => throw new System.NotImplementedException();
-		public override async Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
 			//foreach (var dataSet in ConnectedSystem.Datasets)
 			//{
@@ -54,10 +54,13 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			throw new System.NotImplementedException();
 		}
 
-		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem) => throw new System.NotImplementedException();
+		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new System.NotImplementedException();
 
-		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem) => throw new System.NotImplementedException();
+		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new System.NotImplementedException();
 
-		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem) => throw new System.NotImplementedException();
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+			=> throw new System.NotImplementedException();
 	}
 }

@@ -1,6 +1,8 @@
 using Certify.Api;
+using Certify.Api.Models;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
@@ -69,15 +71,40 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override async Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		{
+			// Split out the parameters in the query
+			var parameters = dataSet.QueryConfig.Query.Split('|');
+			switch (parameters[0])
+			{
+				case "exprptglds":
+					if (!uint.TryParse(parameters[1], out var index))
+					{
+						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
+					}
+
+					var created = await _certifyClient
+						.ExpenseReportGlds
+						.CreateAsync(index, new ExpenseReportGld
+						{
+							Name = connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Name)),
+							Code = connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Code)),
+							Description = connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Description)),
+							Active = 1
+						})
+						.ConfigureAwait(false);
+					break;
+				default:
+					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
+			}
+		}
+
+		/// <inheritdoc />
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotImplementedException();
 
 		/// <inheritdoc />
-		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new NotImplementedException();
-
-		/// <inheritdoc />
-		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotImplementedException();
 
 		public override Task<object> QueryLookupAsync(string query, string field)

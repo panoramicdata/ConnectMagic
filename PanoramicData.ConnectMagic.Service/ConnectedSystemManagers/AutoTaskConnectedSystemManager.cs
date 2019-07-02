@@ -48,15 +48,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override void CreateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override System.Threading.Tasks.Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotImplementedException();
 
 		/// <inheritdoc />
-		internal override void DeleteOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override System.Threading.Tasks.Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotImplementedException();
 
 		/// <inheritdoc />
-		internal override void UpdateOutwards(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override System.Threading.Tasks.Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotImplementedException();
 
 		public override async Task<object> QueryLookupAsync(string query, string field)
