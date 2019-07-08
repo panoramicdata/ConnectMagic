@@ -12,7 +12,7 @@
 	<Product Id="*"
 			 Name="$(var.Name) !(bind.FileVersion.MainServiceDll)"
 			 Manufacturer="$(var.Manufacturer)"
-			 UpgradeCode="52FC6D72-B6ED-4BB9-9FCD-1E61CFE78052"
+			 UpgradeCode="9F5B3780-3867-4CA6-A35D-1AA8B1C218D2"
   			 Version="!(bind.FileVersion.MainServiceDll)"
 			 Language="1033">
 		<Package InstallerVersion="300" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated"/>
