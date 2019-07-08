@@ -1,41 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product
-		Id="*"
-		Name="PanoramicData.ConnectMagic.Setup"
-		Language="1033"
-		Version="1.0.0.0"
-		Manufacturer="Panoramic Data Limited"
-		UpgradeCode="20b584e2-4a64-4185-80b2-cdd411ac41e0"
-		>
-		<Package
-			InstallerVersion="200"
-			Compressed="yes"
-			InstallScope="perMachine"
-			/>
+<?define Manufacturer = "Panoramic Data" ?>
+<?define Name = "ConnectMagic" ?>
+<?define ServiceName = "ConnectMagic" ?>
+<?define DllName = "PanoramicData.ConnectMagic.Service.dll" ?>
+<?define ExeName = "PanoramicData.ConnectMagic.Service.exe" ?>
+<?define PublishPath = "$(var.PanoramicData.ConnectMagic.Service.TargetDir)\win-x64\publish" ?>
 
-		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-		<MediaTemplate />
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+	 xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+	<!-- Replace the UpgradeCode below-->
+	<Product Id="*"
+			 Name="$(var.Name) !(bind.FileVersion.MainServiceDll)"
+			 Manufacturer="$(var.Manufacturer)"
+			 UpgradeCode="52FC6D72-B6ED-4BB9-9FCD-1E61CFE78052"
+  			 Version="!(bind.FileVersion.MainServiceDll)"
+			 Language="1033">
+		<Package InstallerVersion="300" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated"/>
+		<!-- Create a folder inside Talk Sharp called Test Service -->
+		<Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
+		<!-- Allow upgrades and prevent downgrades -->
+		<MajorUpgrade DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit." />
 
-		<Feature Id="ProductFeature" Title="ConnectMagic" Level="1">
-			<ComponentGroupRef Id="ProductComponents" />
-		</Feature>
-	</Product>
+		<InstallExecuteSequence>
+			<DeleteServices><![CDATA[NOT UPGRADINGPRODUCTCODE]]></DeleteServices>
+		</InstallExecuteSequence>
 
-	<Fragment>
+		<PropertyRef Id="NETFRAMEWORK40FULLINSTALLROOTDIR"/>
+
+		<WixVariable Id="WixUILicenseRtf" Value="EULA.rtf" />
+		<WixVariable Id="WixUIBannerBmp" Value="WixUIBannerBmp.bmp" />
+		<WixVariable Id="WixUIDialogBmp" Value="WixUIDialogBmp.bmp" />
+		<UIRef Id="WixUI_Minimal" />
+
+		<!-- Define the directory structure -->
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="ProgramFilesFolder">
-				<Directory Id="INSTALLFOLDER" Name="ConnectMagic" />
+				<!-- Create a folder inside that for the name -->
+				<Directory Id="INSTALLFOLDER" Name="$(var.Name)" />
 			</Directory>
 		</Directory>
-	</Fragment>
-
-	<Fragment>
-		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
-			<!-- <Component Id="ProductComponent"> -->
-				<!-- TODO: Insert files, registry keys, and other resources here. -->
-			<!-- </Component> -->
-		</ComponentGroup>
-	</Fragment>
+		<!-- The files inside this DirectoryRef are linked to the Test Service directory via INSTALLFOLDER -->
+		<DirectoryRef Id="INSTALLFOLDER">
+			<Component Id="$(var.DllName)Component">
+				<File
+					Id="MainServiceDll"
+					Source="$(var.PublishPath)\$(var.DllName)"
+					Vital="yes"
+					 />
+			</Component>
+			<Component Id="$(var.ExeName)Component">
+				<util:EventSource
+					Log="Application"
+					Name="$(var.Name)"
+					EventMessageFile="[NETFRAMEWORK40FULLINSTALLROOTDIR]EventLogMessages.dll" />
+				<!-- Copies the exe file using the project reference preprocessor variables -->
+				<File
+					Id="MainServiceExe"
+					Source="$(var.PublishPath)\$(var.ExeName)"
+					Vital="yes"
+					KeyPath="yes" />
+				<!-- Tell WiX to install the Service. -->
+				<ServiceInstall
+					Id="ServiceInstaller"
+					Type="ownProcess"
+					Name="$(var.ServiceName)"
+					DisplayName="$(var.Name)"
+					Description="$(var.Name) !(bind.FileVersion.MainServiceDll)"
+					Start="auto"
+					ErrorControl="normal"
+					Interactive="no"
+					Vital="yes"
+					/>
+				<!-- Tell WiX to stop the Service on uninstall but not start on install so it can be configured before starting. -->
+				<ServiceControl
+					Id="StartService"
+					Stop="both"
+					Remove="uninstall"
+					Name="$(var.ServiceName)"
+					Wait="yes" />
+			</Component>
+		</DirectoryRef>
+		<!-- Tell WiX to install the files -->
+		<Feature Id="MainService" Title="Main Service" Level="1">
+			<ComponentRef Id="$(var.ExeName)Component" />
+			<ComponentRef Id="$(var.DllName)Component" />
+			<ComponentGroupRef Id="HeatGenerated" />
+		</Feature>
+	</Product>
 </Wix>
