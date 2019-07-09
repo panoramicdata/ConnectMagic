@@ -146,7 +146,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 					_logger.LogInformation($"Updating entry {existing.Name} in Certify");
 
-					var updated = await _certifyClient
+					_ = await _certifyClient
 						.ExpenseReportGlds
 						.UpdateAsync(index, existing)
 						.ConfigureAwait(false);
@@ -177,7 +177,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 					_logger.LogInformation($"Deleting entry {expenseReportGld.Id} in Certify");
 
-					var updated = await _certifyClient
+					_ = await _certifyClient
 						.ExpenseReportGlds
 						.UpdateAsync(index, expenseReportGld)
 						.ConfigureAwait(false);

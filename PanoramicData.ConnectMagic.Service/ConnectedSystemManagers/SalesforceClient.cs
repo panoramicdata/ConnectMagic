@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-
 	public class SalesforceClient : IDisposable
 	{
 		private readonly string _url;
@@ -143,7 +142,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public void Dispose()
 		{
 			// Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+#pragma warning disable IDE0022 // Use expression body for methods
 			Dispose(true);
+#pragma warning restore IDE0022 // Use expression body for methods
 		}
 		#endregion
 	}

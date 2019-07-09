@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,10 +38,10 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		public async Task<List<SyncAction>> TestProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
 			=> await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false);
 
-		public override Task<object> QueryLookupAsync(string query, string field) => throw new System.NotImplementedException();
+		public override Task<object> QueryLookupAsync(string query, string field)
+			=> throw new NotSupportedException();
 
-		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken)
-		{
+		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken) =>
 			//foreach (var dataSet in ConnectedSystem.Datasets)
 			//{
 			//	_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
@@ -52,17 +53,16 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			//		.ToList();
 			//	ProcessConnectedSystemItems(dataSet, connectedSystemItems);
 			//}
-			throw new System.NotImplementedException();
-		}
+			throw new NotSupportedException();
 
 		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new System.NotImplementedException();
+			=> throw new NotSupportedException();
 
 		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new System.NotImplementedException();
+			=> throw new NotSupportedException();
 
 		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new System.NotImplementedException();
+			=> throw new NotSupportedException();
 
 		public override void Dispose()
 		{
