@@ -23,6 +23,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// The type of action to perform
 		/// </summary>
 		public SyncActionType Type { get; set; }
+		public object Comment { get; internal set; }
 
 		/// <summary>
 		/// This is calculated during processing and added the SyncAction afterwards for information

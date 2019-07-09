@@ -8,5 +8,6 @@
 		Update,
 		RemedyMultipleStateItemsMatchedAConnectedSystemItem,
 		AlreadyInSync,
+		RemedyMultipleConnectedSystemItemsWithSameJoinValue,
 	}
 }
