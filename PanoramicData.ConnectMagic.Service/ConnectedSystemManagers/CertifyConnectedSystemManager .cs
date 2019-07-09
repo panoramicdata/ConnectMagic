@@ -128,7 +128,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					}
 
 					// Get the existing entry
-					var id = new Guid(connectedSystemItem.Value<string>(nameof(ExpenseReportGld.Id)));
+					var id = connectedSystemItem.Value<Guid>("ID");
 					var existingPage = await _certifyClient
 						.ExpenseReportGlds
 						.GetAsync(index, id)
@@ -189,5 +189,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public override Task<object> QueryLookupAsync(string query, string field)
 			=> throw new NotSupportedException();
+
+		public override void Dispose()
+		{
+			// Nothing to be done.
+		}
 	}
 }

@@ -190,7 +190,7 @@ namespace PanoramicData.ConnectMagic.Service
 					connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
 					break;
 				case SystemType.SalesForce:
-					connectedSystemManager = new SalesForceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesForceConnectedSystemManager>());
+					connectedSystemManager = new SalesforceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesforceConnectedSystemManager>());
 					break;
 				case SystemType.MsSqlServer:
 					connectedSystemManager = new MsSqlServerConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>());

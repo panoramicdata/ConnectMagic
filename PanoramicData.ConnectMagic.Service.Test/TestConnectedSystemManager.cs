@@ -63,5 +63,10 @@ namespace PanoramicData.ConnectMagic.Service.Test
 
 		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new System.NotImplementedException();
+
+		public override void Dispose()
+		{
+			// Nothing to be done
+		}
 	}
 }

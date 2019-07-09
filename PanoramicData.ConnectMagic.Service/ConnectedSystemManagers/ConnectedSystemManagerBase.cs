@@ -7,12 +7,13 @@ using PanoramicData.ConnectMagic.Service.Ncalc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal abstract class ConnectedSystemManagerBase : IConnectedSystemManager
+	internal abstract class ConnectedSystemManagerBase : IConnectedSystemManager, IDisposable
 	{
 		/// <summary>
 		/// The connected system
@@ -104,18 +105,17 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					.Where(m => m.Direction == SyncDirection.Out)
 					.ToList();
 
+				var stateItemJoinDictionary = BuildStateItemJoinDictionary(stateItemList, joinMapping);
+
 				// Go through each ConnectedSystem item and see if it is present in the State FieldSet
 				foreach (var connectedSystemItem in connectedSystemItems)
 				{
 					var systemJoinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem);
-
-					var matchingStateItems = stateItemList
-						.Where(fs => Evaluate(joinMapping.StateExpression, fs) == systemJoinValue)
-						.ToList();
+					stateItemJoinDictionary.TryGetValue(systemJoinValue, out var matchingStateItems);
 
 					// There should be zero or one matches
 					// Any more and there is a matching issue
-					switch (matchingStateItems.Count)
+					switch (matchingStateItems?.Count ?? 0)
 					{
 						case 0:
 							// No match found in state for the existing ConnectedSystemItem
@@ -369,6 +369,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
+		private Dictionary<string, ItemList> BuildStateItemJoinDictionary(ItemList stateItemList, Mapping joinMapping)
+		{
+			// Construct a dictionary of the evaluated join value for each state item to a list of matching items
+			var stateItemJoinDictionary = new Dictionary<string, ItemList>();
+			foreach (var stateItem in stateItemList)
+			{
+				var key = Evaluate(joinMapping.StateExpression, stateItem);
+				if (!stateItemJoinDictionary.TryGetValue(key, out var itemList))
+				{
+					itemList = stateItemJoinDictionary[key] = new ItemList();
+				}
+				itemList.Add(stateItem);
+			}
+
+			return stateItemJoinDictionary;
+		}
+
 		/// <summary>
 		/// Determines permissions
 		/// </summary>
@@ -438,38 +455,37 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		internal static void SetPropertiesFromJObject(object existing, JObject connectedSystemItem)
 		{
 			var objectType = existing.GetType();
-			foreach (var item in connectedSystemItem.Properties())
+			foreach (var connectedSystemItemProperty in connectedSystemItem.Properties())
 			{
-				var propertyInfo = objectType.GetProperty(item.Name);
-
+				var propertyInfo = objectType.GetProperty(connectedSystemItemProperty.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 				switch (propertyInfo.PropertyType.Name)
 				{
 					case nameof(String):
-						propertyInfo.SetValue(existing, item.Value<string>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<string>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(Int32):
-						propertyInfo.SetValue(existing, item.Value<int>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<int>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(Int64):
-						propertyInfo.SetValue(existing, item.Value<long>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<long>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(UInt32):
-						propertyInfo.SetValue(existing, item.Value<uint>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<uint>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(UInt64):
-						propertyInfo.SetValue(existing, item.Value<ulong>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<ulong>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(Boolean):
-						propertyInfo.SetValue(existing, item.Value<bool>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<bool>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(Single):
-						propertyInfo.SetValue(existing, item.Value<float>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<float>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(Double):
-						propertyInfo.SetValue(existing, item.Value<double>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<double>(connectedSystemItemProperty.Name));
 						break;
 					case nameof(Guid):
-						propertyInfo.SetValue(existing, item.Value<Guid>());
+						propertyInfo.SetValue(existing, connectedSystemItem.Value<Guid>(connectedSystemItemProperty.Name));
 						break;
 					default:
 						throw new NotSupportedException();
@@ -512,6 +528,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="field"></param>
 		/// <returns></returns>
 		public abstract Task<object> QueryLookupAsync(string query, string field);
+
+		public abstract void Dispose();
 
 		/// <summary>
 		/// Stats

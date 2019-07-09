@@ -17,6 +17,18 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public string Account { get; set; }
 
 		/// <summary>
+		/// ClientId
+		/// </summary>
+		[DataMember(Name = "ClientId")]
+		public string ClientId { get; set; }
+
+		/// <summary>
+		/// ClientSecret
+		/// </summary>
+		[DataMember(Name = "ClientSecret")]
+		public string ClientSecret { get; set; }
+
+		/// <summary>
 		/// Public credential, such as username
 		/// </summary>
 		[DataMember(Name = "PublicText")]

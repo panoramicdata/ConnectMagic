@@ -71,5 +71,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		// TODO - Use a query "Update" template with token substitution
 		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotSupportedException();
+
+		public override void Dispose()
+		{
+			// Nothing to be done.
+		}
 	}
 }

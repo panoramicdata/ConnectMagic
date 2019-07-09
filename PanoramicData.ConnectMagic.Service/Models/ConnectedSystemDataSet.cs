@@ -51,6 +51,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		public Permissions Permissions { get; set; }
 
+		/// <summary>
+		/// Whether to delete all but the first item when duplicates are found
+		/// </summary>
+		public bool RemoveDuplicates { get; set; }
+
 		internal void Validate()
 		{
 			if (string.IsNullOrWhiteSpace(Name))

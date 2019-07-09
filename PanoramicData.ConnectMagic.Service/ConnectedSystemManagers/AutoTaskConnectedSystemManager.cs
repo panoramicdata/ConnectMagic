@@ -91,5 +91,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw;
 			}
 		}
+
+		public override void Dispose()
+		{
+			// Nothing to be done.
+		}
 	}
 }
