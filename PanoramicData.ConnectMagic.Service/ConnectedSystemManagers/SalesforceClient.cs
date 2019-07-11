@@ -5,7 +5,6 @@ using Salesforce.Common.Models.Json;
 using Salesforce.Force;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -74,7 +73,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			var list = new List<JObject>();
 			QueryResult<JObject> queryResult;
-			string maxCreatedDate = null;
+			DateTimeOffset maxCreatedDateTimeOffset = default;
 
 			// For paging
 			if (!query.Contains("CreatedDate,"))
@@ -82,19 +81,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				query = query.Replace("SELECT ", "SELECT CreatedDate, ");
 			}
 
+			var skipCount = 0;
 			do
 			{
 				var pageQuery = query;
-				if (maxCreatedDate != null)
+				if (maxCreatedDateTimeOffset != default)
 				{
 					// TODO - use >= and dedupe
 					if (pageQuery.Contains(" WHERE "))
 					{
-						pageQuery = pageQuery.Replace(" WHERE ", $" WHERE CreatedDate > {maxCreatedDate} AND ");
+						pageQuery = pageQuery.Replace(" WHERE ", $" WHERE CreatedDate >= {maxCreatedDateTimeOffset.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ} AND ");
 					}
 					else
 					{
-						pageQuery = $"{query} WHERE CreatedDate > {maxCreatedDate}";
+						pageQuery = $"{query} WHERE CreatedDate >= {maxCreatedDateTimeOffset.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}";
 					}
 				}
 
@@ -105,19 +105,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				pageQuery += " ORDER BY CreatedDate ASC";
 
 				queryResult = await Client.QueryAsync<JObject>(pageQuery).ConfigureAwait(false);
-				list.AddRange(queryResult.Records);
-				var lastCreatedDate = queryResult.Records.Last()["CreatedDate"].ToString();
-				if (!DateTime.TryParseExact(
-					lastCreatedDate,
-					"MM/dd/yyyy HH:mm:ss",
-					new CultureInfo("en-US"),
-					DateTimeStyles.AssumeUniversal,
-					out var dateTime))
-				{
-					throw new Exception($"Could not parse '{lastCreatedDate}'");
-				}
-				maxCreatedDate = dateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+				list.AddRange(queryResult.Records.Skip(skipCount));
+
+				var maxCreatedDateTime = queryResult.Records.Last().Value<DateTime>("CreatedDate");
+				skipCount = queryResult.Records.Count(r => r.Value<DateTime>("CreatedDate") == maxCreatedDateTime);
+				maxCreatedDateTimeOffset = new DateTimeOffset(maxCreatedDateTime);
 			} while (!queryResult.Done);
+
 			return list;
 		}
 

@@ -36,7 +36,11 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		}
 
 		public async Task<List<SyncAction>> TestProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
-			=> await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false);
+			=> await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				null)
+				.ConfigureAwait(false);
 
 		public override Task<object> QueryLookupAsync(string query, string field)
 			=> throw new NotSupportedException();

@@ -40,7 +40,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				var connectedSystemItems = await _salesforceClient.GetAllJObjectsAsync(substitutedQuery).ConfigureAwait(false);
 				_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
 
-				await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false);
+				await ProcessConnectedSystemItemsAsync(
+					dataSet,
+					connectedSystemItems,
+					GetFileInfo(ConnectedSystem, dataSet))
+					.ConfigureAwait(false);
 			}
 		}
 

@@ -66,7 +66,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					throw;
 				}
 
-				var syncActions = (await ProcessConnectedSystemItemsAsync(dataSet, connectedSystemItems).ConfigureAwait(false)).OrderBy(sa => sa.Type).ToList();
+				await ProcessConnectedSystemItemsAsync(
+					dataSet,
+					connectedSystemItems,
+					GetFileInfo(ConnectedSystem, dataSet))
+					.ConfigureAwait(false);
 			}
 		}
 

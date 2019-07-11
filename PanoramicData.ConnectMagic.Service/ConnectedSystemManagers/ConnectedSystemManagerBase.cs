@@ -4,8 +4,10 @@ using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicData.ConnectMagic.Service.Ncalc;
+using PanoramicData.SheetMagic;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -62,7 +64,17 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		protected async Task<List<SyncAction>> ProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
+		/// <summary>
+		/// Process connected systems
+		/// </summary>
+		/// <param name="dataSet">The DataSet to process</param>
+		/// <param name="connectedSystemItems">The ConnectedSystemItems</param>
+		/// <param name="fileInfo">The file to log the action tiems out to</param>
+		/// <returns></returns>
+		protected async Task<List<SyncAction>> ProcessConnectedSystemItemsAsync(
+			ConnectedSystemDataSet dataSet,
+			List<JObject> connectedSystemItems,
+			FileInfo fileInfo)
 		{
 			// Make sure arguments meet minimum requirements
 			if (dataSet == null)
@@ -76,7 +88,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw new ArgumentNullException(nameof(connectedSystemItems));
 			}
 
-			var actionList = new List<SyncAction>();
+			var syncActions = new List<SyncAction>();
 			try
 			{
 				_logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
@@ -108,7 +120,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				AnalyseConnectedSystemItems(
 					dataSet,
 					connectedSystemItems,
-					actionList,
+					syncActions,
 					stateItemList,
 					unseenStateItems,
 					joinMapping,
@@ -116,18 +128,22 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 				AnalyseUnseenItems(
 					dataSet,
-					actionList,
+					syncActions,
 					unseenStateItems);
 
 				await ProcessActionList(
 					dataSet,
-					actionList,
+					syncActions,
 					stateItemList,
 					inwardMappings,
 					outwardMappings).ConfigureAwait(false);
 
+				WriteSyncActionOutput(
+					fileInfo,
+					syncActions);
+
 				// Pass the SyncActions out for logging/examining
-				return actionList;
+				return syncActions;
 			}
 			catch (Exception e)
 			{
@@ -135,6 +151,39 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw;
 			}
 		}
+
+		private static void WriteSyncActionOutput(FileInfo fileInfo, List<SyncAction> syncActions)
+		{
+			// TODO - make this age correctly
+			return;
+
+			if (syncActions == null)
+			{
+				throw new ArgumentNullException(nameof(syncActions));
+			}
+
+			// Dump sync actions to spreadsheet if so requested
+			if (fileInfo == null)
+			{
+				return;
+			}
+			// Output is required
+
+			// Ensure directory exists
+			if (!fileInfo.Directory.Exists)
+			{
+				fileInfo.Directory.Create();
+			}
+
+			using (var spreadsheet = new MagicSpreadsheet(fileInfo))
+			{
+				spreadsheet.AddSheet(syncActions);
+				spreadsheet.Save();
+			}
+		}
+
+		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet)
+			=> new FileInfo($"Output/{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
 
 		private async Task ProcessActionList(ConnectedSystemDataSet dataSet, List<SyncAction> actionList, ItemList stateItemList, List<Mapping> inwardMappings, List<Mapping> outwardMappings)
 		{
