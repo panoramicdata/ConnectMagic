@@ -16,10 +16,10 @@
 
   <ItemGroup>
     <PackageReference Include="AutoTask.Api" Version="1.0.7" />
-    <PackageReference Include="Certify.Api" Version="1.1.4" />
+    <PackageReference Include="Certify.Api" Version="1.1.8" />
     <PackageReference Include="Dapper" Version="1.60.6" />
     <PackageReference Include="DeveloperForce.Force" Version="2.0.7" />
-    <PackageReference Include="LogicMonitor.Api" Version="2.121.4" />
+    <PackageReference Include="LogicMonitor.Api" Version="2.122.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />

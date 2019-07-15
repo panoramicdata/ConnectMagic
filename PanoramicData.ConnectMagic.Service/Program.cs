@@ -18,13 +18,25 @@ namespace PanoramicData.ConnectMagic.Service
 	/// </summary>
 	public static class Program
 	{
+		private static string JsonFilePath = "appsettings.json";
+
 		public const string ProductName = "ConnectMagic";
 		private static bool IsRunningAsService => Console.IsInputRedirected;
 
-		public async static Task<int> Main()
+		/// <summary>
+		/// Either provide the path to the appsettings.json file as the sole parameter, or 'appsettings.json' the binary folder will be used.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public async static Task<int> Main(string[] args)
 		{
 			try
 			{
+				if (args.Length == 1)
+				{
+					JsonFilePath = args[0];
+				}
+
 				var host = new HostBuilder()
 					.ConfigureAppConfiguration(BuildConfig)
 					.ConfigureLogging(ConfigureLogging)
@@ -83,14 +95,7 @@ namespace PanoramicData.ConnectMagic.Service
 		private static void BuildConfig(HostBuilderContext context, IConfigurationBuilder configurationBuilder)
 		{
 			var currentDirectory = Directory.GetCurrentDirectory();
-#if DEBUG
-			// Use the project folder
-			const string jsonFilePath = "../../../appsettings.json";
-#else
-			// Use binaries folder
-			const string jsonFilePath = "appsettings.json";
-#endif
-			var jsonFileInfo = new FileInfo(Path.Combine(currentDirectory, jsonFilePath));
+			var jsonFileInfo = new FileInfo(Path.Combine(currentDirectory, JsonFilePath));
 			configurationBuilder
 			.SetBasePath(currentDirectory)
 				.AddJsonFile(jsonFileInfo.FullName)
