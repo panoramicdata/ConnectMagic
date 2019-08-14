@@ -48,7 +48,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					var configItemsExceptFirst = configItems
 						.Skip(1)
 						.ToList();
-					switch (type)
+					switch (type.ToLowerInvariant())
 					{
 						case "exprptglds":
 							var exprptgldsConfig = new ExprptgldsConfig(configItemsExceptFirst);
@@ -59,6 +59,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								.ConfigureAwait(false);
 
 							connectedSystemItems = expenseReportGlds
+								.Select(entity => JObject.FromObject(entity))
+								.ToList();
+							break;
+						case "expensereports":
+							var expenseReports = await _certifyClient
+								.ExpenseReports
+								.GetAllAsync()
+								.ConfigureAwait(false);
+
+							connectedSystemItems = expenseReports
 								.Select(entity => JObject.FromObject(entity))
 								.ToList();
 							break;
@@ -76,21 +86,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								var name = filter.Name;
 								var value = filter.Value;
 								var isProperty = false;
-								switch (name)
+								switch (name.ToLowerInvariant())
 								{
-									case "startDate":
+									case "startdate":
 										startDate = value;
 										break;
-									case "endDate":
+									case "enddate":
 										endDate = value;
 										break;
-									case "batchId":
+									case "batchid":
 										batchId = value;
 										break;
 									case "processed":
 										processed = GetBoolUint(name, value);
 										break;
-									case "includeDisapproved":
+									case "includedisapproved":
 										includeDisapproved = GetBoolUint(name, value);
 										break;
 									default:
@@ -106,7 +116,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 
 							// Fetch using the query filters
-							var expenses = await _certifyClient
+							var expenses = (await _certifyClient
 								.Expenses
 								.GetAllAsync(
 									startDate,
@@ -115,7 +125,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									processed,
 									includeDisapproved
 									)
-								.ConfigureAwait(false) as IQueryable<Expense>;
+								.ConfigureAwait(false))
+								.AsQueryable();
 
 							// Apply property filters
 							foreach (var propertyFilter in propertyFilters)
@@ -155,9 +166,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								}
 							}
 
-							connectedSystemItems = expenses
+							var expensesList = expenses.ToList();
+
+							// Only one currency supported.
+							var badCurrencies = expensesList
+								.Where(e => e.Currency != "GBP")
+								.Select(e => e.Currency)
+								.Distinct()
+								.ToList();
+							if (badCurrencies.Count != 0)
+							{
+								throw new NotSupportedException($"Non-GBP currency type(s): {string.Join(";", badCurrencies)} not supported.");
+							}
+
+							connectedSystemItems = expensesList
 								.Select(entity => JObject.FromObject(entity))
 								.ToList();
+
 							break;
 						default:
 							throw new NotSupportedException();
@@ -307,8 +332,50 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		public override Task<object> QueryLookupAsync(string query, string field)
-			=> throw new NotSupportedException();
+		public override async Task<object> QueryLookupAsync(string query, string field)
+		{
+			var parameters = query.Split('|');
+			var queryType = parameters[0];
+			switch (queryType)
+			{
+				case "user":
+					var criterion = parameters[1];
+					var criterionParameters = criterion.Split("==");
+					if (criterionParameters.Length != 2 || criterionParameters[0] != "EmployeeID")
+					{
+						throw new NotSupportedException("Only EmployeeID Certify user parameter currently supported.");
+					}
+					if (!int.TryParse(criterionParameters[1], out var employeeId))
+					{
+						throw new ConfigurationException($"EmployeeID Certify user parameter '{criterionParameters[0]}' is not an integer.");
+					}
+					// It's a valid integer
+
+					var user = (await _certifyClient
+						.Users
+						.GetAllAsync()
+						.ConfigureAwait(false))
+						.SingleOrDefault(u=>u.EmployeeId == employeeId.ToString());
+					if(user == default)
+					{
+						throw new Exception($"Certify user with EmployeeID={employeeId} not found.");
+					}
+					// We have the user
+					var propertyInfos = typeof(User).GetProperties();
+					var propertyInfo = propertyInfos.SingleOrDefault(pi =>
+					{
+						return pi.Name.ToLowerInvariant() == field.ToLowerInvariant();
+					});
+					if(propertyInfo == default)
+					{
+						throw new ConfigurationException($"Certify users don't have a property '{field}'.");
+					}
+					// We have the PropertyInfo
+					return propertyInfo.GetValue(user);
+				default:
+					throw new NotSupportedException($"Query of type '{queryType}' note supported.");
+			}
+		}
 
 		public override void Dispose()
 		{
