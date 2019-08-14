@@ -391,25 +391,29 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				{
 					// Couldn't add to the hashset (i.e. it was already present)
 					// Duplicate found.  What do we do?
-					if (dataSet.RemoveDuplicates)
+					switch (dataSet.DuplicateHandling)
 					{
-						// Remove the duplicate
-						actionList.Add(new SyncAction
-						{
-							Type = SyncActionType.Delete,
-							ConnectedSystemItem = connectedSystemItem,
-							Comment = $"Removing duplicate already observed with join value {joinValue}"
-						});
-					}
-					else
-					{
-						// Flag as a remedy
-						actionList.Add(new SyncAction
-						{
-							Type = SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue,
-							ConnectedSystemItem = connectedSystemItem,
-							Comment = $"Found duplicate already observed with join value {joinValue}"
-						});
+						case DuplicateHandling.RemoveFromConnectedSystem:
+							// Remove the duplicate
+							actionList.Add(new SyncAction
+							{
+								Type = SyncActionType.Delete,
+								ConnectedSystemItem = connectedSystemItem,
+								Comment = $"Removing duplicate already observed with join value {joinValue}"
+							});
+							break;
+						case DuplicateHandling.Discard:
+							// Do nothing
+							break;
+						default:
+							// Flag as a remedy
+							actionList.Add(new SyncAction
+							{
+								Type = SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue,
+								ConnectedSystemItem = connectedSystemItem,
+								Comment = $"Found duplicate already observed with join value {joinValue}"
+							});
+							break;
 					}
 					// Action determined.  Move to next ConnectedSystemItem.
 					continue;

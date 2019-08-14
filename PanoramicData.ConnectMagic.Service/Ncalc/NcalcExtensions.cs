@@ -1,6 +1,7 @@
 using NCalc;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
+using System.Text;
 
 namespace PanoramicData.ConnectMagic.Service.Ncalc
 {
@@ -12,6 +13,47 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 		{
 			switch (functionName)
 			{
+				case "upperCaseEmail":
+					const int upperCaseEmailParameterCount = 1;
+					if (functionArgs.Parameters.Length != upperCaseEmailParameterCount)
+					{
+						throw new ArgumentException($"Expected {upperCaseEmailParameterCount} arguments");
+					}
+					if (!(functionArgs.Parameters[0].Evaluate() is string inputEmailAddress))
+					{
+						throw new ArgumentException("Expected first argument to be an email address.");
+					}
+
+					// This function uppercases the user's first and last names
+					var stringBuilder = new StringBuilder();
+					var lastCharacterIndicatesUpperCasing = true;
+					var upperCasingIsActive = true; // Until the @ symbol is found
+					foreach(var @char in inputEmailAddress)
+					{
+						stringBuilder.Append(upperCasingIsActive && lastCharacterIndicatesUpperCasing
+							? @char.ToString().ToUpperInvariant()
+							: @char.ToString()
+							);
+
+						// When we see a '@', disable capitalization
+						switch(@char)
+						{
+							case '@':
+								lastCharacterIndicatesUpperCasing = false;
+								upperCasingIsActive = false;
+								break;
+							case '.':
+							case '-':
+								lastCharacterIndicatesUpperCasing = true;
+								break;
+							default:
+								lastCharacterIndicatesUpperCasing = false;
+								break;
+						}
+					}
+
+					functionArgs.Result = stringBuilder.ToString();
+					return;
 				case "queryLookup":
 					const int parameterCount = 4;
 					if (functionArgs.Parameters.Length != parameterCount)

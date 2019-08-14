@@ -2,6 +2,7 @@ using AutoTask.Api;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
+using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	{
 		private readonly Client autoTaskClient;
 		private readonly ILogger _logger;
+		private readonly ICache<JObject> _cache;
 
 		public AutoTaskConnectedSystemManager(
 			ConnectedSystem connectedSystem,
@@ -23,10 +25,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 			_logger = logger;
+			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
 
 		public override async System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
 		{
+			_cache.Clear();
 			foreach (var dataSet in ConnectedSystem.Datasets)
 			{
 				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
@@ -67,27 +71,43 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			try
 			{
-				_logger.LogDebug("Performing lookup.");
-				var autoTaskResult = (await autoTaskClient
-							.QueryAsync(query)
-							.ConfigureAwait(false))
-							.ToList();
+				_logger.LogDebug($"Performing lookup: for field {field}\n{query}");
 
-				if (autoTaskResult.Count != 1)
+				// Is it cached?
+				JObject connectedSystemItem;
+				if (_cache.TryGet(query, out var @object))
 				{
-					throw new ConfigurationException($"Got {autoTaskResult.Count} results for QueryLookup.  There can be only 1!");
+					// Yes. Use that
+					connectedSystemItem = @object;
+				}
+				else
+				{
+					// No.
+
+					var autoTaskResult = (await autoTaskClient
+								.QueryAsync(query)
+								.ConfigureAwait(false))
+								.ToList();
+
+					if (autoTaskResult.Count != 1)
+					{
+						throw new ConfigurationException($"Got {autoTaskResult.Count} results for QueryLookup '{query}'.  There can be only 1!");
+					}
+
+					// Convert to JObjects for easier generic manipulation
+					connectedSystemItem = autoTaskResult
+						.Select(entity => JObject.FromObject(entity))
+						.Single();
+
+					_cache.Store(query, connectedSystemItem);
 				}
 
-				// Convert to JObjects for easier generic manipulation
-				var connectedSystemItem = autoTaskResult
-					.Select(entity => JObject.FromObject(entity))
-					.Single();
-
-				if (!connectedSystemItem.TryGetValue(field, out var result))
+				// Determine the field value
+				if (!connectedSystemItem.TryGetValue(field, out var fieldValue))
 				{
 					throw new ConfigurationException($"Field {field} not present for QueryLookup.");
 				}
-				return result;
+				return fieldValue;
 			}
 			catch (Exception e)
 			{

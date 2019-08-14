@@ -54,7 +54,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// Whether to delete all but the first item when duplicates are found
 		/// </summary>
-		public bool RemoveDuplicates { get; set; }
+		public DuplicateHandling DuplicateHandling { get; set; }
 
 		internal void Validate()
 		{

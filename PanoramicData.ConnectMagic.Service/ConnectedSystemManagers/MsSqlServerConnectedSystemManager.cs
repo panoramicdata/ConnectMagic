@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
+using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Data.SqlClient;

@@ -336,9 +336,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			var parameters = query.Split('|');
 			var queryType = parameters[0];
-			switch (queryType)
+			switch (queryType.ToLowerInvariant())
 			{
 				case "user":
+				{
 					var criterion = parameters[1];
 					var criterionParameters = criterion.Split("==");
 					if (criterionParameters.Length != 2 || criterionParameters[0] != "EmployeeID")
@@ -355,8 +356,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						.Users
 						.GetAllAsync()
 						.ConfigureAwait(false))
-						.SingleOrDefault(u=>u.EmployeeId == employeeId.ToString());
-					if(user == default)
+						.SingleOrDefault(u => u.EmployeeId == employeeId.ToString());
+					if (user == default)
 					{
 						throw new Exception($"Certify user with EmployeeID={employeeId} not found.");
 					}
@@ -366,14 +367,51 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					{
 						return pi.Name.ToLowerInvariant() == field.ToLowerInvariant();
 					});
-					if(propertyInfo == default)
+					if (propertyInfo == default)
 					{
 						throw new ConfigurationException($"Certify users don't have a property '{field}'.");
 					}
 					// We have the PropertyInfo
 					return propertyInfo.GetValue(user);
+				}
+				case "expensereport":
+					{
+						var criterion = parameters[1];
+						var criterionParameters = criterion.Split("==");
+						if (criterionParameters.Length != 2 || criterionParameters[0] != "ID")
+						{
+							throw new NotSupportedException("Only ID Certify ExpenseReport parameter currently supported.");
+						}
+						if (!Guid.TryParse(criterionParameters[1], out var expenseReportId))
+						{
+							throw new ConfigurationException($"ID Certify ExpenseReport parameter '{criterionParameters[0]}' is not a Guid.");
+						}
+						// It's a valid Guid
+
+						var expenseReport = (await _certifyClient
+							.ExpenseReports.GetAsync(expenseReportId, null)
+							.ConfigureAwait(false))
+							.ExpenseReports
+							.SingleOrDefault();
+						if (expenseReport == default)
+						{
+							throw new Exception($"Certify ExpenseReport with ID={expenseReportId} not found.");
+						}
+						// We have the ExpenseReport
+						var propertyInfos = typeof(ExpenseReport).GetProperties();
+						var propertyInfo = propertyInfos.SingleOrDefault(pi =>
+						{
+							return pi.Name.ToLowerInvariant() == field.ToLowerInvariant();
+						});
+						if (propertyInfo == default)
+						{
+							throw new ConfigurationException($"Certify ExpenseReports don't have a property '{field}'.");
+						}
+						// We have the PropertyInfo
+						return propertyInfo.GetValue(expenseReport);
+					}
 				default:
-					throw new NotSupportedException($"Query of type '{queryType}' note supported.");
+					throw new NotSupportedException($"Query of type '{queryType}' not supported.");
 			}
 		}
 
