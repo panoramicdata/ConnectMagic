@@ -8,6 +8,15 @@ namespace PanoramicData.ConnectMagic.Service.Models
 	[DataContract]
 	public class QueryConfig
 	{
+		/// <summary>
+		/// The type of entity being queried
+		/// </summary>
+		[DataMember(Name = "Type")]
+		public string Type { get; set; }
+
+		/// <summary>
+		/// The query (syntax varies per ConnectedSystemType)
+		/// </summary>
 		[DataMember(Name = "Query")]
 		public string Query { get; set; }
 	}

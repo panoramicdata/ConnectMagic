@@ -9,5 +9,6 @@
 		RemedyMultipleStateItemsMatchedAConnectedSystemItem,
 		AlreadyInSync,
 		RemedyMultipleConnectedSystemItemsWithSameJoinValue,
+		RemedyErrorDuringProcessing,
 	}
 }

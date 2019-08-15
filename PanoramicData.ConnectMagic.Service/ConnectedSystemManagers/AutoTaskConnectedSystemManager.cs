@@ -13,7 +13,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class AutoTaskConnectedSystemManager : ConnectedSystemManagerBase
 	{
-		private readonly Client autoTaskClient;
+		private readonly Client _autoTaskClient;
 		private readonly ILogger _logger;
 		private readonly ICache<JObject> _cache;
 
@@ -23,7 +23,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ILogger<AutoTaskConnectedSystemManager> logger)
 			: base(connectedSystem, state, logger)
 		{
-			autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
+			_autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 			_logger = logger;
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
@@ -38,7 +38,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				var query = new SubstitutionString(inputText);
 				var substitutedQuery = query.ToString();
 				// Send the query off to AutoTask
-				var autoTaskResult = await autoTaskClient
+				var autoTaskResult = await _autoTaskClient
 					.QueryAsync(substitutedQuery)
 					.ConfigureAwait(false);
 				_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
@@ -56,8 +56,25 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override System.Threading.Tasks.Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-			=> throw new NotSupportedException();
+		internal override async System.Threading.Tasks.Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		{
+			switch(dataSet.QueryConfig.Type)
+			{
+				case nameof(ExpenseReport):
+					var expensesReport = new ExpenseReport
+					{
+						WeekEnding = connectedSystemItem["WeekEnding"].ToString(),
+						Name = connectedSystemItem["Name"].ToString(),
+						SubmitterID = long.Parse(connectedSystemItem["SubmitterId"].ToString()),
+					};
+					var result = await _autoTaskClient
+						.CreateAsync(expensesReport)
+						.ConfigureAwait(false);
+					break;
+				default:
+					throw new NotSupportedException($"AutoTask QueryConfig Type '{dataSet.QueryConfig.Type}' not supported.");
+			}
+		}
 
 		/// <inheritdoc />
 		internal override System.Threading.Tasks.Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
@@ -84,14 +101,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				{
 					// No.
 
-					var autoTaskResult = (await autoTaskClient
+					var autoTaskResult = (await _autoTaskClient
 								.QueryAsync(query)
 								.ConfigureAwait(false))
 								.ToList();
 
 					if (autoTaskResult.Count != 1)
 					{
-						throw new ConfigurationException($"Got {autoTaskResult.Count} results for QueryLookup '{query}'.  There can be only 1!");
+						throw new LookupException($"Got {autoTaskResult.Count} results for QueryLookup '{query}'. Expected one.");
 					}
 
 					// Convert to JObjects for easier generic manipulation
