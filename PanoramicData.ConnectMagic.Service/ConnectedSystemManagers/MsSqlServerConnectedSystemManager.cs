@@ -62,7 +62,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		public override Task<object> QueryLookupAsync(string query, string field)
+		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Create" template with token substitution

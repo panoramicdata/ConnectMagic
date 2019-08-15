@@ -51,14 +51,14 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			}
 		}
 
-		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, string queryLookupQuery, string queryLookupField)
+		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, QueryConfig queryConfig, string queryLookupField)
 		{
 			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
 			{
 				throw new ConfigurationException($"Could not find QueryLookup connected system manager for connected system {queryLookupConnectedSystemName}");
 			}
 			return await connectedSystemManager
-				.QueryLookupAsync(queryLookupQuery, queryLookupField)
+				.QueryLookupAsync(queryConfig, queryLookupField)
 				.ConfigureAwait(false);
 		}
 

@@ -28,7 +28,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 					var stringBuilder = new StringBuilder();
 					var lastCharacterIndicatesUpperCasing = true;
 					var upperCasingIsActive = true; // Until the @ symbol is found
-					foreach(var @char in inputEmailAddress)
+					foreach (var @char in inputEmailAddress)
 					{
 						stringBuilder.Append(upperCasingIsActive && lastCharacterIndicatesUpperCasing
 							? @char.ToString().ToUpperInvariant()
@@ -36,7 +36,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 							);
 
 						// When we see a '@', disable capitalization
-						switch(@char)
+						switch (@char)
 						{
 							case '@':
 								lastCharacterIndicatesUpperCasing = false;
@@ -55,34 +55,40 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 					functionArgs.Result = stringBuilder.ToString();
 					return;
 				case "queryLookup":
-					const int parameterCount = 4;
+					const int parameterCount = 5;
 					if (functionArgs.Parameters.Length != parameterCount)
 					{
-						throw new ArgumentException($"Expected {parameterCount} arguments");
+						throw new ArgumentException($"Expected {parameterCount} arguments in queryLookup.");
 					}
 
-					if (!(functionArgs.Parameters[0].Evaluate() is State state))
+					var argumentIndex = 0;
+					if (!(functionArgs.Parameters[argumentIndex++].Evaluate() is State state))
 					{
-						throw new ArgumentException("Expected first argument to be the State.");
+						throw new ArgumentException($"Expected argument {argumentIndex} to be the State.");
 					}
 
-					if (!(functionArgs.Parameters[1].Evaluate() is string queryLookupConnectedSystemName))
+					if (!(functionArgs.Parameters[argumentIndex++].Evaluate() is string queryLookupConnectedSystemName))
 					{
-						throw new ArgumentException("Expected first argument to be the name of a Connected System.");
+						throw new ArgumentException($"Expected argument {argumentIndex} to be the name of a Connected System.");
 					}
 
-					if (!(functionArgs.Parameters[2].Evaluate() is string queryLookupQuery))
+					if (!(functionArgs.Parameters[argumentIndex++].Evaluate() is string queryLookupType))
 					{
-						throw new ArgumentException("Expected second argument to be a query string.");
+						throw new ArgumentException($"Expected argument {argumentIndex} to be a query type.");
 					}
 
-					if (!(functionArgs.Parameters[3].Evaluate() is string queryLookupField))
+					if (!(functionArgs.Parameters[argumentIndex++].Evaluate() is string queryLookupQuery))
 					{
-						throw new ArgumentException("Expected third argument to be a field name.");
+						throw new ArgumentException($"Expected argument {argumentIndex} to be a query string.");
+					}
+
+					if (!(functionArgs.Parameters[argumentIndex++].Evaluate() is string queryLookupField))
+					{
+						throw new ArgumentException($"Expected argument {argumentIndex} to be a field name.");
 					}
 					// We now have all three parameters
 
-					functionArgs.Result = state.QueryLookupAsync(queryLookupConnectedSystemName, queryLookupQuery, queryLookupField).GetAwaiter().GetResult();
+					functionArgs.Result = state.QueryLookupAsync(queryLookupConnectedSystemName, new QueryConfig { Type = queryLookupType, Query = queryLookupQuery }, queryLookupField).GetAwaiter().GetResult();
 					return;
 			}
 		}

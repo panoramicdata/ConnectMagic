@@ -39,14 +39,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			{
 				List<JObject> connectedSystemItems;
 				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+				var type = dataSet.QueryConfig.Type;
 				var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
 
 				var configItems = query.Split('|');
-				var type = configItems[0];
 				try
 				{
 					var configItemsExceptFirst = configItems
-						.Skip(1)
 						.ToList();
 					switch (type.ToLowerInvariant())
 					{
@@ -263,11 +262,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <inheritdoc />
 		internal override async Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 		{
+			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
-			switch (parameters[0])
+			switch (type)
 			{
 				case "exprptglds":
-					if (!uint.TryParse(parameters[1], out var index))
+					if (!uint.TryParse(parameters[0], out var index))
 					{
 						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
 					}
@@ -304,12 +304,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		/// <inheritdoc />
 		internal override async Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
-		{ // Split out the parameters in the query
+		{
+			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
-			switch (parameters[0])
+			switch (type)
 			{
 				case "exprptglds":
-					if (!uint.TryParse(parameters[1], out var index))
+					if (!uint.TryParse(parameters[0], out var index))
 					{
 						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
 					}
@@ -332,51 +333,51 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		public override async Task<object> QueryLookupAsync(string query, string field)
+		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
 		{
-			var parameters = query.Split('|');
-			var queryType = parameters[0];
-			switch (queryType.ToLowerInvariant())
+			var type = queryConfig.Type.ToLowerInvariant();
+			var parameters = queryConfig.Query.Split('|');
+			switch (type)
 			{
 				case "user":
-				{
-					var criterion = parameters[1];
-					var criterionParameters = criterion.Split("==");
-					if (criterionParameters.Length != 2 || criterionParameters[0] != "EmployeeID")
 					{
-						throw new NotSupportedException("Only EmployeeID Certify user parameter currently supported.");
-					}
-					if (!int.TryParse(criterionParameters[1], out var employeeId))
-					{
-						throw new ConfigurationException($"EmployeeID Certify user parameter '{criterionParameters[0]}' is not an integer.");
-					}
-					// It's a valid integer
+						var criterion = parameters[0];
+						var criterionParameters = criterion.Split("==");
+						if (criterionParameters.Length != 2 || criterionParameters[0] != "EmployeeID")
+						{
+							throw new NotSupportedException("Only EmployeeID Certify user parameter currently supported.");
+						}
+						if (!int.TryParse(criterionParameters[1], out var employeeId))
+						{
+							throw new ConfigurationException($"EmployeeID Certify user parameter '{criterionParameters[0]}' is not an integer.");
+						}
+						// It's a valid integer
 
-					var user = (await _certifyClient
-						.Users
-						.GetAllAsync()
-						.ConfigureAwait(false))
-						.SingleOrDefault(u => u.EmployeeId == employeeId.ToString());
-					if (user == default)
-					{
-						throw new Exception($"Certify user with EmployeeID={employeeId} not found.");
+						var user = (await _certifyClient
+							.Users
+							.GetAllAsync()
+							.ConfigureAwait(false))
+							.SingleOrDefault(u => u.EmployeeId == employeeId.ToString());
+						if (user == default)
+						{
+							throw new Exception($"Certify user with EmployeeID={employeeId} not found.");
+						}
+						// We have the user
+						var propertyInfos = typeof(User).GetProperties();
+						var propertyInfo = propertyInfos.SingleOrDefault(pi =>
+						{
+							return string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase);
+						});
+						if (propertyInfo == default)
+						{
+							throw new ConfigurationException($"Certify users don't have a property '{field}'.");
+						}
+						// We have the PropertyInfo
+						return propertyInfo.GetValue(user);
 					}
-					// We have the user
-					var propertyInfos = typeof(User).GetProperties();
-					var propertyInfo = propertyInfos.SingleOrDefault(pi =>
-					{
-						return pi.Name.ToLowerInvariant() == field.ToLowerInvariant();
-					});
-					if (propertyInfo == default)
-					{
-						throw new ConfigurationException($"Certify users don't have a property '{field}'.");
-					}
-					// We have the PropertyInfo
-					return propertyInfo.GetValue(user);
-				}
 				case "expensereport":
 					{
-						var criterion = parameters[1];
+						var criterion = parameters[0];
 						var criterionParameters = criterion.Split("==");
 						if (criterionParameters.Length != 2 || criterionParameters[0] != "ID")
 						{
@@ -401,7 +402,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						var propertyInfos = typeof(ExpenseReport).GetProperties();
 						var propertyInfo = propertyInfos.SingleOrDefault(pi =>
 						{
-							return pi.Name.ToLowerInvariant() == field.ToLowerInvariant();
+							return string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase);
 						});
 						if (propertyInfo == default)
 						{
@@ -411,7 +412,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						return propertyInfo.GetValue(expenseReport);
 					}
 				default:
-					throw new NotSupportedException($"Query of type '{queryType}' not supported.");
+					throw new NotSupportedException($"Query of type '{type}' not supported.");
 			}
 		}
 

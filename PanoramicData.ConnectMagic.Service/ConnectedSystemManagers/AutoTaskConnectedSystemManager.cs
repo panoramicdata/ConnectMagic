@@ -84,15 +84,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		internal override System.Threading.Tasks.Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotSupportedException();
 
-		public override async Task<object> QueryLookupAsync(string query, string field)
+		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
 		{
 			try
 			{
-				_logger.LogDebug($"Performing lookup: for field {field}\n{query}");
+				var cacheKey = queryConfig.Query;
+				_logger.LogDebug($"Performing lookup: for field {field}\n{queryConfig.Query}");
 
 				// Is it cached?
 				JObject connectedSystemItem;
-				if (_cache.TryGet(query, out var @object))
+				if (_cache.TryGet(cacheKey, out var @object))
 				{
 					// Yes. Use that
 					connectedSystemItem = @object;
@@ -102,13 +103,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// No.
 
 					var autoTaskResult = (await _autoTaskClient
-								.QueryAsync(query)
+								.QueryAsync(queryConfig.Query)
 								.ConfigureAwait(false))
 								.ToList();
 
 					if (autoTaskResult.Count != 1)
 					{
-						throw new LookupException($"Got {autoTaskResult.Count} results for QueryLookup '{query}'. Expected one.");
+						throw new LookupException($"Got {autoTaskResult.Count} results for QueryLookup '{queryConfig.Query}'. Expected one.");
 					}
 
 					// Convert to JObjects for easier generic manipulation
@@ -116,7 +117,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						.Select(entity => JObject.FromObject(entity))
 						.Single();
 
-					_cache.Store(query, connectedSystemItem);
+					_cache.Store(cacheKey, connectedSystemItem);
 				}
 
 				// Determine the field value

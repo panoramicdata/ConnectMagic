@@ -656,10 +656,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// Query Lookup
 		/// </summary>
-		/// <param name="query"></param>
+		/// <param name="queryConfig"></param>
 		/// <param name="field"></param>
 		/// <returns></returns>
-		public abstract Task<object> QueryLookupAsync(string query, string field);
+		public abstract Task<object> QueryLookupAsync(QueryConfig queryConfig, string field);
 
 		public abstract void Dispose();
 

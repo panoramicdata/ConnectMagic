@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
-using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Threading;
@@ -61,19 +60,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 			=> throw new NotSupportedException();
 
-		public override async Task<object> QueryLookupAsync(string query, string field)
+		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
 		{
-			var substitutedQuery = new SubstitutionString(query).ToString();
+			var substitutedQuery = new SubstitutionString(queryConfig.Query).ToString();
 			var connectedSystemItems = await _salesforceClient
 				.GetAllJObjectsAsync(substitutedQuery)
 				.ConfigureAwait(false);
-			_logger.LogDebug($"Got {connectedSystemItems.Count} results for query '{query}'.");
+			_logger.LogDebug($"Got {connectedSystemItems.Count} results for query '{queryConfig.Query}'.");
 			switch (connectedSystemItems.Count)
 			{
 				case 1:
 					return connectedSystemItems[0][field];
 				default:
-					throw new ConfigurationException($"Lookup found {connectedSystemItems.Count} records using query '{query}'.  Expected 1.");
+					throw new ConfigurationException($"Lookup found {connectedSystemItems.Count} records using query '{queryConfig.Query}'.  Expected 1.");
 			}
 		}
 

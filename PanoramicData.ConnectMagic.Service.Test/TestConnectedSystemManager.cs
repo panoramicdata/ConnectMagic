@@ -43,7 +43,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 				null)
 				.ConfigureAwait(false);
 
-		public override Task<object> QueryLookupAsync(string query, string field)
+		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
 			=> throw new NotSupportedException();
 
 		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken) =>
