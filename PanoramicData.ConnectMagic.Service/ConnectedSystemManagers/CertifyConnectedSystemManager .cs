@@ -197,7 +197,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				await ProcessConnectedSystemItemsAsync(
 					dataSet,
 					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet))
+					GetFileInfo(ConnectedSystem, dataSet),
+					cancellationToken)
 					.ConfigureAwait(false);
 			}
 		}
@@ -216,7 +217,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override async Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override async Task CreateOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			)
 		{
 			// Split out the parameters in the query
 			var parameters = dataSet.QueryConfig.Query.Split('|');
@@ -261,7 +266,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override async Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override async Task UpdateOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			)
 		{
 			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
@@ -304,7 +313,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override async Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override async Task DeleteOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			)
 		{
 			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
@@ -334,7 +347,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
+		public override async Task<object> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			CancellationToken cancellationToken)
 		{
 			var type = queryConfig.Type.ToLowerInvariant();
 			var parameters = queryConfig.Query.Split('|');

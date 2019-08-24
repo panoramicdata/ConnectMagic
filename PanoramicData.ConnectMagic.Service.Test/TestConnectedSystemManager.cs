@@ -40,10 +40,11 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			=> await ProcessConnectedSystemItemsAsync(
 				dataSet,
 				connectedSystemItems,
-				null)
+				null,
+				default)
 				.ConfigureAwait(false);
 
-		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
+		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken) =>
@@ -60,13 +61,13 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			//}
 			throw new NotSupportedException();
 
-		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
-		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
-		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		public override void Dispose()

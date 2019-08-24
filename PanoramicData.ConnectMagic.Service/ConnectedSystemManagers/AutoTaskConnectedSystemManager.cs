@@ -51,13 +51,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				await ProcessConnectedSystemItemsAsync(
 					dataSet,
 					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet)
+					GetFileInfo(ConnectedSystem, dataSet),
+					cancellationToken
 					).ConfigureAwait(false);
 			}
 		}
 
 		/// <inheritdoc />
-		internal override async System.Threading.Tasks.Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override async System.Threading.Tasks.Task CreateOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			)
 		{
 			switch (dataSet.QueryConfig.Type)
 			{
@@ -78,14 +83,22 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override System.Threading.Tasks.Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override System.Threading.Tasks.Task DeleteOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			)
 			=> throw new NotSupportedException();
 
 		/// <inheritdoc />
-		internal override System.Threading.Tasks.Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override System.Threading.Tasks.Task UpdateOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			)
 			=> throw new NotSupportedException();
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
+		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 		{
 			try
 			{

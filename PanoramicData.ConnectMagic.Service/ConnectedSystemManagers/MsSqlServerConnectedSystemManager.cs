@@ -56,25 +56,26 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					await ProcessConnectedSystemItemsAsync(
 						dataSet,
 						connectedSystemItems,
-						GetFileInfo(ConnectedSystem, dataSet))
+						GetFileInfo(ConnectedSystem, dataSet),
+						cancellationToken)
 						.ConfigureAwait(false);
 				}
 			}
 		}
 
-		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
+		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Create" template with token substitution
-		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Delete" template with token substitution
-		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Update" template with token substitution
-		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		public override void Dispose()

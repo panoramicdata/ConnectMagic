@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -51,14 +52,14 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			}
 		}
 
-		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, QueryConfig queryConfig, string queryLookupField)
+		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, QueryConfig queryConfig, string queryLookupField, CancellationToken cancellationToken)
 		{
 			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
 			{
 				throw new ConfigurationException($"Could not find QueryLookup connected system manager for connected system {queryLookupConnectedSystemName}");
 			}
 			return await connectedSystemManager
-				.QueryLookupAsync(queryConfig, queryLookupField)
+				.QueryLookupAsync(queryConfig, queryLookupField, cancellationToken)
 				.ConfigureAwait(false);
 		}
 

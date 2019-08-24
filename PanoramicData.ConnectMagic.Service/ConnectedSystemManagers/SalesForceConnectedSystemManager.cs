@@ -44,24 +44,25 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				await ProcessConnectedSystemItemsAsync(
 					dataSet,
 					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet))
+					GetFileInfo(ConnectedSystem, dataSet),
+					cancellationToken)
 					.ConfigureAwait(false);
 			}
 		}
 
 		/// <inheritdoc />
-		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		/// <inheritdoc />
-		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		/// <inheritdoc />
-		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field)
+		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 		{
 			var substitutedQuery = new SubstitutionString(queryConfig.Query).ToString();
 			var connectedSystemItems = await _salesforceClient

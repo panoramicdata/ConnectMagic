@@ -88,7 +88,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 					}
 					// We now have all three parameters
 
-					functionArgs.Result = state.QueryLookupAsync(queryLookupConnectedSystemName, new QueryConfig { Type = queryLookupType, Query = queryLookupQuery }, queryLookupField).GetAwaiter().GetResult();
+					functionArgs.Result = state.QueryLookupAsync(queryLookupConnectedSystemName, new QueryConfig { Type = queryLookupType, Query = queryLookupQuery }, queryLookupField, default).GetAwaiter().GetResult();
 					return;
 			}
 		}

@@ -81,7 +81,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		protected async Task<List<SyncAction>> ProcessConnectedSystemItemsAsync(
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
-			FileInfo fileInfo)
+			FileInfo fileInfo,
+			CancellationToken cancellationToken)
 		{
 			// Make sure arguments meet minimum requirements
 			if (dataSet == null)
@@ -143,7 +144,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					syncActions,
 					stateItemList,
 					inwardMappings,
-					outwardMappings).ConfigureAwait(false);
+					outwardMappings,
+					cancellationToken).ConfigureAwait(false);
 
 				WriteSyncActionOutput(
 					fileInfo,
@@ -202,7 +204,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet)
 			=> new FileInfo($"Output/{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
 
-		private async Task ProcessActionList(ConnectedSystemDataSet dataSet, List<SyncAction> actionList, ItemList stateItemList, List<Mapping> inwardMappings, List<Mapping> outwardMappings)
+		private async Task ProcessActionList(
+			ConnectedSystemDataSet dataSet,
+			List<SyncAction> actionList,
+			ItemList stateItemList,
+			List<Mapping> inwardMappings,
+			List<Mapping> outwardMappings,
+			CancellationToken cancellationToken)
 		{
 			// Process the action list
 			foreach (var action in actionList)
@@ -242,7 +250,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											await CreateOutwardsAsync(dataSet, newConnectedSystemItem).ConfigureAwait(false);
+											await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 											// TODO Create should return created object, call update state afterwards
 										}
 									}
@@ -271,7 +279,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											await DeleteOutwardsAsync(dataSet, action.ConnectedSystemItem).ConfigureAwait(false);
+											await DeleteOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 										}
 									}
 									else
@@ -329,7 +337,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									// We are making a change
 									if (permission == DataSetPermission.Allowed)
 									{
-										await UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem).ConfigureAwait(false);
+										await UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 									}
 								}
 								else
@@ -537,7 +545,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// Determines permissions
 		/// </summary>
-		internal static DataSetPermission DeterminePermission(ConnectedSystem connectedSystem, ConnectedSystemDataSet dataSet, SyncActionType type)
+		internal static DataSetPermission DeterminePermission(
+			ConnectedSystem connectedSystem,
+			ConnectedSystemDataSet dataSet,
+			SyncActionType type
+			)
 		{
 			if (!connectedSystem.Permissions.CanWrite)
 			{
@@ -647,21 +659,33 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, to be deleted from the ConnectedSystem.</param>
-		internal abstract Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+		internal abstract Task DeleteOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			);
 
 		/// <summary>
 		/// Updates a specific item
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, as updated to be pushed to the ConnectedSystem.</param>
-		internal abstract Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+		internal abstract Task UpdateOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			);
 
 		/// <summary>
 		/// Updates a specific item
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, to be created in the ConnectedSystem.</param>
-		internal abstract Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem);
+		internal abstract Task CreateOutwardsAsync(
+			ConnectedSystemDataSet dataSet,
+			JObject connectedSystemItem,
+			CancellationToken cancellationToken
+			);
 
 		/// <summary>
 		/// Refresh DataSets
@@ -675,8 +699,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		/// <param name="queryConfig"></param>
 		/// <param name="field"></param>
+		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		public abstract Task<object> QueryLookupAsync(QueryConfig queryConfig, string field);
+		public abstract Task<object> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			CancellationToken cancellationToken);
 
 		public abstract void Dispose();
 
