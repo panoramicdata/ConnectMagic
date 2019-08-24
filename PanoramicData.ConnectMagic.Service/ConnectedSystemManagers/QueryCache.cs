@@ -7,7 +7,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	internal class QueryCache<T> : ICache<T>
 	{
 		private TimeSpan _timeSpan;
-		private ConcurrentDictionary<string, CacheRecord<T>> _dictionary = new ConcurrentDictionary<string, CacheRecord<T>>();
+
+		private readonly ConcurrentDictionary<string, CacheRecord<T>> _dictionary
+			= new ConcurrentDictionary<string, CacheRecord<T>>();
 
 		public QueryCache(TimeSpan timeSpan)
 		{
@@ -15,18 +17,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		public void Clear()
-		{
-			_dictionary.Clear();
-		}
+			=> _dictionary.Clear();
 
 		public void Store(string key, T @object)
+			=> _dictionary[key] = new CacheRecord<T>
 		{
-			_dictionary[key] = new CacheRecord<T>
-			{
-				ExpiryDateTimeOffset = DateTimeOffset.UtcNow + _timeSpan,
-				Object = @object
-			};
-		}
+			ExpiryDateTimeOffset = DateTimeOffset.UtcNow + _timeSpan,
+			Object = @object
+		};
 
 		public bool TryGet(string key, out T @object)
 		{

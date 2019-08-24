@@ -66,26 +66,27 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanCreate = true, CanDelete = true, CanUpdate = true, CanWrite = true }
 			};
 
-			var testConnectedSystemManger = new TestConnectedSystemManager(
+			using (var testConnectedSystemManger = new TestConnectedSystemManager(
 				connectedSystem,
 				state,
 				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
-			);
+			))
+			{
+				var actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
+				actionList.Should().NotBeNullOrEmpty();
+				actionList.Should().HaveCount(6);
+				actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
+				actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Create).Should().HaveCount(4);
+				actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Update).Should().HaveCount(1);
+				actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Delete).Should().HaveCount(1);
 
-			var actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
-			actionList.Should().NotBeNullOrEmpty();
-			actionList.Should().HaveCount(6);
-			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
-			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Create).Should().HaveCount(4);
-			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Update).Should().HaveCount(1);
-			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Delete).Should().HaveCount(1);
-
-			// Process a second time - should be in stable state
-			actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
-			actionList.Should().NotBeNullOrEmpty();
-			actionList.Should().HaveCount(5);
-			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
-			actionList.All(a => a.Type == ConnectedSystemManagers.SyncActionType.AlreadyInSync).Should().BeTrue();
+				// Process a second time - should be in stable state
+				actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
+				actionList.Should().NotBeNullOrEmpty();
+				actionList.Should().HaveCount(5);
+				actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
+				actionList.All(a => a.Type == ConnectedSystemManagers.SyncActionType.AlreadyInSync).Should().BeTrue();
+			}
 		}
 	}
 }

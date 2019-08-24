@@ -18,7 +18,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class CertifyConnectedSystemManager : ConnectedSystemManagerBase
 	{
-		private PropertyInfo[] ExpensePropertyInfos = typeof(Expense).GetProperties();
+		private readonly PropertyInfo[] ExpensePropertyInfos = typeof(Expense).GetProperties();
 
 		private readonly CertifyClient _certifyClient;
 		private readonly ILogger _logger;
@@ -364,10 +364,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						}
 						// We have the user
 						var propertyInfos = typeof(User).GetProperties();
-						var propertyInfo = propertyInfos.SingleOrDefault(pi =>
-						{
-							return string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase);
-						});
+						var propertyInfo = propertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase));
 						if (propertyInfo == default)
 						{
 							throw new ConfigurationException($"Certify users don't have a property '{field}'.");
@@ -400,10 +397,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						}
 						// We have the ExpenseReport
 						var propertyInfos = typeof(ExpenseReport).GetProperties();
-						var propertyInfo = propertyInfos.SingleOrDefault(pi =>
-						{
-							return string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase);
-						});
+						var propertyInfo = propertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase));
 						if (propertyInfo == default)
 						{
 							throw new ConfigurationException($"Certify ExpenseReports don't have a property '{field}'.");

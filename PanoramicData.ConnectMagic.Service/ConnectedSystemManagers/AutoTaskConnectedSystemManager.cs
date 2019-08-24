@@ -136,7 +136,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public override void Dispose()
 		{
-			// Nothing to be done.
+			_autoTaskClient?.Dispose();
 		}
 	}
 }
