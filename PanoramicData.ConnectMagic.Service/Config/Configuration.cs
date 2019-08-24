@@ -41,6 +41,9 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		[DataMember(Name = "State")]
 		public State State { get; set; }
 
+		[DataMember(Name = "MaxFileAgeHours")]
+		public double MaxFileAgeHours { get; set; } = 72;
+
 		/// <summary>
 		/// Validates the configuration and throws an exception if an issue is found
 		/// </summary>

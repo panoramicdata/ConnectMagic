@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -69,6 +70,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 			using (var testConnectedSystemManger = new TestConnectedSystemManager(
 				connectedSystem,
 				state,
+				TimeSpan.FromHours(1),
 				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
 			))
 			{

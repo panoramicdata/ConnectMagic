@@ -16,8 +16,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public SalesforceConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
+			TimeSpan maxFileAge,
 			ILogger<SalesforceConnectedSystemManager> logger)
-			: base(connectedSystem, state, logger)
+			: base(connectedSystem, state, maxFileAge, logger)
 		{
 			_logger = logger;
 			_salesforceClient = new SalesforceClient(

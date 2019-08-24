@@ -20,8 +20,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public AutoTaskConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
+			TimeSpan maxFileAge,
 			ILogger<AutoTaskConnectedSystemManager> logger)
-			: base(connectedSystem, state, logger)
+			: base(connectedSystem, state, maxFileAge, logger)
 		{
 			_autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 			_logger = logger;
@@ -58,7 +59,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <inheritdoc />
 		internal override async System.Threading.Tasks.Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 		{
-			switch(dataSet.QueryConfig.Type)
+			switch (dataSet.QueryConfig.Type)
 			{
 				case nameof(ExpenseReport):
 					var expensesReport = new ExpenseReport
@@ -135,8 +136,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		public override void Dispose()
-		{
-			_autoTaskClient?.Dispose();
-		}
+			=> _autoTaskClient?.Dispose();
 	}
 }

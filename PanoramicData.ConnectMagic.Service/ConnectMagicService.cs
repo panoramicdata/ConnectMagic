@@ -28,6 +28,7 @@ namespace PanoramicData.ConnectMagic.Service
 		private readonly Configuration _configuration;
 		private readonly CancellationTokenSource _cancellationTokenSource;
 		private State _state;
+		private readonly TimeSpan _maxFileAge;
 		private readonly List<Task> _connectedSystemTasks;
 		private readonly FileInfo _stateFileInfo;
 		private readonly ILoggerFactory _loggerFactory;
@@ -50,6 +51,9 @@ namespace PanoramicData.ConnectMagic.Service
 
 			// Create State object
 			_state = _configuration.State;
+
+			// Store Max file age
+			_maxFileAge = TimeSpan.FromHours(_configuration.MaxFileAgeHours);
 
 			// Create task list
 			_connectedSystemTasks = new List<Task>();
@@ -144,7 +148,7 @@ namespace PanoramicData.ConnectMagic.Service
 			_state.ConnectedSystemManagers = _configuration
 				.ConnectedSystems
 				.Where(cs => cs.IsEnabled)
-				.Select(cs => CreateConnectedSystemManager(cs, _state))
+				.Select(cs => CreateConnectedSystemManager(cs, _state, _maxFileAge))
 				.ToDictionary(csm => csm.ConnectedSystem.Name);
 
 			// Create RemoteSystemTasks
@@ -178,22 +182,25 @@ namespace PanoramicData.ConnectMagic.Service
 			return Task.CompletedTask;
 		}
 
-		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state)
+		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state, TimeSpan maxFileAge)
 		{
 			IConnectedSystemManager connectedSystemManager;
 			switch (connectedSystem.Type)
 			{
 				case SystemType.AutoTask:
-					connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>());
+					connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>());
 					break;
 				case SystemType.Certify:
-					connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
+					connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
+					break;
+				case SystemType.LogicMonitor:
+					connectedSystemManager = new LogicMonitorConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<LogicMonitorConnectedSystemManager>());
 					break;
 				case SystemType.SalesForce:
-					connectedSystemManager = new SalesforceConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<SalesforceConnectedSystemManager>());
+					connectedSystemManager = new SalesforceConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<SalesforceConnectedSystemManager>());
 					break;
 				case SystemType.MsSqlServer:
-					connectedSystemManager = new MsSqlServerConnectedSystemManager(connectedSystem, state, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>());
+					connectedSystemManager = new MsSqlServerConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>());
 					break;
 				default:
 					throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");

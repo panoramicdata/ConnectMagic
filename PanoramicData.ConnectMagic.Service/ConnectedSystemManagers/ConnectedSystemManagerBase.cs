@@ -29,11 +29,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		private readonly ILogger _logger;
 
-		protected ConnectedSystemManagerBase(ConnectedSystem connectedSystem, State state, ILogger logger)
+		private readonly TimeSpan _maxFileAge;
+
+		protected ConnectedSystemManagerBase(
+			ConnectedSystem connectedSystem,
+			State state,
+			TimeSpan maxFileAge,
+			ILogger logger)
 		{
 			ConnectedSystem = connectedSystem ?? throw new ArgumentNullException(nameof(connectedSystem));
 			State = state ?? throw new ArgumentNullException(nameof(state));
 			_logger = logger;
+			_maxFileAge = maxFileAge;
 		}
 
 		/// <summary>
@@ -140,7 +147,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 				WriteSyncActionOutput(
 					fileInfo,
-					syncActions);
+					syncActions,
+					_maxFileAge,
+					_logger);
 
 				// Pass the SyncActions out for logging/examining
 				return syncActions;
@@ -152,10 +161,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		private static void WriteSyncActionOutput(FileInfo fileInfo, List<SyncAction> syncActions)
+		private static void WriteSyncActionOutput(
+			FileInfo fileInfo,
+			List<SyncAction> syncActions,
+			TimeSpan maxFileAge,
+			ILogger logger)
 		{
-			// TODO - make this age correctly
-			return;
+			// Age files
+			foreach (var fileInfoToAge in fileInfo.Directory.EnumerateFiles("*.xlsx").Where(fi => fi.CreationTimeUtc.Add(maxFileAge) < DateTime.UtcNow))
+			{
+				logger.LogInformation($"Deleting old file {fileInfoToAge.FullName}");
+				fileInfoToAge.Delete();
+			}
 
 			if (syncActions == null)
 			{

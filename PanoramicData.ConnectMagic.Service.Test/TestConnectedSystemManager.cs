@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
-using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
@@ -19,8 +18,9 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		internal TestConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
+			TimeSpan maxFileAge,
 			ILogger<TestConnectedSystemManager> logger)
-			: base(connectedSystem, state, logger)
+			: base(connectedSystem, state, maxFileAge, logger)
 		{
 			_logger = logger;
 			// Initialise the list

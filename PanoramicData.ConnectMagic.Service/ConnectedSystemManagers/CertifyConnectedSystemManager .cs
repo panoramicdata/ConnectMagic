@@ -26,8 +26,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public CertifyConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
+			TimeSpan maxFileAge,
 			ILogger<CertifyConnectedSystemManager> logger)
-			: base(connectedSystem, state, logger)
+			: base(connectedSystem, state, maxFileAge, logger)
 		{
 			_certifyClient = new CertifyClient(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 			_logger = logger;

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
-using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Data.SqlClient;
@@ -20,8 +19,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public MsSqlServerConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
+			TimeSpan maxFileAge,
 			ILogger<MsSqlServerConnectedSystemManager> logger)
-			: base(connectedSystem, state, logger)
+			: base(connectedSystem, state, maxFileAge, logger)
 		{
 			_logger = logger;
 			_connectedSystem = connectedSystem;
