@@ -15,9 +15,31 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public string Type { get; set; }
 
 		/// <summary>
-		/// The query (syntax varies per ConnectedSystemType)
+		/// The Get List query
+		/// Syntax varies per ConnectedSystemType
 		/// </summary>
 		[DataMember(Name = "Query")]
 		public string Query { get; set; }
+
+		/// <summary>
+		/// The query for the Delete action.
+		/// Syntax varies per ConnectedSystemType.
+		/// </summary>
+		[DataMember(Name = "CreateQuery")]
+		public string CreateQuery { get; set; }
+
+		/// <summary>
+		/// The query for the Delete action.
+		/// Syntax varies per ConnectedSystemType.
+		/// </summary>
+		[DataMember(Name = "UpdateQuery")]
+		public string UpdateQuery { get; set; }
+
+		/// <summary>
+		/// The query for the Delete action.
+		/// Syntax varies per ConnectedSystemType.
+		/// </summary>
+		[DataMember(Name = "DeleteQuery")]
+		public string DeleteQuery { get; set; }
 	}
 }

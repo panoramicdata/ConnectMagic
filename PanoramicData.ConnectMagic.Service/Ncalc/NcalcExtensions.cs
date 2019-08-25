@@ -1,4 +1,5 @@
 using NCalc;
+using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Text;
@@ -53,6 +54,28 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 					}
 
 					functionArgs.Result = stringBuilder.ToString();
+					return;
+				case "jobject":
+					const int jobjectParameterCount = 1;
+					if (functionArgs.Parameters.Length != jobjectParameterCount)
+					{
+						throw new ArgumentException($"Expected {jobjectParameterCount} arguments");
+					}
+					if (!(functionArgs.Parameters[0].Evaluate() is string inputJobjectString))
+					{
+						throw new ArgumentException("Expected first argument to be a string.");
+					}
+					JObject jObject;
+					try
+					{
+						jObject = JObject.Parse(inputJobjectString);
+					}
+					catch (Exception e)
+					{
+						throw new ArgumentException($"Could not parse string into a JSON object: '{e.Message}'.");
+					}
+
+					functionArgs.Result = jObject;
 					return;
 				case "queryLookup":
 					const int parameterCount = 5;

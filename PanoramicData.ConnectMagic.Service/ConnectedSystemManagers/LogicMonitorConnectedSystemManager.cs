@@ -53,19 +53,28 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override Task CreateOutwardsAsync(
+		internal override async Task CreateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken
 			)
-			=> _logicMonitorClient.PostAsync<JObject, JObject>(connectedSystemItem, dataSet.QueryConfig.Query, cancellationToken);
+		{
+			var endpoint = new SubstitutionString(dataSet.QueryConfig.CreateQuery ?? dataSet.QueryConfig.Query).ToString();
+			var unused = await _logicMonitorClient.PostAsync<JObject, JObject>(
+				connectedSystemItem,
+				endpoint,
+				cancellationToken).ConfigureAwait(false);
+		}
 
 		/// <inheritdoc />
-		internal override Task DeleteOutwardsAsync(
+		internal override async Task DeleteOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken)
-			=> _logicMonitorClient.DeleteAsync(dataSet.QueryConfig.Query, cancellationToken);
+		{
+			var endpoint = new SubstitutionString(dataSet.QueryConfig.DeleteQuery ?? dataSet.QueryConfig.Query).ToString();
+			await _logicMonitorClient.DeleteAsync(endpoint, cancellationToken).ConfigureAwait(false);
+		}
 
 		/// <summary>
 		/// Strategy: create a Patch containing all of the fields in the connectedSystemItem
@@ -78,7 +87,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken)
-			=> _logicMonitorClient.PutAsync(dataSet.QueryConfig.Query, cancellationToken);
+		{
+			var endpoint = new SubstitutionString(dataSet.QueryConfig.UpdateQuery ?? dataSet.QueryConfig.Query).ToString();
+			return _logicMonitorClient.PutAsync(endpoint, connectedSystemItem, cancellationToken);
+		}
 
 		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 		{

@@ -49,7 +49,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="systemExpression"></param>
 		/// <param name="item"></param>
 		/// <returns></returns>
-		internal static string Evaluate(string systemExpression, JObject item, State state)
+		internal static object Evaluate(string systemExpression, JObject item, State state)
 		{
 			var parameters = item.ToObject<Dictionary<string, object>>();
 			parameters.Add("State", state);
@@ -59,7 +59,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			};
 			try
 			{
-				return nCalcExpression.Evaluate()?.ToString();
+				return nCalcExpression.Evaluate();
 			}
 			catch (ArgumentException ex)
 			{
@@ -229,7 +229,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									var newStateItem = new JObject();
 									foreach (var inwardMapping in inwardMappings)
 									{
-										newStateItem[inwardMapping.StateExpression] = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+										var inwardValue = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+										newStateItem[inwardMapping.StateExpression] = JToken.FromObject(inwardValue);
 									}
 									// Save our new item
 									action.StateItem = newStateItem;
@@ -244,7 +245,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									var newConnectedSystemItem = new JObject();
 									foreach (var outwardMapping in outwardMappings)
 									{
-										newConnectedSystemItem[outwardMapping.SystemExpression] = Evaluate(outwardMapping.StateExpression, action.StateItem, State);
+										var outwardValue = Evaluate(outwardMapping.StateExpression, action.StateItem, State);
+										newConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(outwardValue);
 									}
 									if (State.IsConnectedSystemsSyncCompletedOnce())
 									{
@@ -299,9 +301,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							var stateItemClone = JObject.FromObject(action.StateItem);
 							foreach (var inwardMapping in inwardMappings)
 							{
-								var newValue = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
-								var existingValue = action.StateItem.Value<string>(inwardMapping.StateExpression);
-								if (existingValue != newValue)
+								var newValue = JToken.FromObject(Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State));
+								var existingValue = action.StateItem[inwardMapping.StateExpression];
+								if (existingValue?.ToString() != newValue?.ToString())
 								{
 									inwardUpdateRequired = true;
 									stateItemClone[inwardMapping.StateExpression] = newValue;
@@ -322,11 +324,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							var outwardUpdateRequired = false;
 							foreach (var outwardMapping in outwardMappings)
 							{
-								var newEvaluatedValue = Evaluate(outwardMapping.StateExpression, action.StateItem, State);
-								var existingConnectedSystemValue = action.ConnectedSystemItem[outwardMapping.SystemExpression].ToString();
-								if (existingConnectedSystemValue != newEvaluatedValue)
+								var newEvaluatedValue = JToken.FromObject(Evaluate(outwardMapping.StateExpression, action.StateItem, State));
+								var existingConnectedSystemValue = action.ConnectedSystemItem[outwardMapping.SystemExpression];
+								if (existingConnectedSystemValue.ToString() != newEvaluatedValue.ToString())
 								{
-									action.ConnectedSystemItem[outwardMapping.SystemExpression] = newEvaluatedValue;
+									action.ConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(newEvaluatedValue);
 									outwardUpdateRequired = true;
 								}
 							}
@@ -417,7 +419,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Go through each ConnectedSystem item and see if it is present in the State FieldSet
 			foreach (var connectedSystemItem in connectedSystemItems)
 			{
-				var joinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem, state);
+				var joinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem, state).ToString();
 
 				// Is this a duplicate WITHIN the ConnectedSystemItems?
 				if (!connectedSystemItemsSeenJoinValues.Add(joinValue))
@@ -531,7 +533,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var stateItemJoinDictionary = new Dictionary<string, ItemList>();
 			foreach (var stateItem in stateItemList.ToList())
 			{
-				var key = Evaluate(joinMapping.StateExpression, stateItem, state);
+				var key = Evaluate(joinMapping.StateExpression, stateItem, state).ToString();
 				if (!stateItemJoinDictionary.TryGetValue(key, out var itemList))
 				{
 					itemList = stateItemJoinDictionary[key] = new ItemList();
