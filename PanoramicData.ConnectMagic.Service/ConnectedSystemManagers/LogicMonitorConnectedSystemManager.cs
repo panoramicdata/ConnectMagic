@@ -60,7 +60,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			)
 		{
 			var endpoint = new SubstitutionString(dataSet.QueryConfig.CreateQuery ?? dataSet.QueryConfig.Query).ToString();
-			var unused = await _logicMonitorClient.PostAsync<JObject, JObject>(
+			var _ = await _logicMonitorClient.PostAsync<JObject, JObject>(
 				connectedSystemItem,
 				endpoint,
 				cancellationToken).ConfigureAwait(false);
