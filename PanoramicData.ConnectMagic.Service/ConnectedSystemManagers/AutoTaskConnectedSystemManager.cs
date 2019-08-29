@@ -64,46 +64,28 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			CancellationToken cancellationToken
 			)
 		{
-			switch (dataSet.QueryConfig.Type)
+			var itemToCreate = MakeAutoTaskObject(dataSet, connectedSystemItem);
+			var createdItem = await _autoTaskClient
+				.CreateAsync(itemToCreate)
+				.ConfigureAwait(false);
+		}
+
+		private Entity MakeAutoTaskObject(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		{
+			var type = Type.GetType($"AutoTask.Api.{dataSet.QueryConfig.Type}, {typeof(Entity).Assembly.FullName}");
+			if(type == null)
 			{
-				case nameof(ExpenseReport):
-					var expensesReport = new ExpenseReport
-					{
-						WeekEnding = connectedSystemItem["WeekEnding"].ToString(),
-						Name = connectedSystemItem["Name"].ToString(),
-						SubmitterID = long.Parse(connectedSystemItem["SubmitterId"].ToString()),
-					};
-					var result = await _autoTaskClient
-						.CreateAsync(expensesReport)
-						.ConfigureAwait(false);
-					break;
-				case nameof(TicketCost):
-					var ticketCost = new TicketCost
-					{
-						AllocationCodeID = connectedSystemItem["AllocationCodeID"].ToString(),
-						BillableAmount = decimal.Parse(connectedSystemItem["BillableAmount"].ToString()),
-						Name = connectedSystemItem["Name"].ToString(),
-						Description = connectedSystemItem["Description"].ToString(),
-						TicketID = connectedSystemItem["TicketID"].ToString(),
-						Status = connectedSystemItem["Status"].ToString(),
-						UnitQuantity = connectedSystemItem["UnitQuantity"].ToString(),
-						DatePurchased = connectedSystemItem["DatePurchased"].ToString(),
-						CostType = connectedSystemItem["CostType"].ToString()
-					};
-					try
-					{
-						var ticketCostResult = await _autoTaskClient
-							.CreateAsync(ticketCost)
-							.ConfigureAwait(false);
-					}
-					catch(Exception e)
-					{
-						var a = 1;
-					}
-					break;
-				default:
-					throw new NotSupportedException($"AutoTask QueryConfig Type '{dataSet.QueryConfig.Type}' not supported.");
+				throw new ConfigurationException($"AutoTask type {dataSet.QueryConfig.Type} not supported.");
 			}
+			var instance = Activator.CreateInstance(type);
+			var jObjectPropertyNames = connectedSystemItem.Properties().Select(p => p.Name);
+
+			var typePropertyInfos = type.GetProperties();
+			foreach (var propertyInfo in typePropertyInfos.Where(pi => jObjectPropertyNames.Contains(pi.Name)))
+			{
+				propertyInfo.SetValue(instance, connectedSystemItem[propertyInfo.Name].ToObject(propertyInfo.PropertyType));
+			}
+			return (Entity)instance;
 		}
 
 		/// <inheritdoc />

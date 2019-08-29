@@ -329,7 +329,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							{
 								var newEvaluatedValue = JToken.FromObject(Evaluate(outwardMapping.StateExpression, action.StateItem, State));
 								var existingConnectedSystemValue = action.ConnectedSystemItem[outwardMapping.SystemExpression];
-								if (existingConnectedSystemValue.ToString() != newEvaluatedValue.ToString())
+								var areEqual = false;
+								// Are they both decimals?
+								if (decimal.TryParse(existingConnectedSystemValue.ToString(), out var existingValueDecimal) && decimal.TryParse(newEvaluatedValue.ToString(), out var newEvaluatedValueDecimal))
+								{
+									// Yes.  Are the equal?
+									areEqual = existingValueDecimal == newEvaluatedValueDecimal;
+								}
+								else if (existingConnectedSystemValue.ToString() == newEvaluatedValue.ToString())
+								{
+									areEqual = true;
+								}
+								if(!areEqual)
 								{
 									action.ConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(newEvaluatedValue);
 									outwardUpdateRequired = true;
