@@ -77,6 +77,30 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						.CreateAsync(expensesReport)
 						.ConfigureAwait(false);
 					break;
+				case nameof(TicketCost):
+					var ticketCost = new TicketCost
+					{
+						AllocationCodeID = connectedSystemItem["AllocationCodeID"].ToString(),
+						BillableAmount = decimal.Parse(connectedSystemItem["BillableAmount"].ToString()),
+						Name = connectedSystemItem["Name"].ToString(),
+						Description = connectedSystemItem["Description"].ToString(),
+						TicketID = connectedSystemItem["TicketID"].ToString(),
+						Status = connectedSystemItem["Status"].ToString(),
+						UnitQuantity = connectedSystemItem["UnitQuantity"].ToString(),
+						DatePurchased = connectedSystemItem["DatePurchased"].ToString(),
+						CostType = connectedSystemItem["CostType"].ToString()
+					};
+					try
+					{
+						var ticketCostResult = await _autoTaskClient
+							.CreateAsync(ticketCost)
+							.ConfigureAwait(false);
+					}
+					catch(Exception e)
+					{
+						var a = 1;
+					}
+					break;
 				default:
 					throw new NotSupportedException($"AutoTask QueryConfig Type '{dataSet.QueryConfig.Type}' not supported.");
 			}
