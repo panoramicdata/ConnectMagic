@@ -170,10 +170,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ILogger logger)
 		{
 			// Age files
-			foreach (var fileInfoToAge in fileInfo.Directory.EnumerateFiles("*.xlsx").Where(fi => fi.CreationTimeUtc.Add(maxFileAge) < DateTime.UtcNow))
+			if (fileInfo.Directory.Exists)
 			{
-				logger.LogInformation($"Deleting old file {fileInfoToAge.FullName}");
-				fileInfoToAge.Delete();
+				foreach (var fileInfoToAge in fileInfo.Directory.EnumerateFiles("*.xlsx").Where(fi => fi.CreationTimeUtc.Add(maxFileAge) < DateTime.UtcNow))
+				{
+					logger.LogInformation($"Deleting old file {fileInfoToAge.FullName}");
+					fileInfoToAge.Delete();
+				}
 			}
 
 			if (syncActions == null)
