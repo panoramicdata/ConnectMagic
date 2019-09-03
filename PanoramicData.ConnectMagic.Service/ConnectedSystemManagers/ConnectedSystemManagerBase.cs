@@ -255,7 +255,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+											await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 											// TODO Create should return created object, call update state afterwards
 										}
 									}
@@ -284,7 +284,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
-											await DeleteOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+											await InternalDeleteOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
 										}
 									}
 									else
@@ -340,7 +340,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								{
 									areEqual = true;
 								}
-								if(!areEqual)
+								if (!areEqual)
 								{
 									action.ConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(newEvaluatedValue);
 									outwardUpdateRequired = true;
@@ -353,7 +353,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									// We are making a change
 									if (permission == DataSetPermission.Allowed)
 									{
-										await UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+										await InternalUpdateOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
 									}
 								}
 								else
@@ -377,6 +377,24 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					action.Comment = e.ToString();
 				}
 			}
+		}
+
+		private async Task InternalDeleteOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
+		{
+			_logger.LogInformation($"Deleting item for dataset {dataSet.Name}...");
+			await DeleteOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+		}
+
+		private async Task InternalUpdateOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
+		{
+			_logger.LogInformation($"Updating item for dataset {dataSet.Name}...");
+			await UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+		}
+
+		private async Task InternalCreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject newConnectedSystemItem, CancellationToken cancellationToken)
+		{
+			_logger.LogInformation($"Creating item for dataset {dataSet.Name}...");
+			await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 		}
 
 		private static void AnalyseUnseenItems(ConnectedSystemDataSet dataSet, List<SyncAction> actionList, List<JObject> unseenStateItems)
