@@ -89,12 +89,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override System.Threading.Tasks.Task DeleteOutwardsAsync(
+		internal override async System.Threading.Tasks.Task DeleteOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken
 			)
-			=> throw new NotSupportedException();
+		{
+			var entity = MakeAutoTaskObject(dataSet, connectedSystemItem);
+			_logger.LogDebug($"Deleting item with id {entity.id}");
+			await _autoTaskClient
+				.DeleteAsync(entity)
+				.ConfigureAwait(false);
+		}
 
 		/// <inheritdoc />
 		internal override System.Threading.Tasks.Task UpdateOutwardsAsync(

@@ -4,6 +4,7 @@ using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicData.ConnectMagic.Service.Ncalc;
+using PanoramicData.NCalcExtensions;
 using PanoramicData.SheetMagic;
 using System;
 using System.Collections.Generic;
@@ -94,6 +95,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			if (connectedSystemItems == null)
 			{
 				throw new ArgumentNullException(nameof(connectedSystemItems));
+			}
+
+			// Filter
+			if (dataSet.QueryConfig.Filter != null)
+			{
+				var ncalcExpression = new ExtendedExpression(dataSet.QueryConfig.Filter);
+				connectedSystemItems = connectedSystemItems.Where(csi =>
+				{
+					var dictionary = csi.ToObject<Dictionary<string, object>>();
+					ncalcExpression.Parameters = dictionary;
+					return (bool)ncalcExpression.Evaluate();
+				}).ToList();
 			}
 
 			var syncActions = new List<SyncAction>();

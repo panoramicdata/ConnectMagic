@@ -22,6 +22,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public string Query { get; set; }
 
 		/// <summary>
+		/// Filter is applied post as an NCalc that must return true or false
+		/// </summary>
+		[DataMember(Name = "Filter")]
+		public string Filter { get; set; }
+
+		/// <summary>
 		/// The query for the Delete action.
 		/// Syntax varies per ConnectedSystemType.
 		/// </summary>
