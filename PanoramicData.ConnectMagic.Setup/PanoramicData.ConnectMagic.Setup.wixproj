@@ -62,7 +62,8 @@
     <Error Text="The WiX Toolset v3.11 (or newer) build tools must be installed to build this project. To download the WiX Toolset, see http://wixtoolset.org/releases/" />
   </Target>
   <Target Name="BeforeBuild">
-    <Exec Command="dotnet publish /p:TrimUnusedDependencies=true -c $(Configuration) -r win-x64 ..\PanoramicData.ConnectMagic.Service\PanoramicData.ConnectMagic.Service.csproj" />
+	  <Exec Command='rmdir /S /Q "..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish"' />
+	  <Exec Command="dotnet publish /p:TrimUnusedDependencies=true -c $(Configuration) -r win-x64 ..\PanoramicData.ConnectMagic.Service\PanoramicData.ConnectMagic.Service.csproj" />
     <PropertyGroup>
       <DefineConstants>BasePath=..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish</DefineConstants>
       <LinkerBaseInputPaths>..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish</LinkerBaseInputPaths>
