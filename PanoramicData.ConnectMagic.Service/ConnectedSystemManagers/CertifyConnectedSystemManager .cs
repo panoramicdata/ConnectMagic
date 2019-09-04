@@ -224,13 +224,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			)
 		{
 			// Split out the parameters in the query
+			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
-			switch (parameters[0])
+			switch (type)
 			{
 				case "exprptglds":
-					if (!uint.TryParse(parameters[1], out var index))
+					if (!uint.TryParse(parameters[0], out var index))
 					{
-						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
+						throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
 					}
 					try
 					{
@@ -261,7 +262,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					}
 					break;
 				default:
-					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
+					throw new NotSupportedException($"Certify class {type} not supported.");
 			}
 		}
 
@@ -279,7 +280,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				case "exprptglds":
 					if (!uint.TryParse(parameters[0], out var index))
 					{
-						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
+						throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
 					}
 
 					// Get the existing entry
@@ -326,7 +327,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				case "exprptglds":
 					if (!uint.TryParse(parameters[0], out var index))
 					{
-						throw new ConfigurationException($"Certify index {parameters[1]} could not be parsed as a UINT.");
+						throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
 					}
 
 					var expenseReportGld = new ExpenseReportGld
@@ -343,7 +344,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						.ConfigureAwait(false);
 					break;
 				default:
-					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
+					throw new NotSupportedException($"Certify class {type} not supported.");
 			}
 		}
 
