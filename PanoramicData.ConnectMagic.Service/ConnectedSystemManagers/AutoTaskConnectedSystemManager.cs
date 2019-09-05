@@ -40,7 +40,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				var substitutedQuery = query.ToString();
 				// Send the query off to AutoTask
 				var autoTaskResult = await _autoTaskClient
-					.QueryAsync(substitutedQuery)
+					.GetAllAsync(substitutedQuery)
 					.ConfigureAwait(false);
 				_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
 				// Convert to JObjects for easier generic manipulation
