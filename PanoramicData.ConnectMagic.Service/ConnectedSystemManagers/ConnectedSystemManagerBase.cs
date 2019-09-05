@@ -138,34 +138,46 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					.Where(m => m.Direction == SyncDirection.Out)
 					.ToList();
 
-				AnalyseConnectedSystemItems(
-					dataSet,
-					connectedSystemItems,
-					syncActions,
-					stateItemList,
-					unseenStateItems,
-					joinMapping,
-					State);
+				try
+				{
+					AnalyseConnectedSystemItems(
+						dataSet,
+						connectedSystemItems,
+						syncActions,
+						stateItemList,
+						unseenStateItems,
+						joinMapping,
+						State,
+						_logger,
+						cancellationToken);
 
-				AnalyseUnseenItems(
-					dataSet,
-					syncActions,
-					unseenStateItems);
+					AnalyseUnseenItems(
+						dataSet,
+						syncActions,
+						unseenStateItems,
+						_logger,
+						cancellationToken);
 
-				await ProcessActionList(
-					dataSet,
-					syncActions,
-					stateItemList,
-					inwardMappings,
-					outwardMappings,
-					cancellationToken).ConfigureAwait(false);
-
-				WriteSyncActionOutput(
-					fileInfo,
-					syncActions,
-					_maxFileAge,
-					_logger);
-
+					await ProcessActionList(
+						dataSet,
+						syncActions,
+						stateItemList,
+						inwardMappings,
+						outwardMappings,
+						cancellationToken).ConfigureAwait(false);
+				}
+				catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
+				{
+					_logger.LogInformation("Task cancelled");
+				}
+				finally
+				{
+					WriteSyncActionOutput(
+						fileInfo,
+						syncActions,
+						_maxFileAge,
+						_logger);
+				}
 				// Pass the SyncActions out for logging/examining
 				return syncActions;
 			}
@@ -228,9 +240,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			List<Mapping> outwardMappings,
 			CancellationToken cancellationToken)
 		{
+			_logger.LogInformation($"Processing action list for dataset {dataSet.Name}");
+
 			// Process the action list
 			foreach (var action in actionList)
 			{
+				cancellationToken.ThrowIfCancellationRequested();
+
 				try
 				{
 					var permission = DeterminePermission(ConnectedSystem, dataSet, action.Type);
@@ -410,11 +426,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 		}
 
-		private static void AnalyseUnseenItems(ConnectedSystemDataSet dataSet, List<SyncAction> actionList, List<JObject> unseenStateItems)
+		private static void AnalyseUnseenItems(
+			ConnectedSystemDataSet dataSet,
+			List<SyncAction> actionList,
+			List<JObject> unseenStateItems,
+			ILogger logger,
+			CancellationToken cancellationToken)
 		{
+			logger.LogInformation($"Analysing unseen items for dataset {dataSet.Name}");
+
 			// Process the unseen items that were found in state but not matched correctly in the ConnectedSystem
 			foreach (var unseenStateItem in unseenStateItems)
 			{
+				cancellationToken.ThrowIfCancellationRequested();
+
 				switch (dataSet.CreateDeleteDirection)
 				{
 					case SyncDirection.None:
@@ -455,8 +480,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ItemList stateItemList,
 			List<JObject> unseenStateItems,
 			Mapping joinMapping,
-			State state)
+			State state,
+			ILogger logger,
+			CancellationToken cancellationToken)
 		{
+			logger.LogInformation($"Analysing ConnectedSystem items for dataset {dataSet.Name}");
 			var stateItemJoinDictionary = BuildStateItemJoinDictionary(stateItemList, joinMapping, state);
 
 			var connectedSystemItemsSeenJoinValues = new HashSet<string>();
@@ -464,6 +492,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Go through each ConnectedSystem item and see if it is present in the State FieldSet
 			foreach (var connectedSystemItem in connectedSystemItems)
 			{
+				cancellationToken.ThrowIfCancellationRequested();
+
 				var joinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem, state).ToString();
 
 				// Is this a duplicate WITHIN the ConnectedSystemItems?

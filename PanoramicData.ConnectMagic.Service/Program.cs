@@ -71,7 +71,7 @@ namespace PanoramicData.ConnectMagic.Service
 
 				return (int)ExitCode.Ok;
 			}
-			catch (OperationCanceledException e)
+			catch (Exception e) when (e is OperationCanceledException || e is TaskCanceledException)
 			{
 				// This is normal for using CTRL+C to exit the run
 				Console.WriteLine($"** Execution run canceled - exiting ** : '{e.Message}'");

@@ -13,10 +13,16 @@ namespace PanoramicData.ConnectMagic.Service
 
 		public ConnectedSystemPeriodLoop(
 			IConnectedSystemManager connectedSystemManager,
-			ILogger<ConnectedSystemPeriodLoop> logger) : base(connectedSystemManager.ConnectedSystem.Name, logger)
+			ILogger<ConnectedSystemPeriodLoop> logger)
+			: base(
+				  connectedSystemManager.ConnectedSystem.Name,
+				  TimeSpan.FromSeconds(connectedSystemManager.ConnectedSystem.LoopPeriodicitySeconds),
+				  logger)
 		{
 			_connectedSystemManager = connectedSystemManager;
 		}
+
+		public string ConnectedSystemName => _connectedSystemManager.ConnectedSystem.Name;
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
@@ -29,6 +35,8 @@ namespace PanoramicData.ConnectMagic.Service
 			await _connectedSystemManager
 				.RefreshDataSetsAsync(cancellationToken)
 				.ConfigureAwait(false);
+
+
 
 			// This should only be updated if the above went as planned
 			_connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;

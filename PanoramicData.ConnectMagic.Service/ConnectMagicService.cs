@@ -28,6 +28,7 @@ namespace PanoramicData.ConnectMagic.Service
 		private readonly Configuration _configuration;
 		private readonly CancellationTokenSource _cancellationTokenSource;
 		private State _state;
+		private Task _startLoopsTask;
 		private readonly TimeSpan _maxFileAge;
 		private readonly List<Task> _connectedSystemTasks;
 		private readonly FileInfo _stateFileInfo;
@@ -151,13 +152,43 @@ namespace PanoramicData.ConnectMagic.Service
 				.Select(cs => CreateConnectedSystemManager(cs, _state, _maxFileAge))
 				.ToDictionary(csm => csm.ConnectedSystem.Name);
 
-			// Create RemoteSystemTasks
-			foreach (var connectedSystemManager in _state.ConnectedSystemManagers.Values)
+			// Fire and forget
+			_startLoopsTask = StartLoopsAsync(cancellationToken);
+
+			_logger.LogDebug($"Started {Program.ProductName}.");
+
+			return Task.CompletedTask;
+		}
+
+		private async Task StartLoopsAsync(CancellationToken cancellationToken)
+		{
+			// Create ConnectedSystemPeriodLoops
+			var connectedSystemPeriodLoops = _state
+				.ConnectedSystemManagers
+				.Values
+				.Select(connectedSystemManager => new ConnectedSystemPeriodLoop(connectedSystemManager, _loggerFactory.CreateLogger<ConnectedSystemPeriodLoop>()))
+				.ToList();
+
+			// Execute them all once
+			_logger.LogInformation("Initial sync starting");
+			var tasks = new List<Task>();
+			foreach (var connectedSystemPeriodLoop in connectedSystemPeriodLoops)
+			{
+				tasks.Add(connectedSystemPeriodLoop.ExecuteAsync(_cancellationTokenSource.Token));
+			}
+			// ...waiting for them all to finish.
+			await Task
+				.WhenAll(tasks)
+				.ConfigureAwait(false);
+			_logger.LogInformation("Initial sync complete");
+			// The sync code has all executed once.
+
+			// Immediately start looping, with the configured delays from now on.
+			foreach (var connectedSystemPeriodLoop in connectedSystemPeriodLoops)
 			{
 				// TODO - DA: What to do if one of the connected systems faults? Restart all, or continue to attempt to restart that system?
-				var connectedSystemPeriodLoop = new ConnectedSystemPeriodLoop(connectedSystemManager, _loggerFactory.CreateLogger<ConnectedSystemPeriodLoop>());
 				_connectedSystemTasks.Add(
-					connectedSystemPeriodLoop.LoopAsync(TimeSpan.FromSeconds(connectedSystemManager.ConnectedSystem.LoopPeriodicitySeconds), _cancellationTokenSource.Token)
+					connectedSystemPeriodLoop.LoopAsync(_cancellationTokenSource.Token)
 					.ContinueWith(faultingTask =>
 					{
 						var sb = new StringBuilder();
@@ -172,14 +203,10 @@ namespace PanoramicData.ConnectMagic.Service
 						{
 							sb.AppendLine("The exception was not set");
 						}
-						_logger.LogError($"Exception in system task for connected system {connectedSystemManager.ConnectedSystem.Name}: {sb}");
+						_logger.LogError($"Exception in system task for connected system {connectedSystemPeriodLoop.ConnectedSystemName}: {sb}");
 					}, TaskContinuationOptions.OnlyOnFaulted)
 				);
 			}
-
-			_logger.LogDebug($"Started {Program.ProductName}.");
-
-			return Task.CompletedTask;
 		}
 
 		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state, TimeSpan maxFileAge)
@@ -213,20 +240,36 @@ namespace PanoramicData.ConnectMagic.Service
 		/// Tasks to perform on stop
 		/// </summary>
 		/// <param name="cancellationToken"></param>
-		public Task StopAsync(CancellationToken cancellationToken)
+		public async Task StopAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogDebug($"Stopping {Program.ProductName}...");
 
 			// Stop Remote System Tasks
 			_cancellationTokenSource.Cancel();
 
-			_logger.LogDebug("Waiting for ConnectedSystemTasks to complete...");
-			Task.WaitAll(_connectedSystemTasks.ToArray());
+			try
+			{
+				if (_startLoopsTask != null)
+				{
+					_logger.LogDebug("Ensuring StartLoopsTask is complete");
+					await _startLoopsTask.ConfigureAwait(false);
+				}
+
+				if (_connectedSystemTasks != null)
+				{
+					_logger.LogDebug("Waiting for ConnectedSystemTasks to complete...");
+					await Task.WhenAll(_connectedSystemTasks.ToArray()).ConfigureAwait(false);
+				}
+			}
+			catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
+			{
+				_logger.LogDebug("Cancelled");
+			}
 
 			// Save lastKnownState
 			try
 			{
-				_state.Save(_stateFileInfo);
+				_state?.Save(_stateFileInfo);
 			}
 			catch (Exception ex)
 			{
@@ -236,7 +279,6 @@ namespace PanoramicData.ConnectMagic.Service
 			{
 				_logger.LogInformation($"Stopped {Program.ProductName}.");
 			}
-			return Task.CompletedTask;
 		}
 
 		/// <summary>
