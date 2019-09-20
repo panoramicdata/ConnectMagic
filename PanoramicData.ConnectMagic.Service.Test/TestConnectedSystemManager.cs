@@ -47,7 +47,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
-		public override Task RefreshDataSetsAsync(CancellationToken cancellationToken) =>
+		public override Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken) =>
 			//foreach (var dataSet in ConnectedSystem.Datasets)
 			//{
 			//	_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
@@ -74,5 +74,8 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		{
 			// Nothing to be done
 		}
+
+		public override Task ClearCacheAsync()
+			=> throw new NotSupportedException();
 	}
 }

@@ -29,25 +29,22 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				connectedSystem.Credentials.PrivateText);
 		}
 
-		public override async Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			foreach (var dataSet in ConnectedSystem.Datasets)
-			{
-				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
-				var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
-				var query = new SubstitutionString(inputText);
-				var substitutedQuery = query.ToString();
+			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
+			var query = new SubstitutionString(inputText);
+			var substitutedQuery = query.ToString();
 
-				var connectedSystemItems = await _salesforceClient.GetAllJObjectsAsync(substitutedQuery).ConfigureAwait(false);
-				_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
+			var connectedSystemItems = await _salesforceClient.GetAllJObjectsAsync(substitutedQuery).ConfigureAwait(false);
+			_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
 
-				await ProcessConnectedSystemItemsAsync(
-					dataSet,
-					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet),
-					cancellationToken)
-					.ConfigureAwait(false);
-			}
+			await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				GetFileInfo(ConnectedSystem, dataSet),
+				cancellationToken)
+				.ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />
@@ -77,6 +74,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					throw new ConfigurationException($"Lookup found {connectedSystemItems.Count} records using query '{queryConfig.Query}'.  Expected 1.");
 			}
 		}
+
+		public override Task ClearCacheAsync()
+			=> Task.CompletedTask;
 
 		public override void Dispose()
 			=> _salesforceClient.Dispose();

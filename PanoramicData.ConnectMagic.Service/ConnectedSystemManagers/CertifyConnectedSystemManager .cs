@@ -34,173 +34,170 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_logger = logger;
 		}
 
-		public override async Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			foreach (var dataSet in ConnectedSystem.Datasets)
+			List<JObject> connectedSystemItems;
+			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			var type = dataSet.QueryConfig.Type;
+			var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
+
+			var configItems = query.Split('|');
+			try
 			{
-				List<JObject> connectedSystemItems;
-				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
-				var type = dataSet.QueryConfig.Type;
-				var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
-
-				var configItems = query.Split('|');
-				try
+				var configItemsExceptFirst = configItems
+					.ToList();
+				switch (type.ToLowerInvariant())
 				{
-					var configItemsExceptFirst = configItems
-						.ToList();
-					switch (type.ToLowerInvariant())
-					{
-						case "exprptglds":
-							var exprptgldsConfig = new ExprptgldsConfig(configItemsExceptFirst);
-							// We have the index
-							var expenseReportGlds = await _certifyClient
-								.ExpenseReportGlds
-								.GetAllAsync(exprptgldsConfig.Index, active: 1)
-								.ConfigureAwait(false);
+					case "exprptglds":
+						var exprptgldsConfig = new ExprptgldsConfig(configItemsExceptFirst);
+						// We have the index
+						var expenseReportGlds = await _certifyClient
+							.ExpenseReportGlds
+							.GetAllAsync(exprptgldsConfig.Index, active: 1)
+							.ConfigureAwait(false);
 
-							connectedSystemItems = expenseReportGlds
-								.Select(entity => JObject.FromObject(entity))
-								.ToList();
-							break;
-						case "expensereports":
-							var expenseReports = await _certifyClient
-								.ExpenseReports
-								.GetAllAsync()
-								.ConfigureAwait(false);
+						connectedSystemItems = expenseReportGlds
+							.Select(entity => JObject.FromObject(entity))
+							.ToList();
+						break;
+					case "expensereports":
+						var expenseReports = await _certifyClient
+							.ExpenseReports
+							.GetAllAsync()
+							.ConfigureAwait(false);
 
-							connectedSystemItems = expenseReports
-								.Select(entity => JObject.FromObject(entity))
-								.ToList();
-							break;
-						case "expenses":
-							var propertyFilters = new List<Filter>();
+						connectedSystemItems = expenseReports
+							.Select(entity => JObject.FromObject(entity))
+							.ToList();
+						break;
+					case "expenses":
+						var propertyFilters = new List<Filter>();
 
-							string startDate = null;
-							string endDate = null;
-							string batchId = null;
-							uint? processed = null;
-							uint? includeDisapproved = null;
-							var allFilters = configItemsExceptFirst.Select(ci => new Filter(ci));
-							foreach (var filter in allFilters)
+						string startDate = null;
+						string endDate = null;
+						string batchId = null;
+						uint? processed = null;
+						uint? includeDisapproved = null;
+						var allFilters = configItemsExceptFirst.Select(ci => new Filter(ci));
+						foreach (var filter in allFilters)
+						{
+							var name = filter.Name;
+							var value = filter.Value;
+							var isProperty = false;
+							switch (name.ToLowerInvariant())
 							{
-								var name = filter.Name;
-								var value = filter.Value;
-								var isProperty = false;
-								switch (name.ToLowerInvariant())
-								{
-									case "startdate":
-										startDate = value;
-										break;
-									case "enddate":
-										endDate = value;
-										break;
-									case "batchid":
-										batchId = value;
-										break;
-									case "processed":
-										processed = GetBoolUint(name, value);
-										break;
-									case "includedisapproved":
-										includeDisapproved = GetBoolUint(name, value);
-										break;
-									default:
-										// Perhaps we will filter on this later?
-										propertyFilters.Add(filter);
-										isProperty = true;
-										break;
-								}
-								if (!isProperty && filter.Operator != Operator.Equals)
-								{
-									throw new ConfigurationException($"Expense configItem {filter.Name} must in the form 'a==b'");
-								}
+								case "startdate":
+									startDate = value;
+									break;
+								case "enddate":
+									endDate = value;
+									break;
+								case "batchid":
+									batchId = value;
+									break;
+								case "processed":
+									processed = GetBoolUint(name, value);
+									break;
+								case "includedisapproved":
+									includeDisapproved = GetBoolUint(name, value);
+									break;
+								default:
+									// Perhaps we will filter on this later?
+									propertyFilters.Add(filter);
+									isProperty = true;
+									break;
 							}
-
-							// Fetch using the query filters
-							var expenses = (await _certifyClient
-								.Expenses
-								.GetAllAsync(
-									startDate,
-									endDate,
-									batchId,
-									processed,
-									includeDisapproved
-									)
-								.ConfigureAwait(false))
-								.AsQueryable();
-
-							// Apply property filters
-							foreach (var propertyFilter in propertyFilters)
+							if (!isProperty && filter.Operator != Operator.Equals)
 							{
-								// Does this refer to a valid property?
-								var matchingPropertyInfo = ExpensePropertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, propertyFilter.Name, StringComparison.InvariantCultureIgnoreCase));
-								if (matchingPropertyInfo == null)
-								{
-									// No
-									throw new ConfigurationException($"Expenses do not have property '{propertyFilter.Name}'");
-								}
-								// Yes
-
-								// Filter on this criteria
-								switch (propertyFilter.Operator)
-								{
-									case Operator.Equals:
-										expenses = expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() == propertyFilter.Value);
-										break;
-									case Operator.NotEquals:
-										expenses = expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() != propertyFilter.Value);
-										break;
-									case Operator.LessThanOrEquals:
-										expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) <= 0);
-										break;
-									case Operator.LessThan:
-										expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) < 0);
-										break;
-									case Operator.GreaterThanOrEquals:
-										expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) >= 0);
-										break;
-									case Operator.GreaterThan:
-										expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) > 0);
-										break;
-									default:
-										throw new NotSupportedException($"Operator '{propertyFilter.Operator}' not supported.");
-								}
+								throw new ConfigurationException($"Expense configItem {filter.Name} must in the form 'a==b'");
 							}
+						}
 
-							var expensesList = expenses.ToList();
+						// Fetch using the query filters
+						var expenses = (await _certifyClient
+							.Expenses
+							.GetAllAsync(
+								startDate,
+								endDate,
+								batchId,
+								processed,
+								includeDisapproved
+								)
+							.ConfigureAwait(false))
+							.AsQueryable();
 
-							// Only one currency supported.
-							var badCurrencies = expensesList
-								.Where(e => e.Currency != "GBP")
-								.Select(e => e.Currency)
-								.Distinct()
-								.ToList();
-							if (badCurrencies.Count != 0)
+						// Apply property filters
+						foreach (var propertyFilter in propertyFilters)
+						{
+							// Does this refer to a valid property?
+							var matchingPropertyInfo = ExpensePropertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, propertyFilter.Name, StringComparison.InvariantCultureIgnoreCase));
+							if (matchingPropertyInfo == null)
 							{
-								throw new NotSupportedException($"Non-GBP currency type(s): {string.Join(";", badCurrencies)} not supported.");
+								// No
+								throw new ConfigurationException($"Expenses do not have property '{propertyFilter.Name}'");
 							}
+							// Yes
 
-							connectedSystemItems = expensesList
-								.Select(entity => JObject.FromObject(entity))
-								.ToList();
+							// Filter on this criteria
+							switch (propertyFilter.Operator)
+							{
+								case Operator.Equals:
+									expenses = expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() == propertyFilter.Value);
+									break;
+								case Operator.NotEquals:
+									expenses = expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() != propertyFilter.Value);
+									break;
+								case Operator.LessThanOrEquals:
+									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) <= 0);
+									break;
+								case Operator.LessThan:
+									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) < 0);
+									break;
+								case Operator.GreaterThanOrEquals:
+									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) >= 0);
+									break;
+								case Operator.GreaterThan:
+									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) > 0);
+									break;
+								default:
+									throw new NotSupportedException($"Operator '{propertyFilter.Operator}' not supported.");
+							}
+						}
 
-							break;
-						default:
-							throw new NotSupportedException();
-					}
+						var expensesList = expenses.ToList();
+
+						// Only one currency supported.
+						var badCurrencies = expensesList
+							.Where(e => e.Currency != "GBP")
+							.Select(e => e.Currency)
+							.Distinct()
+							.ToList();
+						if (badCurrencies.Count != 0)
+						{
+							throw new NotSupportedException($"Non-GBP currency type(s): {string.Join(";", badCurrencies)} not supported.");
+						}
+
+						connectedSystemItems = expensesList
+							.Select(entity => JObject.FromObject(entity))
+							.ToList();
+
+						break;
+					default:
+						throw new NotSupportedException();
 				}
-				catch (Exception e)
-				{
-					_logger.LogError($"Could not fetch {type} due to {e.Message}");
-					throw;
-				}
-
-				await ProcessConnectedSystemItemsAsync(
-					dataSet,
-					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet),
-					cancellationToken)
-					.ConfigureAwait(false);
 			}
+			catch (Exception e)
+			{
+				_logger.LogError($"Could not fetch {type} due to {e.Message}");
+				throw;
+			}
+
+			await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				GetFileInfo(ConnectedSystem, dataSet),
+				cancellationToken)
+				.ConfigureAwait(false);
 		}
 
 		private uint? GetBoolUint(string configItemName, string value)
@@ -427,6 +424,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					throw new NotSupportedException($"Query of type '{type}' not supported.");
 			}
 		}
+
+		public override Task ClearCacheAsync()
+			=> Task.CompletedTask;
 
 		public override void Dispose()
 		{

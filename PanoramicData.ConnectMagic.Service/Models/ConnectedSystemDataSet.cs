@@ -24,6 +24,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public QueryConfig QueryConfig { get; set; }
 
 		/// <summary>
+		/// Whether the DataSet is enabled
+		/// </summary>
+		[DataMember(Name = "IsEnabled")]
+		public bool IsEnabled { get; set; } = true;
+
+		/// <summary>
 		/// Creation direction
 		/// - None
 		///   - items are not added to either the ConnectedSystem or State

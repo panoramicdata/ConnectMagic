@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.Serialization;
 
 namespace PanoramicData.ConnectMagic.Service.Models
@@ -56,5 +57,10 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// Permissions
 		/// </summary>
 		public Permissions Permissions { get; set; } = new Permissions();
+
+		/// <summary>
+		/// Enabled datasets
+		/// </summary>
+		public IEnumerable<ConnectedSystemDataSet> EnabledDatasets => Datasets.Where(ds => ds.IsEnabled);
 	}
 }

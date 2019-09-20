@@ -262,7 +262,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									foreach (var inwardMapping in inwardMappings)
 									{
 										var inwardValue = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
-										newStateItem[inwardMapping.StateExpression] = JToken.FromObject(inwardValue);
+										newStateItem[inwardMapping.StateExpression] = inwardValue == null ? null : JToken.FromObject(inwardValue);
 									}
 									// Save our new item
 									action.StateItem = newStateItem;
@@ -765,11 +765,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			);
 
 		/// <summary>
-		/// Refresh DataSets
+		/// Refresh DataSet
 		/// </summary>
+		/// <param name="dataSet"></param>
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		public abstract Task RefreshDataSetsAsync(CancellationToken cancellationToken);
+		public abstract Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken);
+
+		/// <summary>
+		/// Clear the cache
+		/// </summary>
+		/// <returns></returns>
+		public abstract Task ClearCacheAsync();
 
 		/// <summary>
 		/// Query Lookup

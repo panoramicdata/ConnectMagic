@@ -29,27 +29,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
 
-		public override async Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			_cache.Clear();
-			foreach (var dataSet in ConnectedSystem.Datasets)
-			{
-				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
-				var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
-				var query = new SubstitutionString(inputText);
-				// Send the query off to LogicMonitor
-				var connectedSystemItems = await _logicMonitorClient
-					.GetAllAsync<JObject>(query.ToString(), cancellationToken)
-					.ConfigureAwait(false);
-				_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
+			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
+			var query = new SubstitutionString(inputText);
+			// Send the query off to LogicMonitor
+			var connectedSystemItems = await _logicMonitorClient
+				.GetAllAsync<JObject>(query.ToString(), cancellationToken)
+				.ConfigureAwait(false);
+			_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
 
-				await ProcessConnectedSystemItemsAsync(
-					dataSet,
-					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet),
-					cancellationToken
-					).ConfigureAwait(false);
-			}
+			await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				GetFileInfo(ConnectedSystem, dataSet),
+				cancellationToken
+				).ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />
@@ -138,6 +134,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				_logger.LogError(e, "Failed to Lookup");
 				throw;
 			}
+		}
+
+		public override Task ClearCacheAsync()
+		{
+			_cache.Clear();
+			return Task.CompletedTask;
 		}
 
 		public override void Dispose()

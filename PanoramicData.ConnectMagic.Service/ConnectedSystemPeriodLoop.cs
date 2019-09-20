@@ -31,12 +31,16 @@ namespace PanoramicData.ConnectMagic.Service
 			// Note when we last started
 			_connectedSystemManager.Stats.LastSyncStarted = DateTimeOffset.UtcNow;
 
-			// Do the work
 			await _connectedSystemManager
-				.RefreshDataSetsAsync(cancellationToken)
+				.ClearCacheAsync()
 				.ConfigureAwait(false);
 
-
+			foreach (var dataSet in _connectedSystemManager.ConnectedSystem.EnabledDatasets)
+			{
+				await _connectedSystemManager
+				.RefreshDataSetAsync(dataSet, cancellationToken)
+				.ConfigureAwait(false);
+			}
 
 			// This should only be updated if the above went as planned
 			_connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;

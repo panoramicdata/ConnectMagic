@@ -29,32 +29,34 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
 
-		public override async System.Threading.Tasks.Task RefreshDataSetsAsync(CancellationToken cancellationToken)
+		public override System.Threading.Tasks.Task ClearCacheAsync()
 		{
 			_cache.Clear();
-			foreach (var dataSet in ConnectedSystem.Datasets)
-			{
-				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
-				var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
-				var query = new SubstitutionString(inputText);
-				var substitutedQuery = query.ToString();
-				// Send the query off to AutoTask
-				var autoTaskResult = await _autoTaskClient
-					.GetAllAsync(substitutedQuery)
-					.ConfigureAwait(false);
-				_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
-				// Convert to JObjects for easier generic manipulation
-				var connectedSystemItems = autoTaskResult
-					.Select(entity => JObject.FromObject(entity))
-					.ToList();
+			return System.Threading.Tasks.Task.CompletedTask;
+		}
 
-				await ProcessConnectedSystemItemsAsync(
-					dataSet,
-					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet),
-					cancellationToken
-					).ConfigureAwait(false);
-			}
+		public override async System.Threading.Tasks.Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
+		{
+			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
+			var query = new SubstitutionString(inputText);
+			var substitutedQuery = query.ToString();
+			// Send the query off to AutoTask
+			var autoTaskResult = await _autoTaskClient
+				.GetAllAsync(substitutedQuery)
+				.ConfigureAwait(false);
+			_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
+			// Convert to JObjects for easier generic manipulation
+			var connectedSystemItems = autoTaskResult
+				.Select(entity => JObject.FromObject(entity))
+				.ToList();
+
+			await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				GetFileInfo(ConnectedSystem, dataSet),
+				cancellationToken
+				).ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />
@@ -73,7 +75,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private Entity MakeAutoTaskObject(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 		{
 			var type = Type.GetType($"AutoTask.Api.{dataSet.QueryConfig.Type}, {typeof(Entity).Assembly.FullName}");
-			if(type == null)
+			if (type == null)
 			{
 				throw new ConfigurationException($"AutoTask type {dataSet.QueryConfig.Type} not supported.");
 			}
