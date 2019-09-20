@@ -371,6 +371,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									? null
 									: JToken.FromObject(evaluationResult);
 								var existingValue = action.StateItem[inwardMapping.StateExpression];
+								if(existingValue.Type == JTokenType.Null)
+								{
+									existingValue = null;
+								}
 								if (existingValue?.ToString() != newValue?.ToString())
 								{
 									inwardUpdateRequired = true;
