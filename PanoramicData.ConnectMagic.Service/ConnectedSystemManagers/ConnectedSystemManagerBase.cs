@@ -160,7 +160,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						_logger,
 						cancellationToken);
 
-					_logger.LogInformation(GetLogTable(dataSet, syncActions));
+					// _logger.LogInformation(GetLogTable(dataSet, syncActions));
+
+					_logger.LogInformation(GetLogTable("Before", dataSet, syncActions));
 
 					await ProcessActionList(
 						dataSet,
@@ -170,8 +172,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						outwardMappings,
 						cancellationToken).ConfigureAwait(false);
 
-					_logger.LogInformation(GetLogTable(dataSet, syncActions));
-
+					_logger.LogInformation(GetLogTable("After", dataSet, syncActions));
 				}
 				catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
 				{
@@ -195,9 +196,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		private string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
+		private string GetLogTable(string prefix, ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
 		{
-			var stringBuilder = new StringBuilder();
+			var stringBuilder = new StringBuilder($"{prefix}\n");
 			stringBuilder.AppendLine($"DataSet '{dataSet.Name}'");
 
 			var syncActionTypes = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().ToList();
@@ -215,7 +216,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					 })
 					 .Prepend(permission.ToString())
 					 .ToArray());
-
 			}
 			stringBuilder.AppendLine(table.ToString());
 			return stringBuilder.ToString();
@@ -275,6 +275,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			_logger.LogInformation($"Processing action list for dataset {dataSet.Name}");
 
+			// Determine up front whether all systems have completed sync
+			var isConnectedSystemsSyncCompletedOnce = State.IsConnectedSystemsSyncCompletedOnce();
+
 			// Process the action list
 			foreach (var action in actionList)
 			{
@@ -313,7 +316,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 										var outwardValue = Evaluate(outwardMapping.StateExpression, action.StateItem, State);
 										newConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(outwardValue);
 									}
-									if (State.IsConnectedSystemsSyncCompletedOnce())
+									if (isConnectedSystemsSyncCompletedOnce)
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
@@ -342,7 +345,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									break;
 								case SyncDirection.Out:
 									// Delete from ConnectedSystem
-									if (State.IsConnectedSystemsSyncCompletedOnce())
+									if (isConnectedSystemsSyncCompletedOnce)
 									{
 										if (permission == DataSetPermission.Allowed)
 										{
@@ -371,7 +374,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									? null
 									: JToken.FromObject(evaluationResult);
 								var existingValue = action.StateItem[inwardMapping.StateExpression];
-								if(existingValue.Type == JTokenType.Null)
+								if (existingValue?.Type == JTokenType.Null)
 								{
 									existingValue = null;
 								}
@@ -417,7 +420,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 							if (outwardUpdateRequired)
 							{
-								if (State.IsConnectedSystemsSyncCompletedOnce())
+								if (isConnectedSystemsSyncCompletedOnce)
 								{
 									// We are making a change
 									if (permission == DataSetPermission.Allowed)

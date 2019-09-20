@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoTask.Api" Version="1.4.2" />
+    <PackageReference Include="AutoTask.Api" Version="1.4.4" />
     <PackageReference Include="BetterConsoleTables" Version="1.1.0" />
     <PackageReference Include="Certify.Api" Version="1.1.12" />
     <PackageReference Include="Dapper" Version="1.60.6" />
