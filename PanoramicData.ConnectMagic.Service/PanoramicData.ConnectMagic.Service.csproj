@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="AutoTask.Api" Version="1.4.4" />
-    <PackageReference Include="BetterConsoleTables" Version="1.1.0" />
+    <PackageReference Include="BetterConsoleTables" Version="1.1.1" />
     <PackageReference Include="Certify.Api" Version="1.1.12" />
     <PackageReference Include="Dapper" Version="1.60.6" />
     <PackageReference Include="DeveloperForce.Force" Version="2.1.0" />
@@ -31,7 +31,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="PanoramicData.NCalcExtensions" Version="1.7.1" />
+    <PackageReference Include="PanoramicData.NCalcExtensions" Version="1.8.1" />
     <PackageReference Include="PanoramicData.SheetMagic" Version="2.1.0" />
     <PackageReference Include="PanoramicSystems.LoopInterval" Version="1.1.0" />
     <PackageReference Include="Serilog" Version="2.8.0" />

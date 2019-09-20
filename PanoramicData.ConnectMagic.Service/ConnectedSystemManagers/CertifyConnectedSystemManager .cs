@@ -275,38 +275,40 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			switch (type)
 			{
 				case "exprptglds":
-					if (!uint.TryParse(parameters[0], out var index))
 					{
-						throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
+						if (!uint.TryParse(parameters[0], out var index))
+						{
+							throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
+						}
+
+						// Get the existing entry
+						var id = connectedSystemItem.Value<Guid>("ID");
+						var existingPage = await _certifyClient
+							.ExpenseReportGlds
+							.GetAsync(index, id)
+							.ConfigureAwait(false);
+						var existing = existingPage.ExpenseReportGlds.SingleOrDefault();
+						if (existing == null)
+						{
+							throw new ConfigurationException($"Couldn't find Certify exprptglds entry with id {id}.");
+						}
+
+						SetPropertiesFromJObject(existing, connectedSystemItem);
+						// Loop over the connectedSystemItem properties
+						// Find each property on the target class and set the value if the property was found otherwise throw an exception
+						// Update Certify
+
+						_logger.LogInformation($"Updating entry {existing.Name} in Certify");
+
+						_ = await _certifyClient
+							.ExpenseReportGlds
+							.UpdateAsync(index, existing)
+							.ConfigureAwait(false);
+
+						break;
 					}
-
-					// Get the existing entry
-					var id = connectedSystemItem.Value<Guid>("ID");
-					var existingPage = await _certifyClient
-						.ExpenseReportGlds
-						.GetAsync(index, id)
-						.ConfigureAwait(false);
-					var existing = existingPage.ExpenseReportGlds.SingleOrDefault();
-					if (existing == null)
-					{
-						throw new ConfigurationException($"Couldn't find Certify exprptglds entry with id {id}.");
-					}
-
-					SetPropertiesFromJObject(existing, connectedSystemItem);
-					// Loop over the connectedSystemItem properties
-					// Find each property on the target class and set the value if the property was found otherwise throw an exception
-					// Update Certify
-
-					_logger.LogInformation($"Updating entry {existing.Name} in Certify");
-
-					_ = await _certifyClient
-						.ExpenseReportGlds
-						.UpdateAsync(index, existing)
-						.ConfigureAwait(false);
-
-					break;
 				default:
-					throw new NotSupportedException($"Certify class {parameters[0]} not supported.");
+					throw new NotSupportedException($"Certify class {type} not supported.");
 			}
 		}
 

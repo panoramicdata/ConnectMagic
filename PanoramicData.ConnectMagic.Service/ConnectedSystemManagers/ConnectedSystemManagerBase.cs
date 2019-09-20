@@ -6,6 +6,7 @@ using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicData.ConnectMagic.Service.Ncalc;
 using PanoramicData.NCalcExtensions;
+using PanoramicData.NCalcExtensions.Exceptions;
 using PanoramicData.SheetMagic;
 using System;
 using System.Collections.Generic;
@@ -64,6 +65,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			{
 				return nCalcExpression.Evaluate();
 			}
+			catch (NCalcExtensionsException ex)
+			{
+				throw;
+			}
 			catch (ArgumentException ex)
 			{
 				if (ex.Message.StartsWith("Parameter was not defined"))
@@ -107,7 +112,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				{
 					var dictionary = csi.ToObject<Dictionary<string, object>>();
 					ncalcExpression.Parameters = dictionary;
-					return (bool)ncalcExpression.Evaluate();
+					var isMatch = (bool)ncalcExpression.Evaluate();
+					return isMatch;
 				}).ToList();
 			}
 
@@ -162,8 +168,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 					// _logger.LogInformation(GetLogTable(dataSet, syncActions));
 
-					_logger.LogInformation(GetLogTable("Before", dataSet, syncActions));
-
 					await ProcessActionList(
 						dataSet,
 						syncActions,
@@ -172,7 +176,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						outwardMappings,
 						cancellationToken).ConfigureAwait(false);
 
-					_logger.LogInformation(GetLogTable("After", dataSet, syncActions));
+					_logger.LogInformation(GetLogTable(dataSet, syncActions));
 				}
 				catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
 				{
@@ -196,9 +200,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		private string GetLogTable(string prefix, ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
+		private string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
 		{
-			var stringBuilder = new StringBuilder($"{prefix}\n");
+			var stringBuilder = new StringBuilder();
 			stringBuilder.AppendLine($"DataSet '{dataSet.Name}'");
 
 			var syncActionTypes = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().ToList();
