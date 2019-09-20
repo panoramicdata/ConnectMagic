@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using BetterConsoleTables;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
@@ -11,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -158,6 +160,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						_logger,
 						cancellationToken);
 
+					_logger.LogInformation(GetLogTable(dataSet, syncActions));
+
 					await ProcessActionList(
 						dataSet,
 						syncActions,
@@ -165,6 +169,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						inwardMappings,
 						outwardMappings,
 						cancellationToken).ConfigureAwait(false);
+
+					_logger.LogInformation(GetLogTable(dataSet, syncActions));
+
 				}
 				catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
 				{
@@ -186,6 +193,32 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				_logger.LogError(e, $"Unhandled exception in ProcessConnectedSystemItems {e.Message}");
 				throw;
 			}
+		}
+
+		private string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
+		{
+			var stringBuilder = new StringBuilder();
+			stringBuilder.AppendLine($"DataSet '{dataSet.Name}'");
+
+			var syncActionTypes = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().ToList();
+			var permissions = Enum.GetValues(typeof(DataSetPermission)).Cast<DataSetPermission>().ToList();
+
+			var headers = syncActionTypes.Select(ra => new ColumnHeader(ra.ToString(), Alignment.Right)).Prepend(new ColumnHeader(string.Empty)).ToArray();
+			var table = new Table(headers) { Config = TableConfiguration.UnicodeAlt() };
+			foreach (var permission in permissions)
+			{
+				table.AddRow(syncActionTypes
+					 .Select(syncAction =>
+					 {
+						 var count = syncActions.Count(i => i.Type == syncAction && i.Permission == permission);
+						 return count == 0 ? "-" : count.ToString();
+					 })
+					 .Prepend(permission.ToString())
+					 .ToArray());
+
+			}
+			stringBuilder.AppendLine(table.ToString());
+			return stringBuilder.ToString();
 		}
 
 		private static void WriteSyncActionOutput(
@@ -333,7 +366,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							var stateItemClone = JObject.FromObject(action.StateItem);
 							foreach (var inwardMapping in inwardMappings)
 							{
-								var newValue = JToken.FromObject(Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State));
+								var evaluationResult = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+								var newValue = evaluationResult == null
+									? null
+									: JToken.FromObject(evaluationResult);
 								var existingValue = action.StateItem[inwardMapping.StateExpression];
 								if (existingValue?.ToString() != newValue?.ToString())
 								{
