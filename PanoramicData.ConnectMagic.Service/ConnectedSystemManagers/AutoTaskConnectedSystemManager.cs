@@ -124,7 +124,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			try
 			{
 				var cacheKey = queryConfig.Query;
-				_logger.LogDebug($"Performing lookup: for field {field}\n{queryConfig.Query}");
+				_logger.LogTrace($"Performing lookup: for field {field}\n{queryConfig.Query}");
 
 				// Is it cached?
 				JObject connectedSystemItem;

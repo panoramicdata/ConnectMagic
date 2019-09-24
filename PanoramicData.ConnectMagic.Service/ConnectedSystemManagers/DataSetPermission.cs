@@ -1,6 +1,6 @@
 ﻿namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal enum DataSetPermission
+	public enum DataSetPermission
 	{
 		Unknown = 0,
 		Allowed,

@@ -28,6 +28,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// This is calculated during processing and added the SyncAction afterwards for information
 		/// </summary>
-		internal DataSetPermission Permission { get; set; }
+		public DataSetPermission Permission { get; set; }
 	}
 }
