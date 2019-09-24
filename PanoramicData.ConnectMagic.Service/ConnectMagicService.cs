@@ -210,31 +210,15 @@ namespace PanoramicData.ConnectMagic.Service
 		}
 
 		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state, TimeSpan maxFileAge)
-		{
-			IConnectedSystemManager connectedSystemManager;
-			switch (connectedSystem.Type)
+			=> connectedSystem.Type switch
 			{
-				case SystemType.AutoTask:
-					connectedSystemManager = new AutoTaskConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>());
-					break;
-				case SystemType.Certify:
-					connectedSystemManager = new CertifyConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>());
-					break;
-				case SystemType.LogicMonitor:
-					connectedSystemManager = new LogicMonitorConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<LogicMonitorConnectedSystemManager>());
-					break;
-				case SystemType.SalesForce:
-					connectedSystemManager = new SalesforceConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<SalesforceConnectedSystemManager>());
-					break;
-				case SystemType.MsSqlServer:
-					connectedSystemManager = new MsSqlServerConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>());
-					break;
-				default:
-					throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'");
-			}
-
-			return connectedSystemManager;
-		}
+				SystemType.AutoTask => new AutoTaskConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>()),
+				SystemType.Certify => new CertifyConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>()),
+				SystemType.LogicMonitor => new LogicMonitorConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<LogicMonitorConnectedSystemManager>()),
+				SystemType.SalesForce => new SalesforceConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<SalesforceConnectedSystemManager>()),
+				SystemType.MsSqlServer => new MsSqlServerConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>()),
+				_ => throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'")
+			};
 
 		/// <summary>
 		/// Tasks to perform on stop

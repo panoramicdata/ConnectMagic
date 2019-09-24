@@ -259,11 +259,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				fileInfo.Directory.Create();
 			}
 
-			using (var spreadsheet = new MagicSpreadsheet(fileInfo))
-			{
-				spreadsheet.AddSheet(syncActions);
-				spreadsheet.Save();
-			}
+			using var spreadsheet = new MagicSpreadsheet(fileInfo);
+			spreadsheet.AddSheet(syncActions);
+			spreadsheet.Save();
 		}
 
 		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet)

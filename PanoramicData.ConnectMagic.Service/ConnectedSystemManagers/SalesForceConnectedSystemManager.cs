@@ -66,13 +66,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.GetAllJObjectsAsync(substitutedQuery)
 				.ConfigureAwait(false);
 			_logger.LogDebug($"Got {connectedSystemItems.Count} results for query '{queryConfig.Query}'.");
-			switch (connectedSystemItems.Count)
+			return connectedSystemItems.Count switch
 			{
-				case 1:
-					return connectedSystemItems[0][field];
-				default:
-					throw new ConfigurationException($"Lookup found {connectedSystemItems.Count} records using query '{queryConfig.Query}'.  Expected 1.");
-			}
+				1 => connectedSystemItems[0][field],
+				_ => throw new ConfigurationException($"Lookup found {connectedSystemItems.Count} records using query '{queryConfig.Query}'.  Expected 1.")
+			};
 		}
 
 		public override Task ClearCacheAsync()

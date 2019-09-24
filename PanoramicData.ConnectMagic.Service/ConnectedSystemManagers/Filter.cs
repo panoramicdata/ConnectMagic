@@ -25,19 +25,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		private Operator GetOperator(string operatorString)
-		{
-			switch (operatorString)
+			=> operatorString switch
 			{
-				case "<": return Operator.LessThan;
-				case "<=": return Operator.LessThanOrEquals;
-				case ">": return Operator.GreaterThan;
-				case ">=": return Operator.GreaterThanOrEquals;
-				case "!=": return Operator.NotEquals;
-				case "==": return Operator.Equals;
-				default:
-					throw new NotSupportedException($"Operator '{operatorString}' not supported.");
-			}
-		}
+				"<" => Operator.LessThan,
+				"<=" => Operator.LessThanOrEquals,
+				">" => Operator.GreaterThan,
+				">=" => Operator.GreaterThanOrEquals,
+				"!=" => Operator.NotEquals,
+				"==" => Operator.Equals,
+				_ => throw new NotSupportedException($"Operator '{operatorString}' not supported."),
+			};
 
 		public string Name { get; }
 

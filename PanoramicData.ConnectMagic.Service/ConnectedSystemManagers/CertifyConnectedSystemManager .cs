@@ -139,29 +139,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							// Yes
 
 							// Filter on this criteria
-							switch (propertyFilter.Operator)
+							expenses = propertyFilter.Operator switch
 							{
-								case Operator.Equals:
-									expenses = expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() == propertyFilter.Value);
-									break;
-								case Operator.NotEquals:
-									expenses = expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() != propertyFilter.Value);
-									break;
-								case Operator.LessThanOrEquals:
-									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) <= 0);
-									break;
-								case Operator.LessThan:
-									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) < 0);
-									break;
-								case Operator.GreaterThanOrEquals:
-									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) >= 0);
-									break;
-								case Operator.GreaterThan:
-									expenses = expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) > 0);
-									break;
-								default:
-									throw new NotSupportedException($"Operator '{propertyFilter.Operator}' not supported.");
-							}
+								Operator.Equals => expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() == propertyFilter.Value),
+								Operator.NotEquals => expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() != propertyFilter.Value),
+								Operator.LessThanOrEquals => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) <= 0),
+								Operator.LessThan => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) < 0),
+								Operator.GreaterThanOrEquals => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) >= 0),
+								Operator.GreaterThan => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) > 0),
+								_ => throw new NotSupportedException($"Operator '{propertyFilter.Operator}' not supported.")
+							};
 						}
 
 						var expensesList = expenses.ToList();
@@ -201,17 +188,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		private uint? GetBoolUint(string configItemName, string value)
-		{
-			switch (value)
+			=> value switch
 			{
-				case "0":
-					return 0;
-				case "1":
-					return 1;
-				default:
-					throw new ConfigurationException($"Expense configItem value {configItemName} should be set to '0' or '1'");
-			}
-		}
+				"0" => 0,
+				"1" => 1,
+				_ => throw new ConfigurationException($"Expense configItem value {configItemName} should be set to '0' or '1'")
+			};
 
 		/// <inheritdoc />
 		internal override async Task CreateOutwardsAsync(

@@ -42,14 +42,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			}
 
 			// Deserialize JSON directly from a file
-			using (var file = File.OpenText(fileInfo.FullName))
-			{
-				var serializer = new JsonSerializer();
-				var state = (State)serializer.Deserialize(file, typeof(State));
-				// Set the name of the file that state was loaded from
-				state.CacheFileName = fileInfo.FullName;
-				return state;
-			}
+			using var file = File.OpenText(fileInfo.FullName);
+			var serializer = new JsonSerializer();
+			var state = (State)serializer.Deserialize(file, typeof(State));
+			// Set the name of the file that state was loaded from
+			state.CacheFileName = fileInfo.FullName;
+			return state;
 		}
 
 		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, QueryConfig queryConfig, string queryLookupField, CancellationToken cancellationToken)
@@ -66,11 +64,9 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public void Save(FileInfo fileInfo)
 		{
 			// Serialize JSON directly to a file
-			using (var file = File.CreateText(fileInfo.FullName))
-			{
-				var serializer = new JsonSerializer();
-				serializer.Serialize(file, this);
-			}
+			using var file = File.CreateText(fileInfo.FullName);
+			var serializer = new JsonSerializer();
+			serializer.Serialize(file, this);
 		}
 
 		/// <summary>

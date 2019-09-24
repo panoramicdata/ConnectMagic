@@ -29,35 +29,34 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			using (var connection = new SqlConnection(_connectedSystem.Credentials.ConnectionString))
-			{
-				_logger.LogDebug($"Opening MS SQL connection for {_connectedSystem.Name}...");
-				await connection.OpenAsync().ConfigureAwait(false);
+			using var connection = new SqlConnection(_connectedSystem.Credentials.ConnectionString);
 
-				_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			_logger.LogDebug($"Opening MS SQL connection for {_connectedSystem.Name}...");
+			await connection.OpenAsync().ConfigureAwait(false);
 
-				// Process any ncalc in the query
-				var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
-				var query = new SubstitutionString(inputText);
-				var substitutedQuery = query.ToString();
+			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 
-				// Send the query off to MS SQL Server
-				var results = (await connection.QueryAsync<object>(substitutedQuery).ConfigureAwait(false)).ToList();
+			// Process any ncalc in the query
+			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
+			var query = new SubstitutionString(inputText);
+			var substitutedQuery = query.ToString();
 
-				_logger.LogDebug($"Got {results.Count} results for {dataSet.Name}.");
+			// Send the query off to MS SQL Server
+			var results = (await connection.QueryAsync<object>(substitutedQuery).ConfigureAwait(false)).ToList();
 
-				// Convert to JObjects for easier generic manipulation
-				var connectedSystemItems = results
-					.Select(entity => JObject.FromObject(entity))
-					.ToList();
+			_logger.LogDebug($"Got {results.Count} results for {dataSet.Name}.");
 
-				await ProcessConnectedSystemItemsAsync(
-					dataSet,
-					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet),
-					cancellationToken)
-					.ConfigureAwait(false);
-			}
+			// Convert to JObjects for easier generic manipulation
+			var connectedSystemItems = results
+				.Select(entity => JObject.FromObject(entity))
+				.ToList();
+
+			await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				GetFileInfo(ConnectedSystem, dataSet),
+				cancellationToken)
+				.ConfigureAwait(false);
 		}
 
 		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
