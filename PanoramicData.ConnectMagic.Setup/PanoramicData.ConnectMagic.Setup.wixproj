@@ -62,13 +62,13 @@
     <Error Text="The WiX Toolset v3.11 (or newer) build tools must be installed to build this project. To download the WiX Toolset, see http://wixtoolset.org/releases/" />
   </Target>
   <Target Name="BeforeBuild">
-	  <Exec Command='rmdir /S /Q "..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish"' />
+	  <Exec Command='rmdir /S /Q "..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp3.0\win-x64\publish"' />
 	  <Exec Command="dotnet publish /p:TrimUnusedDependencies=true -c $(Configuration) -r win-x64 ..\PanoramicData.ConnectMagic.Service\PanoramicData.ConnectMagic.Service.csproj" />
     <PropertyGroup>
-      <DefineConstants>BasePath=..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish</DefineConstants>
-      <LinkerBaseInputPaths>..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish</LinkerBaseInputPaths>
+      <DefineConstants>BasePath=..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp3.0\win-x64\publish</DefineConstants>
+      <LinkerBaseInputPaths>..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp3.0\win-x64\publish</LinkerBaseInputPaths>
     </PropertyGroup>
-    <HeatDirectory OutputFile="Generated.wxs" Directory="..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish" DirectoryRefId="INSTALLFOLDER" ComponentGroupName="HeatGenerated" SuppressCom="true" SuppressFragments="true" SuppressRegistry="true" SuppressRootDirectory="true" AutoGenerateGuids="true" ToolPath="$(WixToolPath)" PreprocessorVariable="var.BasePath" Transforms="HeatFilter.xsl" />
+    <HeatDirectory OutputFile="Generated.wxs" Directory="..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp3.0\win-x64\publish" DirectoryRefId="INSTALLFOLDER" ComponentGroupName="HeatGenerated" SuppressCom="true" SuppressFragments="true" SuppressRegistry="true" SuppressRootDirectory="true" AutoGenerateGuids="true" ToolPath="$(WixToolPath)" PreprocessorVariable="var.BasePath" Transforms="HeatFilter.xsl" />
   </Target>
   <UsingTask TaskName="GetFileVersionTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
     <ParameterGroup>
@@ -81,7 +81,7 @@
     </Task>
   </UsingTask>
   <Target Name="AfterBuild">
-    <GetFileVersionTask AssemblyPath="..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp2.2\win-x64\publish\PanoramicData.ConnectMagic.Service.dll">
+    <GetFileVersionTask AssemblyPath="..\PanoramicData.ConnectMagic.Service\bin\$(Configuration)\netcoreapp3.0\win-x64\publish\PanoramicData.ConnectMagic.Service.dll">
       <Output TaskParameter="VersionNumber" PropertyName="VersionNumber" />
     </GetFileVersionTask>
     <Copy SourceFiles=".\bin\$(Configuration)\$(OutputName).msi" DestinationFiles=".\bin\$(Configuration)\PanoramicData.ConnectMagic $(VersionNumber).msi" />

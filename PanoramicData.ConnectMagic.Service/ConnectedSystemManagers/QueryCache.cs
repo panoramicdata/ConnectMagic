@@ -6,7 +6,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class QueryCache<T> : ICache<T>
 	{
-		private TimeSpan _timeSpan;
+		private readonly TimeSpan _timeSpan;
 
 		private readonly ConcurrentDictionary<string, CacheRecord<T>> _dictionary
 			= new ConcurrentDictionary<string, CacheRecord<T>>();

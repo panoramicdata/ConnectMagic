@@ -162,6 +162,8 @@ namespace PanoramicData.ConnectMagic.Service
 
 		private async Task StartLoopsAsync(CancellationToken cancellationToken)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
+
 			// Create ConnectedSystemPeriodLoops
 			var connectedSystemPeriodLoops = _state
 				.ConnectedSystemManagers

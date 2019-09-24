@@ -42,28 +42,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var query = new SubstitutionString(inputText);
 			var substitutedQuery = query.ToString();
 			// Send the query off to AutoTask
-			try
-			{
-				var autoTaskResult = await _autoTaskClient
-					.GetAllAsync(substitutedQuery)
-					.ConfigureAwait(false);
-				_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
-				// Convert to JObjects for easier generic manipulation
-				var connectedSystemItems = autoTaskResult
-					.Select(entity => JObject.FromObject(entity))
-					.ToList();
+			var autoTaskResult = await _autoTaskClient
+				.GetAllAsync(substitutedQuery)
+				.ConfigureAwait(false);
+			_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
+			// Convert to JObjects for easier generic manipulation
+			var connectedSystemItems = autoTaskResult
+				.Select(entity => JObject.FromObject(entity))
+				.ToList();
 
-				await ProcessConnectedSystemItemsAsync(
-					dataSet,
-					connectedSystemItems,
-					GetFileInfo(ConnectedSystem, dataSet),
-					cancellationToken
-					).ConfigureAwait(false);
-			}
-			catch (Exception e)
-			{
-				throw;
-			}
+			await ProcessConnectedSystemItemsAsync(
+				dataSet,
+				connectedSystemItems,
+				GetFileInfo(ConnectedSystem, dataSet),
+				cancellationToken
+				).ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />

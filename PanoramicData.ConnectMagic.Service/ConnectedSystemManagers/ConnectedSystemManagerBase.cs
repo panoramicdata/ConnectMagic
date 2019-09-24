@@ -6,7 +6,6 @@ using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicData.ConnectMagic.Service.Ncalc;
 using PanoramicData.NCalcExtensions;
-using PanoramicData.NCalcExtensions.Exceptions;
 using PanoramicData.SheetMagic;
 using System;
 using System.Collections.Generic;
@@ -64,10 +63,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			try
 			{
 				return nCalcExpression.Evaluate();
-			}
-			catch (NCalcExtensionsException ex)
-			{
-				throw;
 			}
 			catch (ArgumentException ex)
 			{
@@ -203,7 +198,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
 		{
 			var stringBuilder = new StringBuilder();
-			stringBuilder.AppendLine($"DataSet '{dataSet.Name}'");
+			var value = $"DataSet '{dataSet.Name}'";
+			stringBuilder.AppendLine(value);
 
 			var syncActionTypes = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().ToList();
 			var permissions = Enum.GetValues(typeof(DataSetPermission)).Cast<DataSetPermission>().ToList();
