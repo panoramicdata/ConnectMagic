@@ -1,12 +1,14 @@
 using Certify.Api;
 using Certify.Api.Extensions;
 using Certify.Api.Models;
+using FixerSharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -18,10 +20,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class CertifyConnectedSystemManager : ConnectedSystemManagerBase
 	{
-		private readonly PropertyInfo[] ExpensePropertyInfos = typeof(Expense).GetProperties();
+		private const string FixerApiKey = "FixerApiKey";
 
+		private readonly PropertyInfo[] ExpensePropertyInfos = typeof(Expense).GetProperties();
 		private readonly CertifyClient _certifyClient;
 		private readonly ILogger _logger;
+		private readonly Fixer _fixerClient;
 
 		public CertifyConnectedSystemManager(
 			ConnectedSystem connectedSystem,
@@ -32,6 +36,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			_certifyClient = new CertifyClient(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 			_logger = logger;
+
+			// FixerSharp for exchange rate conversion, if configured
+			if (connectedSystem.Configuration?.ContainsKey(FixerApiKey) == true)
+			{
+				var fixerApiKey = connectedSystem.Configuration[FixerApiKey].ToString();
+				Fixer.SetApiKey(fixerApiKey);
+			}
 		}
 
 		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
@@ -153,15 +164,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 						var expensesList = expenses.ToList();
 
-						// Only one currency supported.
-						var badCurrencies = expensesList
+						// Only one currency supported - convert all to GBP using Fixer
+						var badExpenses = expensesList
 							.Where(e => e.Currency != "GBP")
-							.Select(e => e.Currency)
-							.Distinct()
 							.ToList();
-						if (badCurrencies.Count != 0)
+						foreach (var badExpense in badExpenses)
 						{
-							throw new NotSupportedException($"Non-GBP currency type(s): {string.Join(";", badCurrencies)} not supported.");
+							if(!DateTime.TryParseExact(badExpense.ExpenseDate, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out var date))
+							{
+								throw new FormatException($"Certify date not in expected format: {badExpense.ExpenseDate}");
+							}
+							var currency = badExpense.Currency;
+							var exchangeRateOnDate = await GetExchangeRateOnDateAsync(currency, date).ConfigureAwait(false);
+							badExpense.Amount *= (float)exchangeRateOnDate;
 						}
 
 						connectedSystemItems = expensesList
@@ -185,6 +200,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				GetFileInfo(ConnectedSystem, dataSet),
 				cancellationToken)
 				.ConfigureAwait(false);
+		}
+
+		private static Dictionary<string, double> _exchangeRateCache = new Dictionary<string, double>();
+
+		private static async Task<double> GetExchangeRateOnDateAsync(string currency, DateTime date)
+		{
+			var key = $"{currency}/{date:yyyy-MM-dd}";
+			if(!_exchangeRateCache.ContainsKey(key))
+			{
+				_exchangeRateCache[key] = await Fixer.ConvertAsync(currency, "GBP", 1.0, date).ConfigureAwait(false);
+			}
+			return _exchangeRateCache[key];
 		}
 
 		private uint? GetBoolUint(string configItemName, string value)

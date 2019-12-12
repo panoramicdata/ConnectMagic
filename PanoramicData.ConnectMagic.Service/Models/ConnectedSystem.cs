@@ -36,6 +36,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public Credentials Credentials { get; set; }
 
 		/// <summary>
+		/// Any system-specific configuration
+		/// </summary>
+		[DataMember(Name = "Configuration")]
+		public Dictionary<string, string> Configuration { get; set; }
+
+		/// <summary>
 		/// DataSets available on the connected system
 		/// </summary>
 		[DataMember(Name = "DataSets")]
