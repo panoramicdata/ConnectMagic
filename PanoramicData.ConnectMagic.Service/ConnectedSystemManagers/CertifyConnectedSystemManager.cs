@@ -202,7 +202,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.ConfigureAwait(false);
 		}
 
-		private static Dictionary<string, double> _exchangeRateCache = new Dictionary<string, double>();
+		private static readonly Dictionary<string, double> _exchangeRateCache = new Dictionary<string, double>();
 
 		private static async Task<double> GetExchangeRateOnDateAsync(string currency, DateTime date)
 		{
