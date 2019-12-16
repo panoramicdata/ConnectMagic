@@ -170,13 +170,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							.ToList();
 						foreach (var badExpense in badExpenses)
 						{
-							if(!DateTime.TryParseExact(badExpense.ExpenseDate, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out var date))
+							if (!DateTime.TryParseExact(badExpense.ExpenseDate, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out var date))
 							{
 								throw new FormatException($"Certify date not in expected format: {badExpense.ExpenseDate}");
 							}
 							var currency = badExpense.Currency;
 							var exchangeRateOnDate = await GetExchangeRateOnDateAsync(currency, date).ConfigureAwait(false);
 							badExpense.Amount *= (float)exchangeRateOnDate;
+							badExpense.Currency = "GBP";
 						}
 
 						connectedSystemItems = expensesList
@@ -207,7 +208,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private static async Task<double> GetExchangeRateOnDateAsync(string currency, DateTime date)
 		{
 			var key = $"{currency}/{date:yyyy-MM-dd}";
-			if(!_exchangeRateCache.ContainsKey(key))
+			if (!_exchangeRateCache.ContainsKey(key))
 			{
 				_exchangeRateCache[key] = await Fixer.ConvertAsync(currency, "GBP", 1.0, date).ConfigureAwait(false);
 			}
