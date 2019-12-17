@@ -25,7 +25,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private readonly PropertyInfo[] ExpensePropertyInfos = typeof(Expense).GetProperties();
 		private readonly CertifyClient _certifyClient;
 		private readonly ILogger _logger;
-		private readonly Fixer _fixerClient;
 
 		public CertifyConnectedSystemManager(
 			ConnectedSystem connectedSystem,
@@ -40,7 +39,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// FixerSharp for exchange rate conversion, if configured
 			if (connectedSystem.Configuration?.ContainsKey(FixerApiKey) == true)
 			{
-				var fixerApiKey = connectedSystem.Configuration[FixerApiKey].ToString();
+				var fixerApiKey = connectedSystem.Configuration[FixerApiKey];
 				Fixer.SetApiKey(fixerApiKey);
 			}
 		}

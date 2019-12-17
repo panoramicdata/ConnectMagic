@@ -13,6 +13,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class LogicMonitorConnectedSystemManager : ConnectedSystemManagerBase
 	{
+		private const string JpathPrefix = "jpath:";
 		private readonly PortalClient _logicMonitorClient;
 		private readonly ILogger _logger;
 		private readonly ICache<JObject> _cache;
@@ -24,7 +25,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ILogger<LogicMonitorConnectedSystemManager> logger)
 			: base(connectedSystem, state, maxFileAge, logger)
 		{
-			_logicMonitorClient = new PortalClient(connectedSystem.Credentials.Account, connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
+			_logicMonitorClient = new PortalClient(connectedSystem.Credentials.Account, connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText, logger);
 			_logger = logger;
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
@@ -107,7 +108,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// No.
 
 					var connectedSystemItems = await _logicMonitorClient
-						.GetAllAsync<JObject>(queryConfig.Query)
+						.GetAllAsync<JObject>(queryConfig.Query, cancellationToken)
 						.ConfigureAwait(false);
 
 					if (connectedSystemItems.Count != 1)
@@ -116,10 +117,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					}
 
 					// Convert to JObjects for easier generic manipulation
-					connectedSystemItem = connectedSystemItems
-						.Single();
+					connectedSystemItem = connectedSystemItems[0];
 
 					_cache.Store(cacheKey, connectedSystemItem);
+				}
+
+				if(field.StartsWith(JpathPrefix))
+				{
+					var value = connectedSystemItem.SelectToken(field.Substring(JpathPrefix.Length), true);
+					return value;
 				}
 
 				// Determine the field value

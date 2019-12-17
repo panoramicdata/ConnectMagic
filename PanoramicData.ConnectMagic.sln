@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PanoramicData.ConnectMagic.
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "PanoramicData.ConnectMagic.Setup", "PanoramicData.ConnectMagic.Setup\PanoramicData.ConnectMagic.Setup.wixproj", "{D49119CE-B75E-491C-82CA-0B3B1AED15D1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{D9DA6CEF-2FC1-4A08-96FB-C65B75DDC14B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D9DA6CEF-2FC1-4A08-96FB-C65B75DDC14B} = {11147174-428A-48ED-88C0-E3FA0823781F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1C841365-EC30-42E7-9F08-1B6BE519DC78}
