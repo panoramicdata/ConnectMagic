@@ -1,10 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
-using System.Diagnostics;
-using System.ServiceProcess;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace PanoramicData.ConnectMagic.Service
+﻿namespace PanoramicData.ConnectMagic.Service
 {
 	internal enum EventId
 	{

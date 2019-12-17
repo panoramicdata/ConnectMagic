@@ -4,8 +4,8 @@ using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
+using PanoramicData.NCalcExtensions;
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +13,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class LogicMonitorConnectedSystemManager : ConnectedSystemManagerBase
 	{
-		private const string JpathPrefix = "jpath:";
 		private readonly PortalClient _logicMonitorClient;
 		private readonly ILogger _logger;
 		private readonly ICache<JObject> _cache;
@@ -106,34 +105,41 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				else
 				{
 					// No.
-
-					var connectedSystemItems = await _logicMonitorClient
-						.GetAllAsync<JObject>(queryConfig.Query, cancellationToken)
-						.ConfigureAwait(false);
-
-					if (connectedSystemItems.Count != 1)
+					switch (queryConfig.Type)
 					{
-						throw new LookupException($"Got {connectedSystemItems.Count} results for QueryLookup '{queryConfig.Query}'. Expected one.");
-					}
+						case "Single":
+							connectedSystemItem = await _logicMonitorClient
+								.GetJObjectAsync(queryConfig.Query, cancellationToken)
+								.ConfigureAwait(false);
+							break;
+						default:
+							var connectedSystemItems = await _logicMonitorClient
+								.GetAllAsync<JObject>(queryConfig.Query, cancellationToken)
+								.ConfigureAwait(false);
 
-					// Convert to JObjects for easier generic manipulation
-					connectedSystemItem = connectedSystemItems[0];
+							if (connectedSystemItems.Count != 1)
+							{
+								throw new LookupException($"Got {connectedSystemItems.Count} results for QueryLookup '{queryConfig.Query}'. Expected one.");
+							}
+
+							// Convert to JObjects for easier generic manipulation
+							connectedSystemItem = connectedSystemItems[0];
+							break;
+					}
 
 					_cache.Store(cacheKey, connectedSystemItem);
 				}
 
-				if(field.StartsWith(JpathPrefix))
+				var expression = new ExtendedExpression(field);
+				expression.Parameters["result"] = connectedSystemItem;
+				try
 				{
-					var value = connectedSystemItem.SelectToken(field.Substring(JpathPrefix.Length), true);
-					return value;
+					return expression.Evaluate();
 				}
-
-				// Determine the field value
-				if (!connectedSystemItem.TryGetValue(field, out var fieldValue))
+				catch (Exception e)
 				{
-					throw new ConfigurationException($"Field {field} not present for QueryLookup.");
+					throw new ConfigurationException($"Field {field} not present for QueryLookup: {e.Message}.");
 				}
-				return fieldValue;
 			}
 			catch (Exception e)
 			{
