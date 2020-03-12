@@ -355,13 +355,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		public override async Task<object> QueryLookupAsync(
+		public override async Task<object?> QueryLookupAsync(
 			QueryConfig queryConfig,
 			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
 			CancellationToken cancellationToken)
 		{
-			var type = queryConfig.Type.ToLowerInvariant();
-			var parameters = queryConfig.Query.Split('|');
+			var type = queryConfig.Type?.ToLowerInvariant() ?? throw new ConfigurationException($"{nameof(QueryConfig)} {nameof(QueryConfig.Type)} cannot be null for {nameof(CertifyConnectedSystemManager)}.");
+			var parameters = queryConfig.Query?.Split('|') ?? throw new ConfigurationException($"{nameof(QueryConfig)} {nameof(QueryConfig.Query)} cannot be null for {nameof(CertifyConnectedSystemManager)}.");
+
+			if (valueIfZeroMatchesFoundSets || valueIfMultipleMatchesFoundSets)
+			{
+				throw new NotSupportedException();
+			}
+
 			switch (type)
 			{
 				case "user":

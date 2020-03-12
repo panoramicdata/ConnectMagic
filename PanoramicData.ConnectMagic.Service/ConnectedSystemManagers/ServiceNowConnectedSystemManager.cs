@@ -91,11 +91,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			)
 			=> throw new NotSupportedException();
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
+		public override async Task<object?> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken)
 		{
 			try
 			{
-				var cacheKey = queryConfig.Query;
+				var cacheKey = queryConfig.Query ?? throw new ConfigurationException("Query must be provided when performing lookups."); ;
 				Logger.LogTrace($"Performing lookup: for field {field}\n{queryConfig.Query} in for type {queryConfig.Type}");
 
 				// Is it cached?
@@ -109,18 +116,37 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				{
 					// No.
 
-					var autoTaskResult = (await _serviceNowClient
+					var serviceNowResult = (await _serviceNowClient
 								.GetAllByQueryAsync(queryConfig.Type, queryConfig.Query)
 								.ConfigureAwait(false))
 								.ToList();
 
-					if (autoTaskResult.Count != 1)
+					switch (serviceNowResult.Count)
 					{
-						throw new LookupException($"Got {autoTaskResult.Count} results for QueryLookup '{queryConfig.Query}' in of type {queryConfig.Type}. Expected one.");
+						case 0:
+							if (valueIfZeroMatchesFoundSets)
+							{
+								return valueIfZeroMatchesFound;
+							}
+							throw new LookupException($"Got 0 results for QueryLookup '{queryConfig.Query}' and no default value is configured.");
+						case 1:
+							// Convert to JObjects for easier generic manipulation
+							connectedSystemItem = serviceNowResult
+								.Select(entity => JObject.FromObject(entity))
+								.Single();
+
+							_cache.Store(cacheKey, connectedSystemItem);
+							break;
+						default:
+							if (valueIfMultipleMatchesFoundSets)
+							{
+								return valueIfMultipleMatchesFound;
+							}
+							throw new LookupException($"Got {serviceNowResult.Count} results for QueryLookup '{queryConfig.Query}' and no default value is configured.");
 					}
 
 					// Convert to JObjects for easier generic manipulation
-					connectedSystemItem = autoTaskResult
+					connectedSystemItem = serviceNowResult
 						.Select(entity => JObject.FromObject(entity))
 						.Single();
 

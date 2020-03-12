@@ -26,7 +26,7 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanCreate = true, CanDelete = true, CanUpdate = true, CanWrite = true }
 			};
 			var state = new State();
-			state.ItemLists["TestDataSet"] = new List<StateItem>
+			state.ItemLists["TestDataSet"] = new StateItemList
 			{
 				new StateItem(new JObject(new JProperty("Id", "ExistingKey1"), new JProperty("FullName", "Sarah Jane"), new JProperty("Description", "Is lovely"))),
 				new StateItem(new JObject(new JProperty("Id", "Key1"), new JProperty("FullName", "Bob1 Smith1"),  new JProperty("Description", "OldDescription1")))

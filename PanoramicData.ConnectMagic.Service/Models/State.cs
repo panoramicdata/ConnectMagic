@@ -44,7 +44,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			// Deserialize JSON directly from a file
 			using var file = File.OpenText(fileInfo.FullName);
 			var serializer = new JsonSerializer();
-			var state = (State)serializer.Deserialize(file, typeof(State));
+			var state = (State?)serializer.Deserialize(file, typeof(State));
 			// Set the name of the file that state was loaded from
 			state.CacheFileName = fileInfo.FullName;
 			return state;
@@ -54,15 +54,25 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			string queryLookupConnectedSystemName,
 			QueryConfig queryConfig,
 			string queryLookupField,
+			bool valueIfZeroMatchesFoundSets,
+			object valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object valueIfMultipleMatchesFound,
 			CancellationToken cancellationToken)
 		{
 			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
 			{
 				throw new ConfigurationException($"Could not find QueryLookup connected system manager for connected system {queryLookupConnectedSystemName}");
 			}
-			return await connectedSystemManager
-				.QueryLookupAsync(queryConfig, queryLookupField, cancellationToken)
-				.ConfigureAwait(false);
+			return await connectedSystemManager.QueryLookupAsync(
+				queryConfig,
+				queryLookupField,
+				valueIfZeroMatchesFoundSets,
+				valueIfZeroMatchesFound,
+				valueIfMultipleMatchesFoundSets,
+				valueIfMultipleMatchesFound,
+				cancellationToken
+				).ConfigureAwait(false);
 		}
 
 		public void Save(FileInfo fileInfo)

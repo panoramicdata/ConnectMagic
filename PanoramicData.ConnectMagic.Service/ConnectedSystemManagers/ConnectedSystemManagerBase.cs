@@ -1011,9 +1011,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="field"></param>
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		public abstract Task<object> QueryLookupAsync(
+		public abstract Task<object?> QueryLookupAsync(
 			QueryConfig queryConfig,
 			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
 			CancellationToken cancellationToken);
 
 		public abstract void Dispose();

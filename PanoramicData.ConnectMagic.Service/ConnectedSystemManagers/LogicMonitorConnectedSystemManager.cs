@@ -90,12 +90,24 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			return _logicMonitorClient.PutAsync(endpoint, syncAction.ConnectedSystemItem, cancellationToken);
 		}
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
+		public override async Task<object?> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken)
 		{
 			try
 			{
-				var cacheKey = queryConfig.Query;
+				var cacheKey = queryConfig.Query ?? throw new ConfigurationException("Query must be provided when performing lookups.");
 				Logger.LogDebug($"Performing lookup: for field {field}\n{queryConfig.Query}");
+
+				if (valueIfZeroMatchesFoundSets || valueIfMultipleMatchesFoundSets)
+				{
+					throw new NotSupportedException();
+				}
 
 				// Is it cached?
 				JObject connectedSystemItem;

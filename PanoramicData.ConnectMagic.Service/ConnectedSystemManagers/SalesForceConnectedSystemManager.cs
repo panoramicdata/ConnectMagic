@@ -57,7 +57,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, SyncAction syncAction, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
+		public override async Task<object?> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken)
 		{
 			var substitutedQuery = new SubstitutionString(queryConfig.Query).ToString();
 			var connectedSystemItems = await _salesforceClient

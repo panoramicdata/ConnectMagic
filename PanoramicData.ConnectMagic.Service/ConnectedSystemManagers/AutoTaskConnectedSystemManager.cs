@@ -144,11 +144,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.ConfigureAwait(false);
 		}
 
-		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
+		public override async Task<object?> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken)
 		{
 			try
 			{
-				var cacheKey = queryConfig.Query;
+				var cacheKey = queryConfig.Query ?? throw new ConfigurationException("Query must be provided when performing lookups.");
+
 				Logger.LogTrace($"Performing lookup: for field {field}\n{queryConfig.Query}");
 
 				// Is it cached?
@@ -167,17 +175,29 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								.ConfigureAwait(false))
 								.ToList();
 
-					if (autoTaskResult.Count != 1)
+					switch (autoTaskResult.Count)
 					{
-						throw new LookupException($"Got {autoTaskResult.Count} results for QueryLookup '{queryConfig.Query}'. Expected one.");
+						case 0:
+							if (valueIfZeroMatchesFoundSets)
+							{
+								return valueIfZeroMatchesFound;
+							}
+							throw new LookupException($"Got 0 results for QueryLookup '{queryConfig.Query}' and no default value is configured.");
+						case 1:
+							// Convert to JObjects for easier generic manipulation
+							connectedSystemItem = autoTaskResult
+								.Select(entity => JObject.FromObject(entity))
+								.Single();
+
+							_cache.Store(cacheKey, connectedSystemItem);
+							break;
+						default:
+							if (valueIfMultipleMatchesFoundSets)
+							{
+								return valueIfMultipleMatchesFound;
+							}
+							throw new LookupException($"Got {autoTaskResult.Count} results for QueryLookup '{queryConfig.Query}' and no default value is configured.");
 					}
-
-					// Convert to JObjects for easier generic manipulation
-					connectedSystemItem = autoTaskResult
-						.Select(entity => JObject.FromObject(entity))
-						.Single();
-
-					_cache.Store(cacheKey, connectedSystemItem);
 				}
 
 				// Determine the field value
@@ -187,9 +207,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				}
 				return fieldValue;
 			}
-			catch (Exception e)
+			catch (ConfigurationException exception)
 			{
-				Logger.LogError(e, "Failed to Lookup");
+				Logger.LogWarning(exception, "Failed to Lookup due to config");
+				throw;
+			}
+			catch (LookupException exception)
+			{
+				Logger.LogWarning(exception, "Failed to Lookup due to response count");
+				throw;
+			}
+			catch (Exception exception)
+			{
+				Logger.LogError(exception, "Unexpected exception in QueryLookupAsync");
 				throw;
 			}
 		}

@@ -8,7 +8,14 @@ namespace PanoramicData.ConnectMagic.Service.Interfaces
 	{
 		Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken);
 
-		Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken);
+		Task<object?> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken);
 
 		ConnectedSystemStats Stats { get; }
 

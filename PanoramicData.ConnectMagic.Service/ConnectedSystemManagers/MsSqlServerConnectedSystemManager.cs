@@ -57,7 +57,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.ConfigureAwait(false);
 		}
 
-		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
+		public override Task<object> QueryLookupAsync(
+			QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Create" template with token substitution
