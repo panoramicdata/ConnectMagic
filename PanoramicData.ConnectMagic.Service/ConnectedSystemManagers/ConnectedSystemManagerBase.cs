@@ -149,6 +149,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw new ArgumentNullException(nameof(dataSet));
 			}
 			dataSet.Validate();
+			dataSet.SubstituteConstants();
 
 			if (connectedSystemItems == null)
 			{
@@ -188,19 +189,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 				var joinMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == MappingType.Join && m.Enabled)
+					.Where(m => m.Direction == MappingType.Join)
 					.ToList();
 
 				// Inward mappings
 				var inwardMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == MappingType.In && m.Enabled)
+					.Where(m => m.Direction == MappingType.In)
 					.ToList();
 
 				// Outward mappings
 				var outwardMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == MappingType.Out && m.Enabled)
+					.Where(m => m.Direction == MappingType.Out)
 					.ToList();
 
 				try

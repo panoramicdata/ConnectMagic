@@ -55,13 +55,14 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The mappings
 		/// </summary>
+		[DataMember(Name = "Constants")]
+		public List<Constant> Constants { get; set; } = new List<Constant>();
+
+		/// <summary>
+		/// The mappings
+		/// </summary>
 		[DataMember(Name = "Mappings")]
 		public List<Mapping> Mappings { get; set; } = new List<Mapping>();
-
-		public List<Mapping> EnabledMappings
-			=> Mappings
-			.Where(m => m.Enabled)
-			.ToList();
 
 		/// <summary>
 		/// Permissions
@@ -85,12 +86,22 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(StateDataSetName)} must not be null or empty.");
 			}
 
-			if (EnabledMappings.Count == 0)
+			foreach (var constant in Constants)
 			{
-				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mapping.Enabled)} {nameof(Mappings)} must not be empty.");
+				constant.Validate(Name);
 			}
 
-			if (!EnabledMappings.Any(m => m.Direction == MappingType.Join))
+			foreach (var mapping in Mappings)
+			{
+				mapping.Validate(Name);
+			}
+
+			if (Mappings.Count(m => m.Direction == MappingType.None) == 0)
+			{
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s non-{nameof(MappingType.None)} {nameof(Mapping.Direction)} {nameof(Mappings)} must not be empty.");
+			}
+
+			if (!Mappings.Any(m => m.Direction == MappingType.Join))
 			{
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not have exactly one mapping of type Join.");
 			}
@@ -123,6 +134,28 @@ namespace PanoramicData.ConnectMagic.Service.Models
 					break;
 				default:
 					throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} which is not supported."); ;
+			}
+		}
+
+		/// <summary>
+		/// Replaces tokens in queryconfig and mappings with the values defined in Constants
+		/// </summary>
+		internal void SubstituteConstants()
+		{
+			foreach (var constant in Constants)
+			{
+				var token = $"##{constant.Token}##";
+				var value = constant.Value;
+
+				QueryConfig.Query = QueryConfig.Query?.Replace(token, value);
+				QueryConfig.Options = QueryConfig.Options?.Replace(token, value);
+
+				foreach (var mapping in Mappings)
+				{
+					mapping.StateExpression = mapping.StateExpression.Replace(token, value);
+					mapping.SystemExpression = mapping.SystemExpression.Replace(token, value);
+					mapping.ConditionExpression = mapping.ConditionExpression?.Replace(token, value);
+				}
 			}
 		}
 	}
