@@ -78,8 +78,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			)
 		{
 			Logger.LogDebug($"Deleting item with id {connectedSystemItem["sys_id"]}");
+			var sysId = connectedSystemItem["sys_id"]?.ToString();
+			if (string.IsNullOrWhiteSpace(sysId))
+			{
+				throw new ConfigurationException($"Cannot delete ServiceNow item with sysId: '{sysId}'");
+			}
 			await _serviceNowClient
-				.DeleteAsync(dataSet.QueryConfig.Type, connectedSystemItem["sys_id"].ToString())
+				.DeleteAsync(dataSet.QueryConfig.Type, sysId)
 				.ConfigureAwait(false);
 		}
 

@@ -18,7 +18,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private readonly string _userName;
 		private readonly string _password;
 
-		private AuthenticationClient _authenticationClient;
+		private AuthenticationClient? _authenticationClient;
 
 		public SalesforceClient(
 			string url,
@@ -34,7 +34,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_password = password;
 		}
 
-		private ForceClient _client;
+		private ForceClient? _client;
 
 		public ForceClient Client
 		{

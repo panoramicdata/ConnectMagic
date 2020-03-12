@@ -57,7 +57,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.ConfigureAwait(false);
 		}
 
-		public override Task<object> QueryLookupAsync(
+		public override Task<object?> QueryLookupAsync(
 			QueryConfig queryConfig,
 			string field,
 			bool valueIfZeroMatchesFoundSets,
