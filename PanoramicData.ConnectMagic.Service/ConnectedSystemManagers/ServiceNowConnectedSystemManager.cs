@@ -40,6 +40,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
 			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+
 			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
 			var query = new SubstitutionString(inputText);
 			var substitutedQuery = query.ToString();

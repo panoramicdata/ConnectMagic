@@ -118,6 +118,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <summary>
+		/// Simple pause function
+		/// </summary>
+		/// <param name="seconds"></param>
+		/// <returns></returns>
+		protected async Task PauseSecondsAsync(int seconds)
+		{
+			Logger.LogInformation($"Pausing for {seconds}s...");
+			await Task
+				.Delay(TimeSpan.FromSeconds(seconds))
+				.ConfigureAwait(false);
+			Logger.LogInformation($"Pausing for {seconds}s complete.");
+		}
+
+		/// <summary>
 		/// Process connected systems
 		/// </summary>
 		/// <param name="dataSet">The DataSet to process</param>
@@ -174,19 +188,19 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 				var joinMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == MappingType.Join)
+					.Where(m => m.Direction == MappingType.Join && m.Enabled)
 					.ToList();
 
 				// Inward mappings
 				var inwardMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == MappingType.In)
+					.Where(m => m.Direction == MappingType.In && m.Enabled)
 					.ToList();
 
 				// Outward mappings
 				var outwardMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == MappingType.Out)
+					.Where(m => m.Direction == MappingType.Out && m.Enabled)
 					.ToList();
 
 				try

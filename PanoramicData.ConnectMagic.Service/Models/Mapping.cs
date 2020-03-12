@@ -49,5 +49,10 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// If present, used to target the outbound object field
 		/// </summary>
 		public string? SystemOutField { get; set; }
+
+		/// <summary>
+		/// Whether the mapping is enabled.
+		/// </summary>
+		public bool Enabled { get; set; } = true;
 	}
 }

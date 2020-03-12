@@ -56,7 +56,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The mappings
 		/// </summary>
 		[DataMember(Name = "Mappings")]
-		public List<Mapping> Mappings { get; set; }
+		public List<Mapping> Mappings { get; set; } = new List<Mapping>();
+
+		public List<Mapping> EnabledMappings
+			=> Mappings
+			.Where(m => m.Enabled)
+			.ToList();
 
 		/// <summary>
 		/// Permissions
@@ -80,17 +85,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(StateDataSetName)} must not be null or empty.");
 			}
 
-			if (Mappings == null)
+			if (EnabledMappings.Count == 0)
 			{
-				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mappings)} must not be null.");
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mapping.Enabled)} {nameof(Mappings)} must not be empty.");
 			}
 
-			if (Mappings.Count == 0)
-			{
-				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mappings)} must not be empty.");
-			}
-
-			if (!Mappings.Any(m => m.Direction == MappingType.Join))
+			if (!EnabledMappings.Any(m => m.Direction == MappingType.Join))
 			{
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not have exactly one mapping of type Join.");
 			}
@@ -122,7 +122,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 					}
 					break;
 				default:
-					break;
+					throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} which is not supported."); ;
 			}
 		}
 	}
