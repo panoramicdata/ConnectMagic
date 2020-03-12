@@ -102,7 +102,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			try
 			{
-				var cacheKey = queryConfig.Query ?? throw new ConfigurationException("Query must be provided when performing lookups."); ;
+				var cacheKey = queryConfig.Query ?? throw new ConfigurationException("Query must be provided when performing lookups.");
 				Logger.LogTrace($"Performing lookup: for field {field}\n{queryConfig.Query} in for type {queryConfig.Type}");
 
 				// Is it cached?

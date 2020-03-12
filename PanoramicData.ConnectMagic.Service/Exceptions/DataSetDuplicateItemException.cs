@@ -6,9 +6,9 @@ namespace PanoramicData.ConnectMagic.Service.Exceptions
 {
 	public class DataSetDuplicateItemException : Exception
 	{
-		public ConnectedSystemDataSet DataSet { get; }
-		public Mapping Mapping { get; }
-		public JObject Item { get; }
+		public ConnectedSystemDataSet? DataSet { get; }
+		public Mapping? Mapping { get; }
+		public JObject? Item { get; }
 
 		public DataSetDuplicateItemException(ConnectedSystemDataSet dataSet, Mapping mapping, JObject item)
 		{

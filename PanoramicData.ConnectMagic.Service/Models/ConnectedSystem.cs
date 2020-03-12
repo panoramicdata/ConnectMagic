@@ -33,7 +33,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The system credentials
 		/// </summary>
 		[DataMember(Name = "Credentials")]
-		public Credentials Credentials { get; set; }
+		public Credentials Credentials { get; set; } = new Credentials();
 
 		/// <summary>
 		/// Any system-specific configuration

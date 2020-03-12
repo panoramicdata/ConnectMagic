@@ -36,15 +36,20 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			Items.Add("DataSet1", items);
 		}
 
-		public async Task<List<SyncAction>> TestProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
-			=> await ProcessConnectedSystemItemsAsync(
+		public Task<List<SyncAction>?> TestProcessConnectedSystemItemsAsync(ConnectedSystemDataSet dataSet, List<JObject> connectedSystemItems)
+			=> ProcessConnectedSystemItemsAsync(
 				dataSet,
 				connectedSystemItems,
 				null,
-				default)
-				.ConfigureAwait(false);
+				default);
 
-		public override Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
+		public override Task<object?> QueryLookupAsync(QueryConfig queryConfig,
+			string field,
+			bool valueIfZeroMatchesFoundSets,
+			object? valueIfZeroMatchesFound,
+			bool valueIfMultipleMatchesFoundSets,
+			object? valueIfMultipleMatchesFound,
+			CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		public override Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken) =>

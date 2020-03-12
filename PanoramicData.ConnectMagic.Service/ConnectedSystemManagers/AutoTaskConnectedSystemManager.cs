@@ -134,7 +134,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 			if (syncAction.Functions.Count != 0)
 			{
-				throw new NotImplementedException("Implement functions");
+				throw new NotSupportedException("Implement functions");
 			}
 
 			// Handle simple update

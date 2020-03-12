@@ -18,14 +18,14 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		/// </summary>
 		[Required]
 		[MinLength(1)]
-		public string Name { get; set; }
+		public string Name { get; set; } = string.Empty;
 
 		/// <summary>
 		/// The configuration description
 		/// </summary>
 		[Required]
 		[MinLength(1)]
-		public string Description { get; set; }
+		public string Description { get; set; } = string.Empty;
 
 		/// <summary>
 		/// The configuration version - format is free but suggest either increasing version number or date/time based versioning
@@ -36,10 +36,10 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		/// Systems
 		/// </summary>
 		[DataMember(Name = "ConnectedSystems")]
-		public List<ConnectedSystem> ConnectedSystems { get; set; }
+		public List<ConnectedSystem> ConnectedSystems { get; set; } = new List<ConnectedSystem>();
 
 		[DataMember(Name = "State")]
-		public State State { get; set; }
+		public State? State { get; set; }
 
 		[DataMember(Name = "MaxFileAgeHours")]
 		public double MaxFileAgeHours { get; set; } = 72;
@@ -49,6 +49,7 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		/// </summary>
 		internal void Validate()
 		{
+			NameShouldNotBeNullOrWhiteSpace();
 			ThereShouldBeAtLeastOneEnabledConnectedSystem();
 			AllConnectedSystemsShouldHaveCredentials();
 			AllConnectedSystemsShouldHaveAtLeastOneDataset();
@@ -56,11 +57,19 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			AllConnectedSystemsDataSetsShouldHaveOneOrMoreJoinMappingAndAllShouldBeValid();
 		}
 
+		private void NameShouldNotBeNullOrWhiteSpace()
+		{
+			if (string.IsNullOrWhiteSpace(Name))
+			{
+				throw new ConfigurationException($"{nameof(Name)} should be defined.");
+			}
+		}
+
 		private void ThereShouldBeAtLeastOneEnabledConnectedSystem()
 		{
 			if (ConnectedSystems == null)
 			{
-				throw new ConfigurationException($"{nameof(ConnectedSystem)} should be defined");
+				throw new ConfigurationException($"{nameof(ConnectedSystem)} should be defined.");
 			}
 
 			if (!ConnectedSystems.Any(cs => cs.IsEnabled))

@@ -23,12 +23,12 @@ namespace PanoramicData.ConnectMagic.Service
 	internal partial class ConnectMagicService : ServiceBase, IHostedService
 	{
 		private const string EventLogSourceName = Program.ProductName;
-		private readonly EventLogClient _eventLogClient;
+		private readonly EventLogClient? _eventLogClient;
 		private readonly ILogger _logger;
 		private readonly Configuration _configuration;
 		private readonly CancellationTokenSource _cancellationTokenSource;
 		private State _state;
-		private Task _startLoopsTask;
+		private Task? _startLoopsTask;
 		private readonly TimeSpan _maxFileAge;
 		private readonly List<Task> _connectedSystemTasks;
 		private readonly FileInfo _stateFileInfo;

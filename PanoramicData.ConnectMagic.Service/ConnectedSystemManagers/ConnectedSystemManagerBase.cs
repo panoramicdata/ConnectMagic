@@ -28,7 +28,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// The time to wait for a state item lock
 		/// </summary>
-		TimeSpan StateItemListLockTimeout = TimeSpan.FromSeconds(300);
+		private static readonly TimeSpan StateItemListLockTimeout = TimeSpan.FromSeconds(300);
 
 		/// <summary>
 		/// The state
@@ -145,7 +145,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		protected async Task<List<SyncAction>?> ProcessConnectedSystemItemsAsync(
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
-			FileInfo fileInfo,
+			FileInfo? fileInfo,
 			CancellationToken cancellationToken)
 		{
 			// Make sure arguments meet minimum requirements
@@ -310,13 +310,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		private static void WriteSyncActionOutput(
-			FileInfo fileInfo,
+			FileInfo? fileInfo,
 			List<SyncAction> syncActions,
 			TimeSpan maxFileAge,
 			ILogger logger)
 		{
 			// Age files
-			if (fileInfo.Directory.Exists)
+			if (fileInfo?.Directory.Exists == true)
 			{
 				foreach (var fileInfoToAge in fileInfo.Directory.EnumerateFiles("*.xlsx").Where(fi => fi.CreationTimeUtc.Add(maxFileAge) < DateTime.UtcNow))
 				{

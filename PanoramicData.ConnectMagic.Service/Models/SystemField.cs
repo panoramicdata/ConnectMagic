@@ -13,6 +13,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// Name
 		/// </summary>
 		[DataMember(Name = "Name")]
-		public string Name { get; set; }
+		public string? Name { get; set; }
 	}
 }

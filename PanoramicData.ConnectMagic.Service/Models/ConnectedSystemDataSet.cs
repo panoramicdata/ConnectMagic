@@ -133,7 +133,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 					}
 					break;
 				default:
-					throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} which is not supported."); ;
+					throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} which is not supported.");
 			}
 		}
 

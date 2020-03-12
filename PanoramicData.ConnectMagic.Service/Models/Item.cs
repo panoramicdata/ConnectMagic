@@ -12,7 +12,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// Further information can be specified as a JObject.
 		/// </summary>
-		[DataMember(Name ="Extra")]
-		public JObject Extra { get; set; }
+		[DataMember(Name = "Extra")]
+		public JObject? Extra { get; set; }
 	}
 }

@@ -25,7 +25,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// </summary>
 		[DataMember(Name = "CacheFileName")]
 
-		public string CacheFileName { get; set; }
+		public string? CacheFileName { get; set; }
 
 		/// <summary>
 		/// The actual data is stored here
@@ -45,19 +45,25 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			using var file = File.OpenText(fileInfo.FullName);
 			var serializer = new JsonSerializer();
 			var state = (State?)serializer.Deserialize(file, typeof(State));
+
+			if (state is null)
+			{
+				throw new InvalidOperationException($"Cache load failed - no state object present in '{fileInfo.FullName}'");
+			}
+
 			// Set the name of the file that state was loaded from
 			state.CacheFileName = fileInfo.FullName;
 			return state;
 		}
 
-		internal async Task<object> QueryLookupAsync(
+		internal async Task<object?> QueryLookupAsync(
 			string queryLookupConnectedSystemName,
 			QueryConfig queryConfig,
 			string queryLookupField,
 			bool valueIfZeroMatchesFoundSets,
-			object valueIfZeroMatchesFound,
+			object? valueIfZeroMatchesFound,
 			bool valueIfMultipleMatchesFoundSets,
-			object valueIfMultipleMatchesFound,
+			object? valueIfMultipleMatchesFound,
 			CancellationToken cancellationToken)
 		{
 			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
@@ -93,6 +99,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The ConnectedSystemManagers
 		/// </summary>
-		public Dictionary<string, IConnectedSystemManager> ConnectedSystemManagers { get; set; }
+		public Dictionary<string, IConnectedSystemManager>? ConnectedSystemManagers { get; set; }
 	}
 }
