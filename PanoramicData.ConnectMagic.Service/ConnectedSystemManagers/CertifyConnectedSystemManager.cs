@@ -24,17 +24,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		private readonly PropertyInfo[] ExpensePropertyInfos = typeof(Expense).GetProperties();
 		private readonly CertifyClient _certifyClient;
-		private readonly ILogger _logger;
 
 		public CertifyConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
 			TimeSpan maxFileAge,
-			ILogger<CertifyConnectedSystemManager> logger)
-			: base(connectedSystem, state, maxFileAge, logger)
+			ILoggerFactory loggerFactory)
+			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<CertifyConnectedSystemManager>())
 		{
 			_certifyClient = new CertifyClient(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
-			_logger = logger;
 
 			// FixerSharp for exchange rate conversion, if configured
 			if (connectedSystem.Configuration?.ContainsKey(FixerApiKey) == true)
@@ -47,7 +45,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
 			List<JObject> connectedSystemItems;
-			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 			var type = dataSet.QueryConfig.Type;
 			var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
 
@@ -190,7 +188,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 			catch (Exception e)
 			{
-				_logger.LogError($"Could not fetch {type} due to {e.Message}");
+				Logger.LogError($"Could not fetch {type} due to {e.Message}");
 				throw;
 			}
 
@@ -249,7 +247,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							Active = 1
 						};
 
-						_logger.LogInformation($"Creating new entry \"{expenseReportGld.Name}\" in Certify");
+						Logger.LogInformation($"Creating new entry \"{expenseReportGld.Name}\" in Certify");
 
 						var created = await _certifyClient
 							.ExpenseReportGlds
@@ -258,12 +256,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					}
 					catch (Refit.ApiException ex)
 					{
-						_logger.LogError(ex, ex.Message);
+						Logger.LogError(ex, ex.Message);
 						throw;
 					}
 					catch (Exception ex)
 					{
-						_logger.LogError(ex, ex.Message);
+						Logger.LogError(ex, ex.Message);
 						throw;
 					}
 					break;
@@ -275,10 +273,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <inheritdoc />
 		internal override async Task UpdateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
-			JObject connectedSystemItem,
+			SyncAction syncAction,
 			CancellationToken cancellationToken
 			)
 		{
+			var connectedSystemItem = syncAction.ConnectedSystemItem;
 			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
 			switch (type)
@@ -307,7 +306,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						// Find each property on the target class and set the value if the property was found otherwise throw an exception
 						// Update Certify
 
-						_logger.LogInformation($"Updating entry {existing.Name} in Certify");
+						Logger.LogInformation($"Updating entry {existing.Name} in Certify");
 
 						_ = await _certifyClient
 							.ExpenseReportGlds
@@ -344,7 +343,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						Active = 0
 					};
 
-					_logger.LogInformation($"Deleting entry {expenseReportGld.Id} in Certify");
+					Logger.LogInformation($"Deleting entry {expenseReportGld.Id} in Certify");
 
 					_ = await _certifyClient
 						.ExpenseReportGlds

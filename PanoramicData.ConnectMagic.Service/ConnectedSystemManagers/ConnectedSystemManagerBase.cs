@@ -30,7 +30,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		protected State State { get; }
 
-		private readonly ILogger _logger;
+		protected readonly ILogger Logger;
 
 		private readonly TimeSpan _maxFileAge;
 
@@ -42,24 +42,67 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			ConnectedSystem = connectedSystem ?? throw new ArgumentNullException(nameof(connectedSystem));
 			State = state ?? throw new ArgumentNullException(nameof(state));
-			_logger = logger;
+			Logger = logger;
 			_maxFileAge = maxFileAge;
 		}
 
 		/// <summary>
-		/// NCalc? evaluation
+		/// NCalc evaluation
 		/// </summary>
 		/// <param name="systemExpression"></param>
 		/// <param name="item"></param>
-		/// <returns></returns>
-		internal static object Evaluate(string systemExpression, JObject item, State state)
+		/// <param name="state"></param>
+		internal static JToken EvaluateToJToken(string systemExpression, JObject item, State state)
 		{
-			var parameters = item.ToObject<Dictionary<string, object>>();
-			parameters.Add("State", state);
-			var nCalcExpression = new ConnectMagicExpression(systemExpression)
+			var nCalcExpression = new ConnectMagicExpression(systemExpression);
+			nCalcExpression.Parameters.Add("State", state);
+			nCalcExpression.Parameters.Add("_", item);
+			foreach (var property in item?.Properties() ?? Enumerable.Empty<JProperty>())
 			{
-				Parameters = parameters
-			};
+				nCalcExpression.Parameters.Add(property.Name, property.Value);
+			}
+			try
+			{
+				var evaluationResult = nCalcExpression.Evaluate();
+				return evaluationResult is JToken jToken
+					? jToken
+					: JToken.FromObject(evaluationResult ?? JValue.CreateNull());
+			}
+			catch (ArgumentException ex)
+			{
+				if (ex.Message.StartsWith("Parameter was not defined"))
+				{
+					throw new ArgumentException($"{ex.Message}. Available parameters: {string.Join(", ", nCalcExpression.Parameters.Keys.OrderBy(k => k))}", ex);
+				}
+				throw;
+			}
+		}
+
+		/// <summary>
+		/// NCalc evaluation
+		/// </summary>
+		/// <param name="systemExpression"></param>
+		/// <param name="stateItem"></param>
+		/// <param name="connectedSystemItem"></param>
+		/// <param name="state"></param>
+		internal static object EvaluateConditionalExpression(string systemExpression, StateItem? stateItem, JObject? connectedSystemItem, State state)
+		{
+			var nCalcExpression = new ConnectMagicExpression(systemExpression);
+			nCalcExpression.Parameters.Add("State", state);
+			nCalcExpression.Parameters.Add("connectMagic.stateItemLastModifiedEpochMs", stateItem?.LastModified.ToUnixTimeSeconds() * 1000);
+			nCalcExpression.Parameters.Add("connectMagic.stateItem", stateItem);
+			nCalcExpression.Parameters.Add("connectMagic.systemItem", connectedSystemItem);
+
+			foreach (var property in stateItem?.Properties() ?? Enumerable.Empty<JProperty>())
+			{
+				nCalcExpression.Parameters.Add($"connectMagic.stateItem.{property.Name}", property.Value.ToObject<object>());
+			}
+
+			foreach (var property in connectedSystemItem?.Properties() ?? Enumerable.Empty<JProperty>())
+			{
+				nCalcExpression.Parameters.Add($"connectMagic.systemItem.{property.Name}", property.Value.ToObject<object>());
+			}
+
 			try
 			{
 				return nCalcExpression.Evaluate();
@@ -80,7 +123,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="dataSet">The DataSet to process</param>
 		/// <param name="connectedSystemItems">The ConnectedSystemItems</param>
 		/// <param name="fileInfo">The file to log the action tiems out to</param>
-		/// <returns></returns>
 		protected async Task<List<SyncAction>> ProcessConnectedSystemItemsAsync(
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
@@ -105,9 +147,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				var ncalcExpression = new ExtendedExpression(dataSet.QueryConfig.Filter);
 				connectedSystemItems = connectedSystemItems.Where(csi =>
 				{
-					var dictionary = csi.ToObject<Dictionary<string, object>>();
-					ncalcExpression.Parameters = dictionary;
-					var isMatch = (bool)ncalcExpression.Evaluate();
+					ncalcExpression.Parameters = csi.ToObject<Dictionary<string, object>>();
+					var isMatchObject = ncalcExpression.Evaluate();
+					if (!(isMatchObject is bool isMatch))
+					{
+						throw new ConfigurationException($"QueryConfig Filter '{dataSet.QueryConfig.Filter}' did not evaluate to a bool.");
+					}
 					return isMatch;
 				}).ToList();
 			}
@@ -115,30 +160,33 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var syncActions = new List<SyncAction>();
 			try
 			{
-				_logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
+				Logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
 
 				// Get the DataSet from state or create it if it doesn't exist
 				if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
 				{
-					_logger.LogDebug($"Observed request to access State DataSet {dataSet.StateDataSetName} for the first time - creating...");
-					stateItemList = State.ItemLists[dataSet.StateDataSetName] = new ItemList();
+					Logger.LogDebug($"Observed request to access State DataSet {dataSet.StateDataSetName} for the first time - creating...");
+					stateItemList = State.ItemLists[dataSet.StateDataSetName] = new List<StateItem>();
 				}
 
 				// Clone the DataSet, so we can remove items that we have seen in the ConnectedSystem
-				var unseenStateItems = new List<JObject>(stateItemList);
+				var unseenStateItems = new List<StateItem>(stateItemList);
 
-				var joinMapping = GetJoinMapping(dataSet);
+				var joinMappings = dataSet
+					.Mappings
+					.Where(m => m.Direction == MappingType.Join)
+					.ToList();
 
 				// Inward mappings
 				var inwardMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == SyncDirection.In)
+					.Where(m => m.Direction == MappingType.In)
 					.ToList();
 
 				// Outward mappings
 				var outwardMappings = dataSet
 					.Mappings
-					.Where(m => m.Direction == SyncDirection.Out)
+					.Where(m => m.Direction == MappingType.Out)
 					.ToList();
 
 				try
@@ -149,21 +197,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						syncActions,
 						stateItemList,
 						unseenStateItems,
-						joinMapping,
+						joinMappings,
 						State,
-						_logger,
+						Logger,
 						cancellationToken);
 
 					AnalyseUnseenItems(
 						dataSet,
 						syncActions,
 						unseenStateItems,
-						_logger,
+						Logger,
 						cancellationToken);
 
 					// _logger.LogInformation(GetLogTable(dataSet, syncActions));
 
-					await ProcessActionList(
+					await ProcessActionListAsync(
 						dataSet,
 						syncActions,
 						stateItemList,
@@ -171,11 +219,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						outwardMappings,
 						cancellationToken).ConfigureAwait(false);
 
-					_logger.LogInformation(GetLogTable(dataSet, syncActions));
+					Logger.LogInformation(GetLogTable(dataSet, syncActions));
 				}
 				catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
 				{
-					_logger.LogInformation("Task cancelled");
+					Logger.LogInformation("Task cancelled");
 				}
 				finally
 				{
@@ -183,14 +231,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						fileInfo,
 						syncActions,
 						_maxFileAge,
-						_logger);
+						Logger);
 				}
 				// Pass the SyncActions out for logging/examining
 				return syncActions;
 			}
 			catch (Exception e)
 			{
-				_logger.LogError(e, $"Unhandled exception in ProcessConnectedSystemItems {e.Message}");
+				Logger.LogError(e, $"Unhandled exception in ProcessConnectedSystemItems {e.Message}");
 				throw;
 			}
 		}
@@ -256,22 +304,54 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 
 			using var spreadsheet = new MagicSpreadsheet(fileInfo);
-			spreadsheet.AddSheet(syncActions);
+			spreadsheet.AddSheet(
+				syncActions.Select(sa =>
+				{
+					var properties = new Dictionary<string, object>();
+					if (sa.ConnectedSystemItem != null)
+					{
+						foreach (var property in sa.ConnectedSystemItem.Properties().OrderBy(p => p.Name))
+						{
+							properties[$"SYS.{property.Name}"] = property.Value;
+						}
+					}
+					if (sa.StateItem != null)
+					{
+						foreach (var property in sa.StateItem.Properties().OrderBy(p => p.Name))
+						{
+							properties[$"st.{property.Name}"] = property.Value;
+						}
+					}
+					return new Extended<SyncAction>()
+					{
+						Item = sa,
+						Properties = properties
+					};
+				}).ToList(),
+				addSheetOptions: new AddSheetOptions
+				{
+					ExcludeProperties = new HashSet<string>
+					{
+						nameof(SyncAction.Functions),
+						nameof(SyncAction.InwardChanges),
+						nameof(SyncAction.OutwardChanges)
+					}
+				});
 			spreadsheet.Save();
 		}
 
 		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet)
 			=> new FileInfo($"Output/{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
 
-		private async Task ProcessActionList(
+		private async Task ProcessActionListAsync(
 			ConnectedSystemDataSet dataSet,
 			List<SyncAction> actionList,
-			ItemList stateItemList,
+			List<StateItem> stateItemList,
 			List<Mapping> inwardMappings,
 			List<Mapping> outwardMappings,
 			CancellationToken cancellationToken)
 		{
-			_logger.LogInformation($"Processing action list for dataset {dataSet.Name}");
+			Logger.LogInformation($"Processing action list for dataset {dataSet.Name}");
 
 			// Determine up front whether all systems have completed sync
 			var isConnectedSystemsSyncCompletedOnce = State.IsConnectedSystemsSyncCompletedOnce();
@@ -281,142 +361,170 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
+				//Logger.LogDebug(action.ToString());
+
+				// Get a lock on the state item
+				var gotLock = action.StateItem == null
+					|| await action
+					.StateItem
+					.Lock
+					.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken)
+					.ConfigureAwait(false);
+				if (!gotLock)
+				{
+					// We didn't get a lock
+					Logger.LogInformation($"Timed out waiting to lock StateItem {action.StateItem}");
+					continue;
+				}
+				// We got a lock
+
 				try
 				{
 					var permission = DeterminePermission(ConnectedSystem, dataSet, action.Type);
 
 					switch (action.Type)
 					{
-						case SyncActionType.Create:
-							switch (dataSet.CreateDeleteDirection)
+						case SyncActionType.CreateState:
+							if (action.ConnectedSystemItem == null)
 							{
-								case SyncDirection.In:
-									// Creating an object in State
-									var newStateItem = new JObject();
-									foreach (var inwardMapping in inwardMappings)
-									{
-										var inwardValue = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
-										newStateItem[inwardMapping.StateExpression] = inwardValue == null ? null : JToken.FromObject(inwardValue);
-									}
-									// Save our new item
-									action.StateItem = newStateItem;
+								throw new InvalidOperationException("Cannot create into State without a ConnectedSystemItem");
+							}
 
-									if (permission == DataSetPermission.Allowed)
-									{
-										stateItemList.Add(newStateItem);
-									}
-									break;
-								case SyncDirection.Out:
-									// Create in the target system
-									var newConnectedSystemItem = new JObject();
-									foreach (var outwardMapping in outwardMappings)
-									{
-										var outwardValue = Evaluate(outwardMapping.StateExpression, action.StateItem, State);
-										newConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(outwardValue);
-									}
-									if (isConnectedSystemsSyncCompletedOnce)
-									{
-										if (permission == DataSetPermission.Allowed)
-										{
-											await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
-											// TODO Create should return created object, call update state afterwards
-										}
-									}
-									else
-									{
-										permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
-									}
-									break;
-								default:
-									throw new InvalidOperationException($"Cannot perform {action.Type} when {nameof(dataSet.CreateDeleteDirection)} is {dataSet.CreateDeleteDirection}");
+							// Creating an object in State
+							var newStateItem = new StateItem(new JObject());
+							await newStateItem.Lock.WaitAsync().ConfigureAwait(false);
+							foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
+							{
+								var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+								newStateItem[inwardMapping.StateExpression] = newStateItemValue;
+
+								action.InwardChanges.Add(new FieldChange(inwardMapping.StateExpression, null, newStateItemValue));
+							}
+							// Save our new item
+							action.StateItem = newStateItem;
+
+							if (permission == DataSetPermission.Allowed)
+							{
+								stateItemList.Add(newStateItem);
 							}
 							break;
-						case SyncActionType.Delete:
-							switch (dataSet.CreateDeleteDirection)
+						case SyncActionType.CreateSystem:
+							if (action.StateItem == null)
 							{
-								case SyncDirection.In:
-									// Delete from State:
-									if (permission == DataSetPermission.Allowed)
-									{
-										stateItemList.Remove(action.StateItem);
-									}
-									break;
-								case SyncDirection.Out:
-									// Delete from ConnectedSystem
-									if (isConnectedSystemsSyncCompletedOnce)
-									{
-										if (permission == DataSetPermission.Allowed)
-										{
-											await InternalDeleteOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
-										}
-									}
-									else
-									{
-										permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
-									}
-									break;
-								default:
-									throw new InvalidOperationException($"Cannot perform {action.Type} when {nameof(dataSet.CreateDeleteDirection)} is {dataSet.CreateDeleteDirection}");
+								throw new InvalidOperationException("Cannot create into a ConnectedSystem without a StateItem");
 							}
-							break;
-						case SyncActionType.Update:
 
-							// TODO - later, might want to log/count that a change has happened. For now, just overwrite in each direction.
-							var updateCount = 0;
-							var inwardUpdateRequired = false;
-							var stateItemClone = JObject.FromObject(action.StateItem);
-							foreach (var inwardMapping in inwardMappings)
+							// Create in the target system
+							var newConnectedSystemItem = new JObject();
+							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
 							{
-								var evaluationResult = Evaluate(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
-								var newValue = evaluationResult == null
-									? null
-									: JToken.FromObject(evaluationResult);
-								var existingValue = action.StateItem[inwardMapping.StateExpression];
-								if (existingValue?.Type == JTokenType.Null)
-								{
-									existingValue = null;
-								}
-								if (existingValue?.ToString() != newValue?.ToString())
-								{
-									inwardUpdateRequired = true;
-									stateItemClone[inwardMapping.StateExpression] = newValue;
-									updateCount++;
-								}
+								var newConnectedSystemItemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
+								newConnectedSystemItem[outwardMapping.SystemExpression] = newConnectedSystemItemValue;
+
+								action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
 							}
-							if (inwardUpdateRequired)
+							if (isConnectedSystemsSyncCompletedOnce)
 							{
 								if (permission == DataSetPermission.Allowed)
 								{
-									// Add the new one so there is at least 2 versions of the truth and accidental deletions on a parallel dataset processing will not occur
-									stateItemList.Add(stateItemClone);
-									// Remove the old one
-									stateItemList.Remove(action.StateItem);
+									await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+									// TODO Create should return created object, call update state afterwards
 								}
+							}
+							else
+							{
+								permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
+							}
+							break;
+						case SyncActionType.DeleteState:
+							if (action.StateItem == null)
+							{
+								throw new InvalidOperationException("Cannot delete from State without a StateItem");
 							}
 
-							var outwardUpdateRequired = false;
-							foreach (var outwardMapping in outwardMappings)
+							// Delete from State:
+							if (permission == DataSetPermission.Allowed)
 							{
-								var newEvaluatedValue = JToken.FromObject(Evaluate(outwardMapping.StateExpression, action.StateItem, State));
-								var existingConnectedSystemValue = action.ConnectedSystemItem[outwardMapping.SystemExpression];
-								var areEqual = false;
-								// Are they both decimals?
-								if (decimal.TryParse(existingConnectedSystemValue.ToString(), out var existingValueDecimal) && decimal.TryParse(newEvaluatedValue.ToString(), out var newEvaluatedValueDecimal))
+								stateItemList.Remove(action.StateItem);
+							}
+							break;
+						case SyncActionType.DeleteSystem:
+							// Delete from ConnectedSystem
+							if (isConnectedSystemsSyncCompletedOnce)
+							{
+								if (permission == DataSetPermission.Allowed)
 								{
-									// Yes.  Are the equal?
-									areEqual = existingValueDecimal == newEvaluatedValueDecimal;
-								}
-								else if (existingConnectedSystemValue.ToString() == newEvaluatedValue.ToString())
-								{
-									areEqual = true;
-								}
-								if (!areEqual)
-								{
-									action.ConnectedSystemItem[outwardMapping.SystemExpression] = JToken.FromObject(newEvaluatedValue);
-									outwardUpdateRequired = true;
+									await InternalDeleteOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
 								}
 							}
-							if (outwardUpdateRequired)
+							else
+							{
+								permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
+							}
+							break;
+						case SyncActionType.UpdateBoth:
+							if (action.StateItem == null)
+							{
+								throw new InvalidOperationException($"Cannot perform a {SyncActionType.UpdateBoth} operation without a {nameof(action.StateItem)}");
+							}
+							if (action.ConnectedSystemItem == null)
+							{
+								throw new InvalidOperationException($"Cannot perform a {SyncActionType.UpdateBoth} operation without a {nameof(action.ConnectedSystemItem)}");
+							}
+
+							var stateItemClone = StateItem.FromObject(action.StateItem);
+							foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
+							{
+								var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+								var existingStateItemValue = action.StateItem[inwardMapping.StateExpression];
+
+								//if (existingStateItemValue?.ToString() != newStateItemValue?.ToString())
+								if (!JToken.DeepEquals(existingStateItemValue, newStateItemValue))
+
+								{
+									stateItemClone[inwardMapping.StateExpression] = newStateItemValue;
+
+									action.InwardChanges.Add(new FieldChange(inwardMapping.StateExpression, existingStateItemValue, newStateItemValue));
+								}
+							}
+							if (action.InwardChanges.Count != 0 && permission == DataSetPermission.Allowed)
+							{
+								// Add the new one so there is at least 2 versions of the truth and accidental deletions on a parallel dataset processing will not occur
+								stateItemList.Add(stateItemClone);
+								// Remove the old one
+								stateItemList.Remove(action.StateItem);
+							}
+
+							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
+							{
+								// Is a system function defined?
+								if (outwardMapping.SystemFunction != null)
+								{
+									// YES - Evaluate both expressions and if he results don't match, add the function to the list
+									var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
+									var existingConnectedSystemValue = EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+									if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
+									{
+										action.Functions.Add(outwardMapping.SystemFunction);
+										action.OutwardChanges.Add(new FunctionChange(outwardMapping.SystemFunction));
+									}
+								}
+								else
+								{
+									// NO - Do a simple expression to existing value compare and update if required
+									var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
+									var existingConnectedSystemValue = outwardMapping.SystemOutField != null
+										? EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State)
+										: action.ConnectedSystemItem[outwardMapping.SystemExpression];
+									if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
+									{
+										var targetField = outwardMapping.SystemOutField ?? outwardMapping.SystemExpression;
+										action.ConnectedSystemItem[targetField] = newConnectedSystemValue;
+										action.OutwardChanges.Add(new FieldChange(targetField, existingConnectedSystemValue, newConnectedSystemValue));
+									}
+								}
+							}
+							if (action.OutwardChanges.Count != 0)
 							{
 								if (isConnectedSystemsSyncCompletedOnce)
 								{
@@ -433,7 +541,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 
 							// If nothing was done then we're in sync
-							if (!inwardUpdateRequired && !outwardUpdateRequired)
+							if (action.InwardChanges.Count == 0 && action.OutwardChanges.Count == 0)
 							{
 								action.Type = SyncActionType.AlreadyInSync;
 							}
@@ -446,31 +554,61 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					action.Type = SyncActionType.RemedyErrorDuringProcessing;
 					action.Comment = e.ToString();
 				}
+				finally
+				{
+					// Release the lock (if we have one), on the state item (if we have one)
+					action
+					.StateItem?
+					.Lock?
+					.Release();
+				}
 			}
 		}
 
-		private async Task InternalDeleteOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
+		private List<Mapping> GetOutwardMappingsToProcess(List<Mapping> outwardMappings, SyncAction action)
 		{
-			_logger.LogInformation($"Deleting item for dataset {dataSet.Name}...");
-			await DeleteOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+			var outwardMappingsToProcess = outwardMappings
+				.Where(m => m.ConditionExpression == null || (EvaluateConditionalExpression(m.ConditionExpression, action.StateItem, action.ConnectedSystemItem, State) as bool?) == true)
+				.ToList();
+			Logger.LogTrace($"Processing {outwardMappingsToProcess.Count} of {outwardMappings.Count} outward mappings.");
+			return outwardMappingsToProcess;
 		}
 
-		private async Task InternalUpdateOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
+		private List<Mapping> GetInwardMappingsToProcess(List<Mapping> inwardMappings, SyncAction action)
 		{
-			_logger.LogInformation($"Updating item for dataset {dataSet.Name}...");
-			await UpdateOutwardsAsync(dataSet, action.ConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+			var inwardMappingsToProcess = inwardMappings
+				.Where(m => m.ConditionExpression == null || (EvaluateConditionalExpression(m.ConditionExpression, action.StateItem, action.ConnectedSystemItem, State) as bool?) == true)
+				.ToList();
+			Logger.LogTrace($"Processing {inwardMappingsToProcess.Count} of {inwardMappings.Count} inward mappings.");
+			return inwardMappingsToProcess;
 		}
 
 		private async Task InternalCreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject newConnectedSystemItem, CancellationToken cancellationToken)
 		{
-			_logger.LogInformation($"Creating item for dataset {dataSet.Name}...");
+			Logger.LogInformation($"Creating item for dataset {dataSet.Name}...");
 			await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+		}
+
+		private async Task InternalUpdateOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
+		{
+			Logger.LogInformation($"Updating item for dataset {dataSet.Name}...");
+			await UpdateOutwardsAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
+		}
+
+		private async Task InternalDeleteOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
+		{
+			Logger.LogInformation($"Deleting item for dataset {dataSet.Name}...");
+			await DeleteOutwardsAsync(
+				dataSet,
+				action.ConnectedSystemItem ?? throw new InvalidOperationException("Cannot delete from then ConnectedSystem without a ConnectedSystemItem"),
+				cancellationToken
+			).ConfigureAwait(false);
 		}
 
 		private static void AnalyseUnseenItems(
 			ConnectedSystemDataSet dataSet,
 			List<SyncAction> actionList,
-			List<JObject> unseenStateItems,
+			List<StateItem> unseenStateItems,
 			ILogger logger,
 			CancellationToken cancellationToken)
 		{
@@ -483,7 +621,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 				switch (dataSet.CreateDeleteDirection)
 				{
-					case SyncDirection.None:
+					case CreateDeleteDirection.None:
 						// Don't do anything (record that)
 						actionList.Add(new SyncAction
 						{
@@ -491,19 +629,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							StateItem = unseenStateItem
 						});
 						break;
-					case SyncDirection.In:
+					case CreateDeleteDirection.In:
 						// Remove it from State
 						actionList.Add(new SyncAction
 						{
-							Type = SyncActionType.Delete,
+							Type = SyncActionType.DeleteState,
 							StateItem = unseenStateItem
 						});
 						break;
-					case SyncDirection.Out:
+					case CreateDeleteDirection.Out:
+					case CreateDeleteDirection.CreateBoth:
 						// Add it to the ConnectedSystem
 						actionList.Add(new SyncAction
 						{
-							Type = SyncActionType.Create,
+							Type = SyncActionType.CreateSystem,
 							StateItem = unseenStateItem
 						});
 						break;
@@ -518,59 +657,72 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
 			List<SyncAction> actionList,
-			ItemList stateItemList,
-			List<JObject> unseenStateItems,
-			Mapping joinMapping,
+			List<StateItem> stateItemList,
+			List<StateItem> unseenStateItems,
+			List<Mapping> joinMappings,
 			State state,
 			ILogger logger,
 			CancellationToken cancellationToken)
 		{
 			logger.LogInformation($"Analysing ConnectedSystem items for dataset {dataSet.Name}");
-			var stateItemJoinDictionary = BuildStateItemJoinDictionary(stateItemList, joinMapping, state);
+			var stateItemJoinDictionary = BuildStateItemJoinDictionary(stateItemList, joinMappings, state);
 
 			var connectedSystemItemsSeenJoinValues = new HashSet<string>();
 
-			// Go through each ConnectedSystem item and see if it is present in the State FieldSet
+			// Go through each ConnectedSystem item and see if it joins to an item in the State
 			foreach (var connectedSystemItem in connectedSystemItems)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				var joinValue = Evaluate(joinMapping.SystemExpression, connectedSystemItem, state).ToString();
+				var joinValues = joinMappings
+					.Select(joinMapping => new { expression = joinMapping.SystemExpression, value = EvaluateToJToken(joinMapping.SystemExpression, connectedSystemItem, state)?.ToString() })
+					.Where(a => !string.IsNullOrWhiteSpace(a.value))
+					.Select(a => $"{a.expression}={a.value}")
+					.ToList();
 
 				// Is this a duplicate WITHIN the ConnectedSystemItems?
-				if (!connectedSystemItemsSeenJoinValues.Add(joinValue))
+				List<StateItem>? matchingStateItems = null;
+				string? matchedJoinValue = null;
+				foreach (var joinValue in joinValues)
 				{
-					// Couldn't add to the hashset (i.e. it was already present)
-					// Duplicate found.  What do we do?
-					switch (dataSet.DuplicateHandling)
+					if (!connectedSystemItemsSeenJoinValues.Add(joinValue))
 					{
-						case DuplicateHandling.RemoveFromConnectedSystem:
-							// Remove the duplicate
-							actionList.Add(new SyncAction
-							{
-								Type = SyncActionType.Delete,
-								ConnectedSystemItem = connectedSystemItem,
-								Comment = $"Removing duplicate already observed with join value {joinValue}"
-							});
-							break;
-						case DuplicateHandling.Discard:
-							// Do nothing
-							break;
-						default:
-							// Flag as a remedy
-							actionList.Add(new SyncAction
-							{
-								Type = SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue,
-								ConnectedSystemItem = connectedSystemItem,
-								Comment = $"Found duplicate already observed with join value {joinValue}"
-							});
-							break;
+						// Couldn't add to the hashset (i.e. it was already present)
+						// Duplicate found.  What do we do?
+						switch (dataSet.DuplicateHandling)
+						{
+							case DuplicateHandling.RemoveFromConnectedSystem:
+								// Remove the duplicate
+								actionList.Add(new SyncAction
+								{
+									Type = SyncActionType.DeleteSystem,
+									ConnectedSystemItem = connectedSystemItem,
+									Comment = $"Removing duplicate already observed with join value {joinValue}"
+								});
+								break;
+							case DuplicateHandling.Discard:
+								// Do nothing
+								break;
+							default:
+								// Flag as a remedy
+								actionList.Add(new SyncAction
+								{
+									Type = SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue,
+									ConnectedSystemItem = connectedSystemItem,
+									Comment = $"Found duplicate already observed with join value {joinValue}"
+								});
+								break;
+						}
+						// Action determined.  Move to next ConnectedSystemItem.
+						continue;
 					}
-					// Action determined.  Move to next ConnectedSystemItem.
-					continue;
+					if (stateItemJoinDictionary.TryGetValue(joinValue, out matchingStateItems))
+					{
+						// Found a match - don't check any more.
+						matchedJoinValue = joinValue;
+						break;
+					}
 				}
-
-				stateItemJoinDictionary.TryGetValue(joinValue, out var matchingStateItems);
 
 				// There should be zero or one matches
 				// Any more and there is a matching issue
@@ -580,7 +732,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						// No match found in state for the existing ConnectedSystemItem
 						switch (dataSet.CreateDeleteDirection)
 						{
-							case SyncDirection.None:
+							case CreateDeleteDirection.None:
 								// Don't do anything (record that)
 								actionList.Add(new SyncAction
 								{
@@ -588,20 +740,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									ConnectedSystemItem = connectedSystemItem
 								});
 								break;
-							case SyncDirection.In:
+							case CreateDeleteDirection.In:
+							case CreateDeleteDirection.CreateBoth:
 								// Create it in State
 								actionList.Add(new SyncAction
 								{
-									Type = SyncActionType.Create,
+									Type = SyncActionType.CreateState,
 									ConnectedSystemItem = connectedSystemItem,
 								});
 
 								break;
-							case SyncDirection.Out:
+							case CreateDeleteDirection.Out:
 								// Remove it from ConnectedSystem
 								actionList.Add(new SyncAction
 								{
-									Type = SyncActionType.Delete,
+									Type = SyncActionType.DeleteSystem,
 									ConnectedSystemItem = connectedSystemItem,
 								});
 								break;
@@ -612,21 +765,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						break;
 					case 1:
 						// There was a match between State and the ConnectedSystem
-						var stateItem = matchingStateItems[0];
+						var stateItem = matchingStateItems![0];
 
 						// Remove the stateItem from the unseen list
 						unseenStateItems.Remove(stateItem);
 
 						actionList.Add(new SyncAction
 						{
-							Type = SyncActionType.Update,
+							Type = SyncActionType.UpdateBoth,
 							StateItem = stateItem,
 							ConnectedSystemItem = connectedSystemItem,
 						});
 						break;
 					default:
 						// Remove all items we found to be matching from state; as there is more than one match we shouldn't try to add or delete from a ConnectedSystem
-						foreach (var matchingStateItem in matchingStateItems)
+						foreach (var matchingStateItem in matchingStateItems!)
 						{
 							unseenStateItems.Remove(matchingStateItem);
 
@@ -635,7 +788,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								Type = SyncActionType.RemedyMultipleStateItemsMatchedAConnectedSystemItem,
 								ConnectedSystemItem = connectedSystemItem,
 								StateItem = matchingStateItem,
-								Comment = $"Found duplicate state items with join value {joinValue}"
+								Comment = $"Found duplicate state items with join value {matchedJoinValue}"
 							});
 						}
 						break;
@@ -643,18 +796,26 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		private static Dictionary<string, ItemList> BuildStateItemJoinDictionary(ItemList stateItemList, Mapping joinMapping, State state)
+		private static Dictionary<string, List<StateItem>> BuildStateItemJoinDictionary(List<StateItem> stateItemList, List<Mapping> joinMappings, State state)
 		{
 			// Construct a dictionary of the evaluated join value for each state item to a list of matching items
-			var stateItemJoinDictionary = new Dictionary<string, ItemList>();
+			var stateItemJoinDictionary = new Dictionary<string, List<StateItem>>();
 			foreach (var stateItem in stateItemList.ToList())
 			{
-				var key = Evaluate(joinMapping.StateExpression, stateItem, state).ToString();
-				if (!stateItemJoinDictionary.TryGetValue(key, out var itemList))
+				var joinValues = joinMappings
+					.Select(joinMapping => new { expression = joinMapping.SystemExpression, value = EvaluateToJToken(joinMapping.StateExpression, stateItem, state)?.ToString() })
+					.Where(a => !string.IsNullOrWhiteSpace(a.value))
+					.Select(a => $"{a.expression}={a.value}")
+					.ToList();
+
+				foreach (var joinValue in joinValues)
 				{
-					itemList = stateItemJoinDictionary[key] = new ItemList();
+					if (!stateItemJoinDictionary.TryGetValue(joinValue, out var itemList))
+					{
+						itemList = stateItemJoinDictionary[joinValue] = new List<StateItem>();
+					}
+					itemList.Add(stateItem);
 				}
-				itemList.Add(stateItem);
 			}
 
 			return stateItemJoinDictionary;
@@ -680,19 +841,21 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 			switch (type)
 			{
-				case SyncActionType.Create:
+				case SyncActionType.CreateState:
+					return DataSetPermission.Allowed;
+				case SyncActionType.CreateSystem:
 					return connectedSystem.Permissions.CanCreate && dataSet.Permissions.CanCreate
 						? DataSetPermission.Allowed
 						: !connectedSystem.Permissions.CanCreate
 							? DataSetPermission.DeniedAtConnectedSystem
 							: DataSetPermission.DeniedAtConnectedSystemDataSet;
-				case SyncActionType.Delete:
+				case SyncActionType.DeleteSystem:
 					return connectedSystem.Permissions.CanDelete && dataSet.Permissions.CanDelete
 						? DataSetPermission.Allowed
 						: !connectedSystem.Permissions.CanDelete
 							? DataSetPermission.DeniedAtConnectedSystem
 							: DataSetPermission.DeniedAtConnectedSystemDataSet;
-				case SyncActionType.Update:
+				case SyncActionType.UpdateBoth:
 					return connectedSystem.Permissions.CanUpdate && dataSet.Permissions.CanUpdate
 						? DataSetPermission.Allowed
 						: !connectedSystem.Permissions.CanUpdate
@@ -707,29 +870,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-		private static Mapping GetJoinMapping(ConnectedSystemDataSet dataSet)
-		{
-			// Only a single mapping may be of type "Join"
-			// The join evaluation is always on the connected system
-			var joinMapping = dataSet.Mappings.SingleOrDefault(m => m.Direction == SyncDirection.Join);
-			if (joinMapping == null)
-			{
-				throw new ConfigurationException($"DataSet {dataSet.Name} does not have exactly one mapping of type Join.");
-			}
-			// We have a single Join mapping
-
-			if (string.IsNullOrWhiteSpace(joinMapping.StateExpression))
-			{
-				throw new ConfigurationException($"DataSet {dataSet.Name} Join mapping does not have a non-empty {nameof(joinMapping.StateExpression)} defined.");
-			}
-
-			if (string.IsNullOrWhiteSpace(joinMapping.SystemExpression))
-			{
-				throw new ConfigurationException($"DataSet {dataSet.Name} Join mapping does not have a non-empty {nameof(joinMapping.SystemExpression)} defined.");
-			}
-
-			return joinMapping;
-		}
+		/// <summary>
+		/// One or more mapping must be of type "Join"
+		/// If multiple Join mappings are specified, any of them may match for a join to be found
+		/// The join evaluation is always on the connected system
+		/// </summary>
+		/// <param name="dataSet"></param>
+		/// <returns></returns>
 
 		internal static void SetPropertiesFromJObject(object existing, JObject connectedSystemItem)
 		{
@@ -790,7 +937,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="connectedSystemItem">The item, as updated to be pushed to the ConnectedSystem.</param>
 		internal abstract Task UpdateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
-			JObject connectedSystemItem,
+			SyncAction syncAction,
 			CancellationToken cancellationToken
 			);
 

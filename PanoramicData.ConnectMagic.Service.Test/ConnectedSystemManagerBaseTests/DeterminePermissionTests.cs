@@ -19,9 +19,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.Allowed);
 		}
 
 		// ******* ConnectedSystem **********
@@ -38,9 +38,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
 		}
 
 		[Fact]
@@ -55,9 +55,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = false, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
 		}
 
 		[Fact]
@@ -72,9 +72,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
 		}
 
 		[Fact]
@@ -89,9 +89,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
 		}
 
 		[Fact]
@@ -106,9 +106,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.DeniedAtConnectedSystem);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.Allowed);
 		}
 
 		[Fact]
@@ -123,9 +123,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = false, CanDelete = false }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
 		}
 
 		[Fact]
@@ -140,9 +140,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = true, CanDelete = false }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
 		}
 
 		[Fact]
@@ -157,9 +157,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanWrite = true, CanCreate = true, CanUpdate = false, CanDelete = true }
 			};
 
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Create).Should().Be(DataSetPermission.Allowed);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Update).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
-			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.Delete).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem).Should().Be(DataSetPermission.Allowed);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth).Should().Be(DataSetPermission.DeniedAtConnectedSystemDataSet);
+			ConnectedSystemManagerBase.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem).Should().Be(DataSetPermission.Allowed);
 		}
 	}
 }

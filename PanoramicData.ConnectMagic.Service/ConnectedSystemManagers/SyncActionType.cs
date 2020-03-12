@@ -3,9 +3,11 @@
 	public enum SyncActionType
 	{
 		None = 0,
-		Create,
-		Delete,
-		Update,
+		CreateState,
+		CreateSystem,
+		DeleteState,
+		DeleteSystem,
+		UpdateBoth,
 		RemedyMultipleStateItemsMatchedAConnectedSystemItem,
 		AlreadyInSync,
 		RemedyMultipleConnectedSystemItemsWithSameJoinValue,

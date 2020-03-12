@@ -14,18 +14,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	internal class AutoTaskConnectedSystemManager : ConnectedSystemManagerBase
 	{
 		private readonly Client _autoTaskClient;
-		private readonly ILogger _logger;
 		private readonly ICache<JObject> _cache;
 
 		public AutoTaskConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
 			TimeSpan maxFileAge,
-			ILogger<AutoTaskConnectedSystemManager> logger)
-			: base(connectedSystem, state, maxFileAge, logger)
+			ILoggerFactory loggerFactory)
+			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>())
 		{
-			_autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
-			_logger = logger;
+			_autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText, loggerFactory.CreateLogger<Client>());
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
 
@@ -37,7 +35,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public override async System.Threading.Tasks.Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
 			var query = new SubstitutionString(inputText);
 			var substitutedQuery = query.ToString();
@@ -45,7 +43,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var autoTaskResult = await _autoTaskClient
 				.GetAllAsync(substitutedQuery)
 				.ConfigureAwait(false);
-			_logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
+			Logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
 			// Convert to JObjects for easier generic manipulation
 			var connectedSystemItems = autoTaskResult
 				.Select(entity => JObject.FromObject(entity))
@@ -66,6 +64,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			CancellationToken cancellationToken
 			)
 		{
+			// TODO - Handle functions
 			var itemToCreate = MakeAutoTaskObject(dataSet, connectedSystemItem);
 			var _ = await _autoTaskClient
 				.CreateAsync(itemToCreate)
@@ -74,20 +73,36 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		private Entity MakeAutoTaskObject(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 		{
-			var type = Type.GetType($"AutoTask.Api.{dataSet.QueryConfig.Type}, {typeof(Entity).Assembly.FullName}");
-			if (type == null)
-			{
-				throw new ConfigurationException($"AutoTask type {dataSet.QueryConfig.Type} not supported.");
-			}
-			var instance = Activator.CreateInstance(type);
-			var jObjectPropertyNames = connectedSystemItem.Properties().Select(p => p.Name);
+			var type = Type.GetType($"AutoTask.Api.{dataSet.QueryConfig.Type}, {typeof(Entity).Assembly.FullName}")
+				?? throw new ConfigurationException($"AutoTask type {dataSet.QueryConfig.Type} not supported.");
+
+			var instance = Activator.CreateInstance(type)
+				?? throw new ConfigurationException($"AutoTask type {dataSet.QueryConfig.Type} could not be created.");
+
+			var connectedSystemItemPropertyNames = connectedSystemItem.Properties().Select(p => p.Name);
 
 			var typePropertyInfos = type.GetProperties();
-			foreach (var propertyInfo in typePropertyInfos.Where(pi => jObjectPropertyNames.Contains(pi.Name)))
+			foreach (var propertyInfo in typePropertyInfos.Where(pi => connectedSystemItemPropertyNames.Contains(pi.Name)))
 			{
-				propertyInfo.SetValue(instance, connectedSystemItem[propertyInfo.Name].ToObject(propertyInfo.PropertyType));
+				propertyInfo.SetValue(instance, connectedSystemItem[propertyInfo.Name]!.ToObject(propertyInfo.PropertyType));
 			}
-			return (Entity)instance;
+
+			var entity = (Entity)instance;
+
+			const string UserDefinedFieldPrefix = "UserDefinedFields.";
+
+			// Set the UserDefinedFields
+			foreach (var connectedSystemItemUdfName in connectedSystemItemPropertyNames.Where(n => n.StartsWith(UserDefinedFieldPrefix)))
+			{
+				var targetFieldName = connectedSystemItemUdfName.Substring(UserDefinedFieldPrefix.Length);
+
+				var targetField = entity.UserDefinedFields.SingleOrDefault(udf => udf.Name == targetFieldName)
+					?? throw new ConfigurationException($"Could not find UserDefinedField {targetFieldName} on Entity.");
+
+				targetField.Value = connectedSystemItem[connectedSystemItemUdfName]!.ToString();
+			}
+
+			return entity;
 		}
 
 		/// <inheritdoc />
@@ -98,26 +113,42 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			)
 		{
 			var entity = MakeAutoTaskObject(dataSet, connectedSystemItem);
-			_logger.LogDebug($"Deleting item with id {entity.id}");
+			Logger.LogDebug($"Deleting item with id {entity.id}");
 			await _autoTaskClient
 				.DeleteAsync(entity)
 				.ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />
-		internal override System.Threading.Tasks.Task UpdateOutwardsAsync(
+		internal async override System.Threading.Tasks.Task UpdateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
-			JObject connectedSystemItem,
+			SyncAction syncAction,
 			CancellationToken cancellationToken
 			)
-			=> throw new NotSupportedException();
+		{
+			if (syncAction.ConnectedSystemItem == null)
+			{
+				throw new InvalidOperationException($"{nameof(syncAction.ConnectedSystemItem)} must not be null when Updating Outwards.");
+			}
+
+			if (syncAction.Functions.Count != 0)
+			{
+				throw new NotImplementedException("Implement functions");
+			}
+
+			// Handle simple update
+			var existingItem = MakeAutoTaskObject(dataSet, syncAction.ConnectedSystemItem);
+			var _ = await _autoTaskClient
+				.UpdateAsync(existingItem)
+				.ConfigureAwait(false);
+		}
 
 		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
 		{
 			try
 			{
 				var cacheKey = queryConfig.Query;
-				_logger.LogTrace($"Performing lookup: for field {field}\n{queryConfig.Query}");
+				Logger.LogTrace($"Performing lookup: for field {field}\n{queryConfig.Query}");
 
 				// Is it cached?
 				JObject connectedSystemItem;
@@ -157,7 +188,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 			catch (Exception e)
 			{
-				_logger.LogError(e, "Failed to Lookup");
+				Logger.LogError(e, "Failed to Lookup");
 				throw;
 			}
 		}

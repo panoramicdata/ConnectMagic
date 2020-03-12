@@ -14,31 +14,33 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 	internal class LogicMonitorConnectedSystemManager : ConnectedSystemManagerBase
 	{
 		private readonly PortalClient _logicMonitorClient;
-		private readonly ILogger _logger;
 		private readonly ICache<JObject> _cache;
 
 		public LogicMonitorConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
 			TimeSpan maxFileAge,
-			ILogger<LogicMonitorConnectedSystemManager> logger)
-			: base(connectedSystem, state, maxFileAge, logger)
+			ILoggerFactory loggerFactory)
+			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<LogicMonitorConnectedSystemManager>())
 		{
-			_logicMonitorClient = new PortalClient(connectedSystem.Credentials.Account, connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText, logger);
-			_logger = logger;
+			_logicMonitorClient = new PortalClient(
+				connectedSystem.Credentials.Account,
+				connectedSystem.Credentials.PublicText,
+				connectedSystem.Credentials.PrivateText,
+				loggerFactory.CreateLogger<PortalClient>());
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
 
 		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
 			var query = new SubstitutionString(inputText);
 			// Send the query off to LogicMonitor
 			var connectedSystemItems = await _logicMonitorClient
 				.GetAllAsync<JObject>(query.ToString(), cancellationToken)
 				.ConfigureAwait(false);
-			_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
+			Logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
 
 			await ProcessConnectedSystemItemsAsync(
 				dataSet,
@@ -81,11 +83,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <exception cref="NotSupportedException"></exception>
 		internal override Task UpdateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
-			JObject connectedSystemItem,
+			SyncAction syncAction,
 			CancellationToken cancellationToken)
 		{
 			var endpoint = new SubstitutionString(dataSet.QueryConfig.UpdateQuery ?? dataSet.QueryConfig.Query).ToString();
-			return _logicMonitorClient.PutAsync(endpoint, connectedSystemItem, cancellationToken);
+			return _logicMonitorClient.PutAsync(endpoint, syncAction.ConnectedSystemItem, cancellationToken);
 		}
 
 		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
@@ -93,7 +95,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			try
 			{
 				var cacheKey = queryConfig.Query;
-				_logger.LogDebug($"Performing lookup: for field {field}\n{queryConfig.Query}");
+				Logger.LogDebug($"Performing lookup: for field {field}\n{queryConfig.Query}");
 
 				// Is it cached?
 				JObject connectedSystemItem;
@@ -134,7 +136,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				expression.Parameters["result"] = connectedSystemItem;
 				try
 				{
-					return expression.Evaluate();
+					var theResult = expression.Evaluate();
+					return theResult;
 				}
 				catch (Exception e)
 				{
@@ -143,7 +146,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 			catch (Exception e)
 			{
-				_logger.LogError(e, "Failed to Lookup");
+				Logger.LogError(e, "Failed to Lookup");
 				throw;
 			}
 		}

@@ -26,40 +26,40 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				Permissions = new Permissions { CanCreate = true, CanDelete = true, CanUpdate = true, CanWrite = true }
 			};
 			var state = new State();
-			state.ItemLists["TestDataSet"] = new ItemList
+			state.ItemLists["TestDataSet"] = new List<StateItem>
 			{
-				new JObject(new JProperty("Id", "ExistingKey1"), new JProperty("FullName", "Sarah Jane"), new JProperty("Description", "Is lovely")),
-				new JObject(new JProperty("Id", "Key1"), new JProperty("FullName", "Bob1 Smith1"),  new JProperty("Description", "OldDescription1"))
+				new StateItem(new JObject(new JProperty("Id", "ExistingKey1"), new JProperty("FullName", "Sarah Jane"), new JProperty("Description", "Is lovely"))),
+				new StateItem(new JObject(new JProperty("Id", "Key1"), new JProperty("FullName", "Bob1 Smith1"),  new JProperty("Description", "OldDescription1")))
 			};
 
 			var dataSet = new ConnectedSystemDataSet
 			{
-				CreateDeleteDirection = SyncDirection.In,
+				CreateDeleteDirection = CreateDeleteDirection.In,
 				Name = "DataSet1",
 				StateDataSetName = "TestDataSet",
 				Mappings = new List<Mapping>
 				{
 					new Mapping
 					{
-						Direction = SyncDirection.Join,
+						Direction = MappingType.Join,
 						SystemExpression = "ConnectedSystemKey",
 						StateExpression = "Id"
 					},
 					new Mapping
 					{
-						Direction = SyncDirection.In,
+						Direction = MappingType.In,
 						SystemExpression = "ConnectedSystemKey",
 						StateExpression = "Id"
 					},
 					new Mapping
 					{
-						Direction = SyncDirection.In,
+						Direction = MappingType.In,
 						SystemExpression = "FirstName +' ' + LastName",
 						StateExpression = "FullName"
 					},
 					new Mapping
 					{
-						Direction = SyncDirection.In,
+						Direction = MappingType.In,
 						SystemExpression = "Description",
 						StateExpression = "Description"
 					}
@@ -77,9 +77,9 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 			actionList.Should().NotBeNullOrEmpty();
 			actionList.Should().HaveCount(6);
 			actionList.All(a => a.Permission == ConnectedSystemManagers.DataSetPermission.Allowed).Should().BeTrue();
-			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Create).Should().HaveCount(4);
-			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Update).Should().HaveCount(1);
-			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.Delete).Should().HaveCount(1);
+			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.CreateSystem).Should().HaveCount(4);
+			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.UpdateBoth).Should().HaveCount(1);
+			actionList.Where(a => a.Type == ConnectedSystemManagers.SyncActionType.DeleteSystem).Should().HaveCount(1);
 
 			// Process a second time - should be in stable state
 			actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);

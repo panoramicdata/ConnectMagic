@@ -2,11 +2,13 @@
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicSystems;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace PanoramicData.ConnectMagic.Service
 {
+	[DebuggerDisplay("{_connectedSystemManager.ConnectedSystem.Name} ({_connectedSystemManager.ConnectedSystem.LoopPeriodicitySeconds}s)")]
 	internal class ConnectedSystemPeriodLoop : LoopInterval
 	{
 		private readonly IConnectedSystemManager _connectedSystemManager;

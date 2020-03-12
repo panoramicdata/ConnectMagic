@@ -30,7 +30,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The actual data is stored here
 		/// </summary>
-		public ConcurrentDictionary<string, ItemList> ItemLists { get; set; } = new ConcurrentDictionary<string, ItemList>();
+		public ConcurrentDictionary<string, List<StateItem>> ItemLists { get; set; } = new ConcurrentDictionary<string, List<StateItem>>();
 
 		public static State FromFile(FileInfo fileInfo)
 		{
@@ -50,7 +50,11 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			return state;
 		}
 
-		internal async Task<object> QueryLookupAsync(string queryLookupConnectedSystemName, QueryConfig queryConfig, string queryLookupField, CancellationToken cancellationToken)
+		internal async Task<object> QueryLookupAsync(
+			string queryLookupConnectedSystemName,
+			QueryConfig queryConfig,
+			string queryLookupField,
+			CancellationToken cancellationToken)
 		{
 			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
 			{

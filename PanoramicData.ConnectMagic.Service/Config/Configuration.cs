@@ -53,7 +53,7 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			AllConnectedSystemsShouldHaveCredentials();
 			AllConnectedSystemsShouldHaveAtLeastOneDataset();
 			AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping();
-			AllConnectedSystemsDataSetsShouldHaveOneJoinMapping();
+			AllConnectedSystemsDataSetsShouldHaveOneOrMoreJoinMappingAndAllShouldBeValid();
 		}
 
 		private void ThereShouldBeAtLeastOneEnabledConnectedSystem()
@@ -149,15 +149,30 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			}
 		}
 
-		private void AllConnectedSystemsDataSetsShouldHaveOneJoinMapping()
+		private void AllConnectedSystemsDataSetsShouldHaveOneOrMoreJoinMappingAndAllShouldBeValid()
 		{
 			foreach (var connectedSystem in ConnectedSystems)
 			{
 				foreach (var dataSet in connectedSystem.Datasets)
 				{
-					if (dataSet.Mappings == null || dataSet.Mappings.Count(m => m.Direction == SyncDirection.Join) != 1)
+					var joinMappings = dataSet.Mappings?.Where(m => m.Direction == MappingType.Join).ToList() ?? new List<Mapping>();
+					if (joinMappings.Count == 0)
 					{
 						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(ConnectedSystemDataSet.Mappings)} set in {dataSet.Name}");
+					}
+
+					// Ensure each JoinMapping is valid
+					foreach (var joinMapping in joinMappings)
+					{
+						if (string.IsNullOrWhiteSpace(joinMapping.StateExpression))
+						{
+							throw new ConfigurationException($"DataSet {dataSet.Name} has a Join mapping without a {nameof(joinMapping.StateExpression)} defined.");
+						}
+
+						if (string.IsNullOrWhiteSpace(joinMapping.SystemExpression))
+						{
+							throw new ConfigurationException($"DataSet {dataSet.Name} has a Join mapping without a {nameof(joinMapping.SystemExpression)} defined.");
+						}
 					}
 				}
 			}

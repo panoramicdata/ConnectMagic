@@ -67,7 +67,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		internal override Task DeleteOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
-		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, SyncAction syncAction, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		public override void Dispose()

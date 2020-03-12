@@ -6,7 +6,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 {
 	[DataContract]
 	[JsonConverter(typeof(StringEnumConverter))]
-	public enum SyncDirection
+	public enum CreateDeleteDirection
 	{
 		/// <summary>
 		/// None
@@ -29,7 +29,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// Join
 		/// </summary>
-		[EnumMember(Value = "Join")]
-		Join
+		[EnumMember(Value = "CreateBoth")]
+		CreateBoth
 	}
 }

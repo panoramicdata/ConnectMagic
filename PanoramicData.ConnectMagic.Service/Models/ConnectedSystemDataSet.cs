@@ -30,6 +30,12 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public bool IsEnabled { get; set; } = true;
 
 		/// <summary>
+		/// Whether to output the first data fetch to a workbook
+		/// </summary>
+		[DataMember(Name = "OutputToWorkbook")]
+		public bool OutputToWorkbook { get; set; }
+
+		/// <summary>
 		/// Creation direction
 		/// - None
 		///   - items are not added to either the ConnectedSystem or State
@@ -44,7 +50,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		///	- Not supported
 		/// </summary>
 		[DataMember(Name = "CreateDeleteDirection")]
-		public SyncDirection CreateDeleteDirection { get; set; }
+		public CreateDeleteDirection CreateDeleteDirection { get; set; }
 
 		/// <summary>
 		/// The mappings
@@ -84,19 +90,39 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s {nameof(Mappings)} must not be empty.");
 			}
 
-			if (!Mappings.Any(m => m.Direction == SyncDirection.Join))
+			if (!Mappings.Any(m => m.Direction == MappingType.Join))
 			{
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not have exactly one mapping of type Join.");
 			}
 
-			if (CreateDeleteDirection == SyncDirection.In && !Mappings.Any(m => m.Direction == SyncDirection.In))
+			switch (CreateDeleteDirection)
 			{
-				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no inbound mappings.");
-			}
-
-			if (CreateDeleteDirection == SyncDirection.Out && !Mappings.Any(m => m.Direction == SyncDirection.Out))
-			{
-				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no outbound mappings.");
+				case CreateDeleteDirection.None:
+					break;
+				case CreateDeleteDirection.In:
+					if (!Mappings.Any(m => m.Direction == MappingType.In))
+					{
+						throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no inbound mappings.");
+					}
+					break;
+				case CreateDeleteDirection.Out:
+					if (!Mappings.Any(m => m.Direction == MappingType.Out))
+					{
+						throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no outbound mappings.");
+					}
+					break;
+				case CreateDeleteDirection.CreateBoth:
+					if (!Mappings.Any(m => m.Direction == MappingType.In))
+					{
+						throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no inbound mappings.");
+					}
+					if (!Mappings.Any(m => m.Direction == MappingType.Out))
+					{
+						throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} '{Name}' has {nameof(CreateDeleteDirection)} {CreateDeleteDirection} but no outbound mappings.");
+					}
+					break;
+				default:
+					break;
 			}
 		}
 	}

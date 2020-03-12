@@ -10,17 +10,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class SalesforceConnectedSystemManager : ConnectedSystemManagerBase
 	{
-		private readonly ILogger _logger;
 		private readonly SalesforceClient _salesforceClient;
 
 		public SalesforceConnectedSystemManager(
 			ConnectedSystem connectedSystem,
 			State state,
 			TimeSpan maxFileAge,
-			ILogger<SalesforceConnectedSystemManager> logger)
-			: base(connectedSystem, state, maxFileAge, logger)
+			ILoggerFactory loggerFactory)
+			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<SalesforceConnectedSystemManager>())
 		{
-			_logger = logger;
 			_salesforceClient = new SalesforceClient(
 				connectedSystem.Credentials.Account,
 				connectedSystem.Credentials.ClientId,
@@ -31,13 +29,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public override async Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken)
 		{
-			_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 			var inputText = dataSet.QueryConfig.Query ?? throw new ConfigurationException($"Missing Query in QueryConfig for dataSet '{dataSet.Name}'");
 			var query = new SubstitutionString(inputText);
 			var substitutedQuery = query.ToString();
 
 			var connectedSystemItems = await _salesforceClient.GetAllJObjectsAsync(substitutedQuery).ConfigureAwait(false);
-			_logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
+			Logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
 
 			await ProcessConnectedSystemItemsAsync(
 				dataSet,
@@ -56,7 +54,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			=> throw new NotSupportedException();
 
 		/// <inheritdoc />
-		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
+		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, SyncAction syncAction, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		public override async Task<object> QueryLookupAsync(QueryConfig queryConfig, string field, CancellationToken cancellationToken)
@@ -65,7 +63,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var connectedSystemItems = await _salesforceClient
 				.GetAllJObjectsAsync(substitutedQuery)
 				.ConfigureAwait(false);
-			_logger.LogDebug($"Got {connectedSystemItems.Count} results for query '{queryConfig.Query}'.");
+			Logger.LogDebug($"Got {connectedSystemItems.Count} results for query '{queryConfig.Query}'.");
 			return connectedSystemItems.Count switch
 			{
 				1 => connectedSystemItems[0][field],

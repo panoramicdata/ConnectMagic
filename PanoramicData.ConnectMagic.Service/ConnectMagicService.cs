@@ -214,11 +214,12 @@ namespace PanoramicData.ConnectMagic.Service
 		private IConnectedSystemManager CreateConnectedSystemManager(ConnectedSystem connectedSystem, State state, TimeSpan maxFileAge)
 			=> connectedSystem.Type switch
 			{
-				SystemType.AutoTask => new AutoTaskConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>()),
-				SystemType.Certify => new CertifyConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<CertifyConnectedSystemManager>()),
-				SystemType.LogicMonitor => new LogicMonitorConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<LogicMonitorConnectedSystemManager>()),
-				SystemType.SalesForce => new SalesforceConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<SalesforceConnectedSystemManager>()),
-				SystemType.MsSqlServer => new MsSqlServerConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory.CreateLogger<MsSqlServerConnectedSystemManager>()),
+				SystemType.AutoTask => new AutoTaskConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory),
+				SystemType.Certify => new CertifyConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory),
+				SystemType.LogicMonitor => new LogicMonitorConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory),
+				SystemType.SalesForce => new SalesforceConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory),
+				SystemType.MsSqlServer => new MsSqlServerConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory),
+				SystemType.ServiceNow => new ServiceNowConnectedSystemManager(connectedSystem, state, maxFileAge, _loggerFactory),
 				_ => throw new NotSupportedException($"Unsupported ConnectedSystem type: '{connectedSystem.Type}'")
 			};
 
