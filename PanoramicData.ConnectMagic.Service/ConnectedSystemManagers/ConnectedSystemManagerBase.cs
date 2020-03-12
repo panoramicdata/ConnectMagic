@@ -26,6 +26,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public ConnectedSystem ConnectedSystem { get; }
 
 		/// <summary>
+		/// The time to wait for a state item lock
+		/// </summary>
+		TimeSpan StateItemListLockTimeout = TimeSpan.FromSeconds(300);
+
+		/// <summary>
 		/// The state
 		/// </summary>
 		protected State State { get; }
@@ -137,7 +142,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="dataSet">The DataSet to process</param>
 		/// <param name="connectedSystemItems">The ConnectedSystemItems</param>
 		/// <param name="fileInfo">The file to log the action tiems out to</param>
-		protected async Task<List<SyncAction>> ProcessConnectedSystemItemsAsync(
+		protected async Task<List<SyncAction>?> ProcessConnectedSystemItemsAsync(
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
 			FileInfo fileInfo,
@@ -177,16 +182,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			{
 				Logger.LogDebug($"Syncing DataSet {dataSet.Name} with {dataSet.StateDataSetName}");
 
-				// Get the DataSet from state or create it if it doesn't exist
-				if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
-				{
-					Logger.LogDebug($"Observed request to access State DataSet {dataSet.StateDataSetName} for the first time - creating...");
-					stateItemList = State.ItemLists[dataSet.StateDataSetName] = new List<StateItem>();
-				}
-
-				// Clone the DataSet, so we can remove items that we have seen in the ConnectedSystem
-				var unseenStateItems = new List<StateItem>(stateItemList);
-
 				var joinMappings = dataSet
 					.Mappings
 					.Where(m => m.Direction == MappingType.Join)
@@ -203,6 +198,30 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					.Mappings
 					.Where(m => m.Direction == MappingType.Out)
 					.ToList();
+
+				// Get the DataSet from state or create it if it doesn't exist
+				if (!State.ItemLists.TryGetValue(dataSet.StateDataSetName, out var stateItemList))
+				{
+					Logger.LogDebug($"Observed request to access State DataSet {dataSet.StateDataSetName} for the first time - creating...");
+					stateItemList = State.ItemLists[dataSet.StateDataSetName] = new StateItemList();
+				}
+
+				// Get a lock on the state item list
+				var gotLock = await stateItemList
+					.Lock
+					.WaitAsync(StateItemListLockTimeout, cancellationToken)
+					.ConfigureAwait(false);
+				if (!gotLock)
+				{
+					// We didn't get a lock due to timeout - try again next time
+					Logger.LogInformation($"Timed out waiting to lock StateDataSet {dataSet.StateDataSetName}");
+					return null;
+				}
+				Logger.LogInformation($"Acquired lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name}");
+				// We got a lock
+
+				// Clone the DataSet, so we can remove items that we have seen in the ConnectedSystem
+				var unseenStateItems = new List<StateItem>(stateItemList);
 
 				try
 				{
@@ -242,6 +261,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				}
 				finally
 				{
+					// Release the lock
+					Logger.LogInformation($"Releasing lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name}");
+					stateItemList
+						.Lock
+						.Release();
+
 					WriteSyncActionOutput(
 						fileInfo,
 						syncActions,
@@ -375,8 +400,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			foreach (var action in actionList)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
-
-				//Logger.LogDebug(action.ToString());
 
 				// Get a lock on the state item
 				var gotLock = action.StateItem == null

@@ -30,7 +30,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The actual data is stored here
 		/// </summary>
-		public ConcurrentDictionary<string, List<StateItem>> ItemLists { get; set; } = new ConcurrentDictionary<string, List<StateItem>>();
+		public ConcurrentDictionary<string, StateItemList> ItemLists { get; set; } = new ConcurrentDictionary<string, StateItemList>();
 
 		public static State FromFile(FileInfo fileInfo)
 		{
