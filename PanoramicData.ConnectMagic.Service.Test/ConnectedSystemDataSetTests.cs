@@ -70,7 +70,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			act
 				.Should()
 				.Throw<ConfigurationException>()
-				.Where(e => e.Message == $"{nameof(ConnectedSystemDataSet)} ValidName's Mappings must not be null.");
+				.Where(e => e.Message == $"{nameof(ConnectedSystemDataSet)} ValidName's non-None Direction Mappings must not be empty.");
 
 			act = () =>
 				new ConnectedSystemDataSet
@@ -83,7 +83,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			act
 				.Should()
 				.Throw<ConfigurationException>()
-				.Where(e => e.Message == $"{nameof(ConnectedSystemDataSet)} ValidName's Mappings must not be empty.");
+				.Where(e => e.Message == $"{nameof(ConnectedSystemDataSet)} ValidName's non-None Direction Mappings must not be empty.");
 		}
 	}
 }

@@ -15,21 +15,39 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public bool CanWrite { get; set; }
 
 		/// <summary>
-		/// Whether create is permitted
+		/// Whether create inward is permitted
 		/// </summary>
-		[DataMember(Name = "CanCreate")]
-		public bool CanCreate { get; set; }
+		[DataMember(Name = "CanCreateIn")]
+		public bool CanCreateIn { get; set; }
 
 		/// <summary>
-		/// Whether update is permitted
+		/// Whether update inward is permitted
 		/// </summary>
-		[DataMember(Name = "CanUpdate")]
-		public bool CanUpdate { get; set; }
+		[DataMember(Name = "CanUpdateIn")]
+		public bool CanUpdateIn { get; set; }
 
 		/// <summary>
-		/// Whether delete is permitted
+		/// Whether delete inward is permitted
 		/// </summary>
-		[DataMember(Name = "CanDelete")]
-		public bool CanDelete { get; set; }
+		[DataMember(Name = "CanDeleteIn")]
+		public bool CanDeleteIn { get; set; }
+
+		/// <summary>
+		/// Whether create outward is permitted
+		/// </summary>
+		[DataMember(Name = "CanCreateOut")]
+		public bool CanCreateOut { get; set; }
+
+		/// <summary>
+		/// Whether update outward is permitted
+		/// </summary>
+		[DataMember(Name = "CanUpdateOut")]
+		public bool CanUpdateOut { get; set; }
+
+		/// <summary>
+		/// Whether delete outward is permitted
+		/// </summary>
+		[DataMember(Name = "CanDeleteOut")]
+		public bool CanDeleteOut { get; set; }
 	}
 }

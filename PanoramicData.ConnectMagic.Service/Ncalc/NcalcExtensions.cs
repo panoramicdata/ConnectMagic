@@ -162,7 +162,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						// Get optional value to use if no results are returned
 						object? valueIfZeroMatchesFound = null;
 						var valueIfZeroMatchesFoundSets = false;
-						if (++argumentIndex > functionArgs.Parameters.Length - 1)
+						if (++argumentIndex < functionArgs.Parameters.Length - 1)
 						{
 							valueIfZeroMatchesFound = functionArgs.Parameters[argumentIndex].Evaluate();
 							valueIfZeroMatchesFoundSets = true;
@@ -170,7 +170,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 
 						object? valueIfMultipleMatchesFound = null;
 						var valueIfMultipleMatchesFoundSets = false;
-						if (++argumentIndex > functionArgs.Parameters.Length - 1)
+						if (++argumentIndex < functionArgs.Parameters.Length - 1)
 						{
 							valueIfMultipleMatchesFound = functionArgs.Parameters[argumentIndex].Evaluate();
 							valueIfMultipleMatchesFoundSets = true;

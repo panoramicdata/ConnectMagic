@@ -40,7 +40,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			=> ProcessConnectedSystemItemsAsync(
 				dataSet,
 				connectedSystemItems,
-				null,
+				new ConnectedSystem { Name = "Fake" },
 				default);
 
 		public override Task<object?> QueryLookupAsync(QueryConfig queryConfig,

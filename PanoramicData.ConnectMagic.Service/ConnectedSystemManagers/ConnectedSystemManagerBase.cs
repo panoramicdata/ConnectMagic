@@ -145,7 +145,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		protected async Task<List<SyncAction>?> ProcessConnectedSystemItemsAsync(
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
-			FileInfo? fileInfo,
+			ConnectedSystem connectedSystem,
 			CancellationToken cancellationToken)
 		{
 			// Make sure arguments meet minimum requirements
@@ -162,7 +162,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 
 			// Filter
-			if (dataSet.QueryConfig.Filter != null)
+			if (dataSet.QueryConfig?.Filter != null)
 			{
 				var ncalcExpression = new ExtendedExpression(dataSet.QueryConfig.Filter);
 				connectedSystemItems = connectedSystemItems.Where(csi =>
@@ -223,6 +223,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				// Clone the DataSet, so we can remove items that we have seen in the ConnectedSystem
 				var unseenStateItems = new List<StateItem>(stateItemList);
 
+				// Determine up front whether all systems have completed sync
+				var isConnectedSystemsSyncCompletedOnce = State.IsConnectedSystemsSyncCompletedOnce();
+
 				try
 				{
 					AnalyseConnectedSystemItems(
@@ -251,6 +254,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						stateItemList,
 						inwardMappings,
 						outwardMappings,
+						isConnectedSystemsSyncCompletedOnce,
 						cancellationToken).ConfigureAwait(false);
 
 					Logger.LogInformation(GetLogTable(dataSet, syncActions));
@@ -268,7 +272,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						.Release();
 
 					WriteSyncActionOutput(
-						fileInfo,
+						GetFileInfo(connectedSystem, dataSet, isConnectedSystemsSyncCompletedOnce),
 						syncActions,
 						_maxFileAge,
 						Logger);
@@ -283,6 +287,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
+		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet, bool isConnectedSystemsSyncCompletedOnce)
+			=> new FileInfo($"Output/{(isConnectedSystemsSyncCompletedOnce ? "" : "INITIAL LOAD ")}{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
+
 		private string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
 		{
 			var stringBuilder = new StringBuilder();
@@ -290,19 +297,27 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			stringBuilder.AppendLine(value);
 
 			var syncActionTypes = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().ToList();
-			var permissions = Enum.GetValues(typeof(DataSetPermission)).Cast<DataSetPermission>().ToList();
+			var dataSetPermissions = Enum.GetValues(typeof(DataSetPermission)).Cast<DataSetPermission>().ToList();
 
 			var headers = syncActionTypes.Select(ra => new ColumnHeader(ra.ToString(), Alignment.Right)).Prepend(new ColumnHeader(string.Empty)).ToArray();
 			var table = new Table(headers) { Config = TableConfiguration.UnicodeAlt() };
-			foreach (var permission in permissions)
+			foreach (var dataSetPermission in dataSetPermissions)
 			{
 				table.AddRow(syncActionTypes
 					 .Select(syncAction =>
 					 {
-						 var count = syncActions.Count(i => i.Type == syncAction && i.Permission == permission);
+						 var count = syncActions.Count(i => i.Type == syncAction && i.Permission.In == dataSetPermission);
 						 return count == 0 ? "-" : count.ToString();
 					 })
-					 .Prepend(permission.ToString())
+					 .Prepend($"In :{dataSetPermission}")
+					 .ToArray());
+				table.AddRow(syncActionTypes
+					 .Select(syncAction =>
+					 {
+						 var count = syncActions.Count(i => i.Type == syncAction && i.Permission.Out == dataSetPermission);
+						 return count == 0 ? "-" : count.ToString();
+					 })
+					 .Prepend($"Out:{dataSetPermission}")
 					 .ToArray());
 			}
 			stringBuilder.AppendLine(table.ToString());
@@ -380,21 +395,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			spreadsheet.Save();
 		}
 
-		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet)
-			=> new FileInfo($"Output/{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
-
 		private async Task ProcessActionListAsync(
 			ConnectedSystemDataSet dataSet,
 			List<SyncAction> actionList,
 			List<StateItem> stateItemList,
 			List<Mapping> inwardMappings,
 			List<Mapping> outwardMappings,
+			bool isConnectedSystemsSyncCompletedOnce,
 			CancellationToken cancellationToken)
 		{
 			Logger.LogInformation($"Processing action list for dataset {dataSet.Name}");
-
-			// Determine up front whether all systems have completed sync
-			var isConnectedSystemsSyncCompletedOnce = State.IsConnectedSystemsSyncCompletedOnce();
 
 			// Process the action list
 			foreach (var action in actionList)
@@ -418,7 +428,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 				try
 				{
-					var permission = DeterminePermission(ConnectedSystem, dataSet, action.Type);
+					var directionPermissions = DeterminePermission(ConnectedSystem, dataSet, action.Type);
 
 					switch (action.Type)
 					{
@@ -441,7 +451,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							// Save our new item
 							action.StateItem = newStateItem;
 
-							if (permission == DataSetPermission.Allowed)
+							if (directionPermissions.In == DataSetPermission.Allowed)
 							{
 								stateItemList.Add(newStateItem);
 							}
@@ -463,7 +473,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 							if (isConnectedSystemsSyncCompletedOnce)
 							{
-								if (permission == DataSetPermission.Allowed)
+								if (directionPermissions.Out == DataSetPermission.Allowed)
 								{
 									await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 									// TODO Create should return created object, call update state afterwards
@@ -471,7 +481,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 							else
 							{
-								permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
+								directionPermissions = new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded);
 							}
 							break;
 						case SyncActionType.DeleteState:
@@ -481,7 +491,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 
 							// Delete from State:
-							if (permission == DataSetPermission.Allowed)
+							if (directionPermissions.In == DataSetPermission.Allowed)
 							{
 								stateItemList.Remove(action.StateItem);
 							}
@@ -490,14 +500,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							// Delete from ConnectedSystem
 							if (isConnectedSystemsSyncCompletedOnce)
 							{
-								if (permission == DataSetPermission.Allowed)
+								if (directionPermissions.Out == DataSetPermission.Allowed)
 								{
 									await InternalDeleteOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
 								}
 							}
 							else
 							{
-								permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
+								directionPermissions = new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded);
 							}
 							break;
 						case SyncActionType.UpdateBoth:
@@ -525,7 +535,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 									action.InwardChanges.Add(new FieldChange(inwardMapping.StateExpression, existingStateItemValue, newStateItemValue));
 								}
 							}
-							if (action.InwardChanges.Count != 0 && permission == DataSetPermission.Allowed)
+							if (action.InwardChanges.Count != 0 && directionPermissions.In == DataSetPermission.Allowed)
 							{
 								// Add the new one so there is at least 2 versions of the truth and accidental deletions on a parallel dataset processing will not occur
 								stateItemList.Add(stateItemClone);
@@ -567,14 +577,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								if (isConnectedSystemsSyncCompletedOnce)
 								{
 									// We are making a change
-									if (permission == DataSetPermission.Allowed)
+									if (directionPermissions.Out == DataSetPermission.Allowed)
 									{
 										await InternalUpdateOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
 									}
 								}
 								else
 								{
-									permission = DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded;
+									directionPermissions = new DirectionPermissions(directionPermissions.In, DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded);
 								}
 							}
 
@@ -585,7 +595,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 							break;
 					}
-					action.Permission = permission;
+					action.Permission = directionPermissions;
 				}
 				catch (Exception e)
 				{
@@ -862,7 +872,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// Determines permissions
 		/// </summary>
-		internal static DataSetPermission DeterminePermission(
+		internal static DirectionPermissions DeterminePermission(
 			ConnectedSystem connectedSystem,
 			ConnectedSystemDataSet dataSet,
 			SyncActionType type
@@ -870,39 +880,86 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			if (!connectedSystem.Permissions.CanWrite)
 			{
-				return DataSetPermission.DeniedAtConnectedSystem;
+				return type switch
+				{
+					SyncActionType.CreateState => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.InvalidOperation),
+					SyncActionType.DeleteState => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.InvalidOperation),
+					SyncActionType.CreateSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem),
+					SyncActionType.DeleteSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem),
+					SyncActionType.UpdateBoth => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.WriteDisabledAtConnectedSystem),
+					_ => throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.")
+				};
 			}
 			if (!dataSet.Permissions.CanWrite)
 			{
-				return DataSetPermission.DeniedAtConnectedSystemDataSet;
+				return type switch
+				{
+					SyncActionType.CreateState => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.InvalidOperation),
+					SyncActionType.DeleteState => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.InvalidOperation),
+					SyncActionType.CreateSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet),
+					SyncActionType.DeleteSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet),
+					SyncActionType.UpdateBoth => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.WriteDisabledAtConnectedSystemDataSet),
+					_ => throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.")
+				};
 			}
 
 			switch (type)
 			{
 				case SyncActionType.CreateState:
-					return DataSetPermission.Allowed;
+					return new DirectionPermissions((connectedSystem.Permissions.CanCreateIn, dataSet.Permissions.CanCreateIn) switch
+					{
+						(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+						(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+						_ => DataSetPermission.Allowed
+					},
+					DataSetPermission.InvalidOperation);
 				case SyncActionType.CreateSystem:
-					return connectedSystem.Permissions.CanCreate && dataSet.Permissions.CanCreate
-						? DataSetPermission.Allowed
-						: !connectedSystem.Permissions.CanCreate
-							? DataSetPermission.DeniedAtConnectedSystem
-							: DataSetPermission.DeniedAtConnectedSystemDataSet;
+					return new DirectionPermissions(
+						DataSetPermission.InvalidOperation,
+						(connectedSystem.Permissions.CanCreateOut, dataSet.Permissions.CanCreateOut) switch
+						{
+							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+							_ => DataSetPermission.Allowed
+						});
 				case SyncActionType.DeleteSystem:
-					return connectedSystem.Permissions.CanDelete && dataSet.Permissions.CanDelete
-						? DataSetPermission.Allowed
-						: !connectedSystem.Permissions.CanDelete
-							? DataSetPermission.DeniedAtConnectedSystem
-							: DataSetPermission.DeniedAtConnectedSystemDataSet;
+					return new DirectionPermissions(
+						DataSetPermission.InvalidOperation,
+						(connectedSystem.Permissions.CanDeleteOut, dataSet.Permissions.CanDeleteOut) switch
+						{
+							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+							_ => DataSetPermission.Allowed
+						});
+				case SyncActionType.DeleteState:
+					return new DirectionPermissions(
+						(connectedSystem.Permissions.CanDeleteIn, dataSet.Permissions.CanDeleteIn) switch
+						{
+							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+							_ => DataSetPermission.Allowed
+						},
+						DataSetPermission.InvalidOperation
+						);
 				case SyncActionType.UpdateBoth:
-					return connectedSystem.Permissions.CanUpdate && dataSet.Permissions.CanUpdate
-						? DataSetPermission.Allowed
-						: !connectedSystem.Permissions.CanUpdate
-							? DataSetPermission.DeniedAtConnectedSystem
-							: DataSetPermission.DeniedAtConnectedSystemDataSet;
-				case SyncActionType.RemedyMultipleStateItemsMatchedAConnectedSystemItem:
-				case SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue:
-				case SyncActionType.AlreadyInSync:
-					return DataSetPermission.Allowed;
+					return new DirectionPermissions(
+						(connectedSystem.Permissions.CanUpdateIn, dataSet.Permissions.CanUpdateIn) switch
+						{
+							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+							_ => DataSetPermission.Allowed
+						},
+						(connectedSystem.Permissions.CanUpdateOut, dataSet.Permissions.CanUpdateOut) switch
+						{
+							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+							_ => DataSetPermission.Allowed
+						}
+						);
+				//case SyncActionType.RemedyMultipleStateItemsMatchedAConnectedSystemItem:
+				//case SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue:
+				//case SyncActionType.AlreadyInSync:
+				//	return new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.InvalidOperation);
 				default:
 					throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.");
 			}

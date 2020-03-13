@@ -32,7 +32,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// This is calculated during processing and added the SyncAction afterwards for information
 		/// </summary>
-		public DataSetPermission Permission { get; set; }
+		public DirectionPermissions Permission { get; set; }
 
 		/// <summary>
 		/// A list of things to do

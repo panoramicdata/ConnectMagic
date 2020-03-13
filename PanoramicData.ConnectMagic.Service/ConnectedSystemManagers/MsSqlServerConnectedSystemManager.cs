@@ -52,7 +52,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			await ProcessConnectedSystemItemsAsync(
 				dataSet,
 				connectedSystemItems,
-				GetFileInfo(ConnectedSystem, dataSet),
+				ConnectedSystem,
 				cancellationToken)
 				.ConfigureAwait(false);
 		}

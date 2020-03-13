@@ -99,6 +99,6 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The ConnectedSystemManagers
 		/// </summary>
-		public Dictionary<string, IConnectedSystemManager>? ConnectedSystemManagers { get; set; }
+		public Dictionary<string, IConnectedSystemManager> ConnectedSystemManagers { get; set; } = new Dictionary<string, IConnectedSystemManager>();
 	}
 }

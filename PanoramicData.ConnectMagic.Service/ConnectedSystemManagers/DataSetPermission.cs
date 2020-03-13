@@ -6,6 +6,9 @@
 		Allowed,
 		DeniedAtConnectedSystem,
 		DeniedAtConnectedSystemDataSet,
-		DeniedAllConnectedSystemsNotYetLoaded
+		DeniedAllConnectedSystemsNotYetLoaded,
+		WriteDisabledAtConnectedSystemDataSet,
+		WriteDisabledAtConnectedSystem,
+		InvalidOperation
 	}
 }

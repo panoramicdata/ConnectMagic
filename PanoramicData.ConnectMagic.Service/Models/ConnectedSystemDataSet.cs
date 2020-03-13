@@ -14,14 +14,14 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// The name of the State DataSet to sync with
 		/// </summary>
-		public string StateDataSetName { get; set; }
+		public string StateDataSetName { get; set; } = string.Empty;
 
 		/// <summary>
 		/// The expression by which the connected system is queried
 		/// The language for this will vary per system
 		/// </summary>
 		[DataMember(Name = "QueryConfig")]
-		public QueryConfig QueryConfig { get; set; }
+		public QueryConfig? QueryConfig { get; set; }
 
 		/// <summary>
 		/// Whether the DataSet is enabled
@@ -96,14 +96,14 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				mapping.Validate(Name);
 			}
 
-			if (Mappings.Count(m => m.Direction == MappingType.None) == 0)
+			if (Mappings.Count(m => m.Direction != MappingType.None) == 0)
 			{
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s non-{nameof(MappingType.None)} {nameof(Mapping.Direction)} {nameof(Mappings)} must not be empty.");
 			}
 
 			if (!Mappings.Any(m => m.Direction == MappingType.Join))
 			{
-				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not have exactly one mapping of type Join.");
+				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name} does not any Join mappings.");
 			}
 
 			switch (CreateDeleteDirection)
