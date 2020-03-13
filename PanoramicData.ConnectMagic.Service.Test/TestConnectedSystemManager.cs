@@ -43,7 +43,8 @@ namespace PanoramicData.ConnectMagic.Service.Test
 				new ConnectedSystem { Name = "Fake" },
 				default);
 
-		public override Task<object?> QueryLookupAsync(QueryConfig queryConfig,
+		public override Task<object?> QueryLookupAsync(
+			QueryConfig queryConfig,
 			string field,
 			bool valueIfZeroMatchesFoundSets,
 			object? valueIfZeroMatchesFound,
@@ -53,17 +54,6 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			=> throw new NotSupportedException();
 
 		public override Task RefreshDataSetAsync(ConnectedSystemDataSet dataSet, CancellationToken cancellationToken) =>
-			//foreach (var dataSet in ConnectedSystem.Datasets)
-			//{
-			//	_logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
-			//	_logger.LogDebug($"Got {_items.Count} results for {dataSet.Name}.");
-
-			//	// Convert to JObjects for easier generic manipulation
-			//	var connectedSystemItems = _items
-			//		.Select(entity => JObject.FromObject(entity))
-			//		.ToList();
-			//	ProcessConnectedSystemItems(dataSet, connectedSystemItems);
-			//}
 			throw new NotSupportedException();
 
 		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
