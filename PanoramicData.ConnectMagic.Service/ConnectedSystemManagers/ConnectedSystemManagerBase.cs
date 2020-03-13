@@ -904,13 +904,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			switch (type)
 			{
 				case SyncActionType.CreateState:
-					return new DirectionPermissions((connectedSystem.Permissions.CanCreateIn, dataSet.Permissions.CanCreateIn) switch
-					{
-						(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-						(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-						_ => DataSetPermission.Allowed
-					},
-					DataSetPermission.InvalidOperation);
+					return new DirectionPermissions(
+						(connectedSystem.Permissions.CanCreateIn, dataSet.Permissions.CanCreateIn) switch
+						{
+							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+							_ => DataSetPermission.Allowed
+						},
+						DataSetPermission.InvalidOperation
+					);
 				case SyncActionType.CreateSystem:
 					return new DirectionPermissions(
 						DataSetPermission.InvalidOperation,
@@ -919,7 +921,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
 							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
 							_ => DataSetPermission.Allowed
-						});
+						}
+					);
 				case SyncActionType.DeleteSystem:
 					return new DirectionPermissions(
 						DataSetPermission.InvalidOperation,
@@ -928,7 +931,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
 							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
 							_ => DataSetPermission.Allowed
-						});
+						}
+					);
 				case SyncActionType.DeleteState:
 					return new DirectionPermissions(
 						(connectedSystem.Permissions.CanDeleteIn, dataSet.Permissions.CanDeleteIn) switch
@@ -938,7 +942,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							_ => DataSetPermission.Allowed
 						},
 						DataSetPermission.InvalidOperation
-						);
+					);
 				case SyncActionType.UpdateBoth:
 					return new DirectionPermissions(
 						(connectedSystem.Permissions.CanUpdateIn, dataSet.Permissions.CanUpdateIn) switch
@@ -953,11 +957,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
 							_ => DataSetPermission.Allowed
 						}
-						);
-				//case SyncActionType.RemedyMultipleStateItemsMatchedAConnectedSystemItem:
-				//case SyncActionType.RemedyMultipleConnectedSystemItemsWithSameJoinValue:
-				//case SyncActionType.AlreadyInSync:
-				//	return new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.InvalidOperation);
+					);
 				default:
 					throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.");
 			}
@@ -968,9 +968,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// If multiple Join mappings are specified, any of them may match for a join to be found
 		/// The join evaluation is always on the connected system
 		/// </summary>
-		/// <param name="dataSet"></param>
-		/// <returns></returns>
-
 		internal static void SetPropertiesFromJObject(object existing, JObject connectedSystemItem)
 		{
 			var objectType = existing.GetType();
