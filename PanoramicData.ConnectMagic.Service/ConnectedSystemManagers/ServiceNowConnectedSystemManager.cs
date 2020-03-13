@@ -89,12 +89,30 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override Task UpdateOutwardsAsync(
+		internal async override Task UpdateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			SyncAction syncAction,
 			CancellationToken cancellationToken
 			)
-			=> throw new NotSupportedException();
+		{
+			if (syncAction.ConnectedSystemItem == null)
+			{
+				throw new InvalidOperationException($"{nameof(syncAction.ConnectedSystemItem)} must not be null when Updating Outwards.");
+			}
+
+			if (syncAction.Functions.Count != 0)
+			{
+				throw new NotSupportedException("Implement functions");
+			}
+
+			// Handle simple update
+			await _serviceNowClient
+				.UpdateAsync(
+					dataSet.QueryConfig?.Type ?? throw new ConfigurationException($"DataSet {dataSet.Name} is missing a type"),
+				syncAction.ConnectedSystemItem,
+				cancellationToken)
+				.ConfigureAwait(false);
+		}
 
 		public override async Task<object?> QueryLookupAsync(
 			QueryConfig queryConfig,
