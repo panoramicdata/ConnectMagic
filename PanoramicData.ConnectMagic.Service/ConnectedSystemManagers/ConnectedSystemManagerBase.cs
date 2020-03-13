@@ -141,7 +141,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		/// <param name="dataSet">The DataSet to process</param>
 		/// <param name="connectedSystemItems">The ConnectedSystemItems</param>
-		/// <param name="fileInfo">The file to log the action tiems out to</param>
+		/// <param name="connectedSystem">The connected system</param>
 		protected async Task<List<SyncAction>?> ProcessConnectedSystemItemsAsync(
 			ConnectedSystemDataSet dataSet,
 			List<JObject> connectedSystemItems,
@@ -296,22 +296,27 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var value = $"DataSet '{dataSet.Name}'";
 			stringBuilder.AppendLine(value);
 
-			var syncActionTypes = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().ToList();
+			var syncActionTypesToUse = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().Where(sat => syncActions.Any(sa => sa.Type == sat)).ToList();
 			var dataSetPermissions = Enum.GetValues(typeof(DataSetPermission)).Cast<DataSetPermission>().ToList();
 
-			var headers = syncActionTypes.Select(ra => new ColumnHeader(ra.ToString(), Alignment.Right)).Prepend(new ColumnHeader(string.Empty)).ToArray();
+			var headers = syncActionTypesToUse.Select(ra => new ColumnHeader(ra.ToString(), Alignment.Right)).Prepend(new ColumnHeader(string.Empty)).ToArray();
 			var table = new Table(headers) { Config = TableConfiguration.UnicodeAlt() };
 			foreach (var dataSetPermission in dataSetPermissions)
 			{
-				table.AddRow(syncActionTypes
-					 .Select(syncAction =>
-					 {
-						 var count = syncActions.Count(i => i.Type == syncAction && i.Permission.In == dataSetPermission);
-						 return count == 0 ? "-" : count.ToString();
-					 })
-					 .Prepend($"In :{dataSetPermission}")
-					 .ToArray());
-				table.AddRow(syncActionTypes
+				if (syncActions.Any(syncAction => syncAction.Permission.In == dataSetPermission))
+				{
+					table.AddRow(syncActionTypesToUse
+						 .Select(syncAction =>
+						 {
+							 var count = syncActions.Count(i => i.Type == syncAction && i.Permission.In == dataSetPermission);
+							 return count == 0 ? "-" : count.ToString();
+						 })
+						 .Prepend($"In :{dataSetPermission}")
+						 .ToArray());
+				}
+				if (syncActions.Any(syncAction => syncAction.Permission.Out == dataSetPermission))
+				{
+					table.AddRow(syncActionTypesToUse
 					 .Select(syncAction =>
 					 {
 						 var count = syncActions.Count(i => i.Type == syncAction && i.Permission.Out == dataSetPermission);
@@ -319,6 +324,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					 })
 					 .Prepend($"Out:{dataSetPermission}")
 					 .ToArray());
+				}
 			}
 			stringBuilder.AppendLine(table.ToString());
 			return stringBuilder.ToString();
@@ -520,7 +526,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								throw new InvalidOperationException($"Cannot perform a {SyncActionType.UpdateBoth} operation without a {nameof(action.ConnectedSystemItem)}");
 							}
 
-							var stateItemClone = StateItem.FromObject(action.StateItem);
 							foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
 							{
 								var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
@@ -530,17 +535,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								if (!JToken.DeepEquals(existingStateItemValue, newStateItemValue))
 
 								{
-									stateItemClone[inwardMapping.StateExpression] = newStateItemValue;
+									action.StateItem[inwardMapping.StateExpression] = newStateItemValue;
 
 									action.InwardChanges.Add(new FieldChange(inwardMapping.StateExpression, existingStateItemValue, newStateItemValue));
 								}
-							}
-							if (action.InwardChanges.Count != 0 && directionPermissions.In == DataSetPermission.Allowed)
-							{
-								// Add the new one so there is at least 2 versions of the truth and accidental deletions on a parallel dataset processing will not occur
-								stateItemList.Add(stateItemClone);
-								// Remove the old one
-								stateItemList.Remove(action.StateItem);
 							}
 
 							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
