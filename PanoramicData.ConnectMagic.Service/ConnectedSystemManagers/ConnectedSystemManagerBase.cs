@@ -64,7 +64,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			nCalcExpression.Parameters.Add("_", item);
 			foreach (var property in item?.Properties() ?? Enumerable.Empty<JProperty>())
 			{
-				nCalcExpression.Parameters.Add(property.Name, property.Value);
+				nCalcExpression.Parameters.Add(property.Name, property.Value.ToObject<object>());
 			}
 			try
 			{
@@ -365,23 +365,36 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 
 			using var spreadsheet = new MagicSpreadsheet(fileInfo);
+			var allStatePropertyKeys = new HashSet<string>();
+			var allConnectedSystemPropertyKeys = new HashSet<string>();
+			foreach (var syncAction in syncActions)
+			{
+				if (!(syncAction.ConnectedSystemItem is null))
+				{
+					foreach (var property in syncAction.ConnectedSystemItem.Properties())
+					{
+						allConnectedSystemPropertyKeys.Add(property.Name);
+					}
+				}
+				if (!(syncAction.StateItem is null))
+				{
+					foreach (var property in syncAction.StateItem.Properties())
+					{
+						allStatePropertyKeys.Add(property.Name);
+					}
+				}
+			}
 			spreadsheet.AddSheet(
 				syncActions.Select(sa =>
 				{
-					var properties = new Dictionary<string, object>();
-					if (sa.ConnectedSystemItem != null)
+					var properties = new Dictionary<string, object?>();
+					foreach (var property in allConnectedSystemPropertyKeys.OrderBy(p => p))
 					{
-						foreach (var property in sa.ConnectedSystemItem.Properties().OrderBy(p => p.Name))
-						{
-							properties[$"SYS.{property.Name}"] = property.Value;
-						}
+						properties[$"SYS.{property}"] = sa.ConnectedSystemItem?.Value<object>(property);
 					}
-					if (sa.StateItem != null)
+					foreach (var property in allStatePropertyKeys.OrderBy(p => p))
 					{
-						foreach (var property in sa.StateItem.Properties().OrderBy(p => p.Name))
-						{
-							properties[$"st.{property.Name}"] = property.Value;
-						}
+						properties[$"st.{property}"] = sa.StateItem?.Value<object>(property);
 					}
 					return new Extended<SyncAction>()
 					{
@@ -475,7 +488,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								var newConnectedSystemItemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
 								newConnectedSystemItem[outwardMapping.SystemExpression] = newConnectedSystemItemValue;
 
-								action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
+								action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemOutField ?? outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
 							}
 							if (isConnectedSystemsSyncCompletedOnce)
 							{

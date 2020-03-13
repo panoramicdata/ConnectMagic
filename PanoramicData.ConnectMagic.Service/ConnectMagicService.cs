@@ -183,6 +183,7 @@ namespace PanoramicData.ConnectMagic.Service
 				.WhenAll(tasks)
 				.ConfigureAwait(false);
 			_logger.LogInformation("Initial sync complete");
+			_logger.LogDebug("**********************************************************************************");
 			// The sync code has all executed once.
 
 			// Immediately start looping, with the configured delays from now on.
