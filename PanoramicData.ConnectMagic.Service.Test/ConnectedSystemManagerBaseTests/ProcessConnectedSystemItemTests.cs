@@ -24,13 +24,34 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 		{
 			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
 			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
+				Permissions = new Permissions
+				{
+					CanWrite = true,
+					CanCreateIn = true,
+					CanUpdateIn = true,
+					CanDeleteIn = true,
+					CanCreateOut = true,
+					CanUpdateOut = true,
+					CanDeleteOut = true
+				}
 			};
 			var state = new State();
 			state.ItemLists["TestDataSet"] = new StateItemList
 			{
-				new StateItem(new JObject(new JProperty("Id", "ExistingKey1"), new JProperty("FullName", "Sarah Jane"), new JProperty("Description", "Is lovely"))),
-				new StateItem(new JObject(new JProperty("Id", "Key1"), new JProperty("FullName", "Bob1 Smith1"),  new JProperty("Description", "OldDescription1")))
+				new StateItem(
+					new JObject(
+						new JProperty("Id", "ExistingKey1"),
+						new JProperty("FullName", "Sarah Jane"), new
+						JProperty("Description", "Is lovely")
+					)
+				),
+				new StateItem(
+					new JObject(
+						new JProperty("Id", "Key1"),
+						new JProperty("FullName", "Bob1 Smith1"),
+						new JProperty("Description", "OldDescription1")
+					)
+				)
 			};
 
 			var dataSet = new ConnectedSystemDataSet
@@ -55,7 +76,8 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 					new Mapping
 					{
 						Direction = MappingType.In,
-						SystemExpression = "FirstName +' ' + LastName",
+						//SystemExpression = "FirstName",
+						SystemExpression = "'' + FirstName + ' ' + LastName",
 						StateExpression = "FullName"
 					},
 					new Mapping
@@ -74,22 +96,35 @@ namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTest
 				TimeSpan.FromHours(1),
 				_outputHelper.BuildLoggerFor<TestConnectedSystemManager>()
 			);
-			var actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
+			var actionList = await testConnectedSystemManger
+				.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name])
+				.ConfigureAwait(false);
 			actionList.Should().NotBeNullOrEmpty();
 			actionList.Should().HaveCount(6);
-			//actionList.All(a => a.Permission.In == DataSetPermission.Allowed).Should().BeTrue();
-			//actionList.All(a => a.Permission.Out == DataSetPermission.Allowed).Should().BeTrue();
-			actionList.Where(a => a.Type == SyncActionType.CreateSystem).Should().HaveCount(4);
-			actionList.Where(a => a.Type == SyncActionType.UpdateBoth).Should().HaveCount(1);
-			actionList.Where(a => a.Type == SyncActionType.DeleteSystem).Should().HaveCount(1);
+			var creates = actionList.Where(a => a.Type == SyncActionType.CreateState);
+			creates.Should().HaveCount(4);
+			creates.All(a => a.Permission.In == DataSetPermission.Allowed).Should().BeTrue();
+			creates.All(a => a.Permission.Out == DataSetPermission.InvalidOperation).Should().BeTrue();
+
+			var updates = actionList.Where(a => a.Type == SyncActionType.UpdateBoth);
+			updates.Should().HaveCount(1);
+			updates.All(a => a.Permission.In == DataSetPermission.Allowed).Should().BeTrue();
+			updates.All(a => a.Permission.Out == DataSetPermission.Allowed).Should().BeTrue();
+
+			var deletes = actionList.Where(a => a.Type == SyncActionType.DeleteState);
+			deletes.Should().HaveCount(1);
+			deletes.All(a => a.Permission.In == DataSetPermission.Allowed).Should().BeTrue();
+			deletes.All(a => a.Permission.Out == DataSetPermission.InvalidOperation).Should().BeTrue();
 
 			// Process a second time - should be in stable state
-			actionList = await testConnectedSystemManger.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name]).ConfigureAwait(false);
+			actionList = await testConnectedSystemManger
+				.TestProcessConnectedSystemItemsAsync(dataSet, testConnectedSystemManger.Items[dataSet.Name])
+				.ConfigureAwait(false);
 			actionList.Should().NotBeNullOrEmpty();
 			actionList.Should().HaveCount(5);
-			//actionList.All(a => a.Permission.In == DataSetPermission.Allowed).Should().BeTrue();
-			//actionList.All(a => a.Permission.Out == DataSetPermission.Allowed).Should().BeTrue();
 			actionList.All(a => a.Type == SyncActionType.AlreadyInSync).Should().BeTrue();
+			actionList.All(a => a.Permission.In == DataSetPermission.Allowed).Should().BeTrue();
+			actionList.All(a => a.Permission.Out == DataSetPermission.Allowed).Should().BeTrue();
 		}
 	}
 }
