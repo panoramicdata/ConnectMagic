@@ -1,265 +1,156 @@
 using FluentAssertions;
 using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
+using System.Collections.Generic;
 using Xunit;
 
 namespace PanoramicData.ConnectMagic.Service.Test.ConnectedSystemManagerBaseTests
 {
+
 	public class DeterminePermissionTests
 	{
-		[Fact]
-		public void DeterminePermission_AllAllowed_Allowed()
+		private void AssertCorrectPermissions(
+			Permissions connectedSystemPermissions,
+			Permissions connectedSystemDataSetPermissions,
+			Dictionary<SyncActionType, DirectionPermissions> expectedActionTypePermissions)
 		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
+			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test") { Permissions = connectedSystemPermissions };
+			var connectedSystemDataSet = new ConnectedSystemDataSet { Permissions = connectedSystemDataSetPermissions };
+
+			foreach (var item in expectedActionTypePermissions)
 			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-		}
-
-		// ******* ConnectedSystem **********
-
-		[Fact]
-		public void DeterminePermission_ConnectedSystem_Create_WriteFalse_DeniedAtConnectedSystem()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = false, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.WriteDisabledAtConnectedSystem));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem));
+				ConnectedSystemManagerBase
+					.DeterminePermission(connectedSystem, connectedSystemDataSet, item.Key)
+					.Should()
+					.BeEquivalentTo(item.Value);
+			}
 		}
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystem_Create_WriteFalse_DeniedAtConnectedSystemDataSet()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = false, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.WriteDisabledAtConnectedSystemDataSet));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet));
-		}
+		public void AllAllowed()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.Allowed) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) }
+					}
+				);
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystem_Create_False_DeniedAtConnectedSystem()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = false }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystem, DataSetPermission.DeniedAtConnectedSystem));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystem));
-		}
+		public void WriteDisabledAtConnectedSystemLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = false, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.WriteDisabledAtConnectedSystem) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.InvalidOperation) }
+					}
+				);
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystem_CreateUpdateAllowed()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = false }
-			};
+		public void WriteDisabledAtConnectedSystemDataSetLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Permissions { CanWrite = false, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.WriteDisabledAtConnectedSystemDataSet) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.InvalidOperation) }
+					}
+				);
 
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystem));
-		}
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystem_CreateDeleteAllowed()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystem, DataSetPermission.DeniedAtConnectedSystem));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-		}
+		public void CreateOnlyAtConnectedSystemLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = false },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystem, DataSetPermission.DeniedAtConnectedSystem) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystem) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystem, DataSetPermission.InvalidOperation) }
+					}
+				);
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystemDataSet_Create_False_DeniedAtConnectedSystem()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = false }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystemDataSet, DataSetPermission.DeniedAtConnectedSystemDataSet));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystemDataSet));
-		}
+		public void CreateAndUpdateOnlyAtConnectedSystemLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = false },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.Allowed) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystem) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystem, DataSetPermission.InvalidOperation) }
+					}
+				);
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystemDataSet_CreateUpdateAllowed()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = false }
-			};
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.Allowed));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystemDataSet));
-		}
+		public void CreateAndDeleteOnlyAtConnectedSystemLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = true },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystem, DataSetPermission.DeniedAtConnectedSystem) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) }
+					}
+				);
 
 		[Fact]
-		public void DeterminePermission_ConnectedSystemDataSet_CreateDeleteAllowed()
-		{
-			var connectedSystem = new ConnectedSystem(SystemType.Test, "Test")
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true }
-			};
-			var connectedSystemDataSet = new ConnectedSystemDataSet
-			{
-				Permissions = new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = true }
-			};
+		public void CreateOnlyAtConnectedSystemDataSetLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = false },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystemDataSet, DataSetPermission.DeniedAtConnectedSystemDataSet) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystemDataSet) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystemDataSet, DataSetPermission.InvalidOperation) }
+					}
+				);
 
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.CreateSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
+		[Fact]
+		public void CreateAndUpdateOnlyAtConnectedSystemDataSetLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = false, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = false },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.Allowed) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.DeniedAtConnectedSystemDataSet) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystemDataSet, DataSetPermission.InvalidOperation) }
+					}
+				);
 
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.UpdateBoth)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystemDataSet, DataSetPermission.DeniedAtConnectedSystemDataSet));
-
-			ConnectedSystemManagerBase
-				.DeterminePermission(connectedSystem, connectedSystemDataSet, SyncActionType.DeleteSystem)
-				.Should()
-				.BeEquivalentTo(new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed));
-		}
+		[Fact]
+		public void CreateAndDeleteOnlyAtConnectedSystemDataSetLevel()
+			=> AssertCorrectPermissions(
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = true, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = true, CanDeleteOut = true },
+					new Permissions { CanWrite = true, CanCreateIn = true, CanUpdateIn = false, CanDeleteIn = true, CanCreateOut = true, CanUpdateOut = false, CanDeleteOut = true },
+					new Dictionary<SyncActionType, DirectionPermissions> {
+						{ SyncActionType.CreateSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.CreateState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) },
+						{ SyncActionType.UpdateBoth , new DirectionPermissions(DataSetPermission.DeniedAtConnectedSystemDataSet, DataSetPermission.DeniedAtConnectedSystemDataSet) },
+						{ SyncActionType.DeleteSystem , new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.Allowed) },
+						{ SyncActionType.DeleteState , new DirectionPermissions(DataSetPermission.Allowed, DataSetPermission.InvalidOperation) }
+					}
+				);
 	}
 }
