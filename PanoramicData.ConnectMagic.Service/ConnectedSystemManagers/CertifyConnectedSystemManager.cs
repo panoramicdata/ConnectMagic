@@ -221,7 +221,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			};
 
 		/// <inheritdoc />
-		internal override async Task CreateOutwardsAsync(
+		internal override async Task<JObject> CreateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken
@@ -249,10 +249,17 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 						Logger.LogInformation($"Creating new entry \"{expenseReportGld.Name}\" in Certify");
 
-						var created = await _certifyClient
+						var createResult = await _certifyClient
 							.ExpenseReportGlds
 							.CreateAsync(index, expenseReportGld)
 							.ConfigureAwait(false);
+
+						var created = await _certifyClient
+							.ExpenseReportGlds
+							.GetAsync(index, createResult.Id)
+							.ConfigureAwait(false);
+
+						return JObject.FromObject(created);
 					}
 					catch (Refit.ApiException ex)
 					{

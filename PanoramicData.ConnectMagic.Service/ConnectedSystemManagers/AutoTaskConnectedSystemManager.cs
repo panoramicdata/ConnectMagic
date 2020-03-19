@@ -59,7 +59,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override async System.Threading.Tasks.Task CreateOutwardsAsync(
+		internal override async Task<JObject> CreateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken
@@ -67,9 +67,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			// TODO - Handle functions
 			var itemToCreate = MakeAutoTaskObject(dataSet, connectedSystemItem);
-			var _ = await _autoTaskClient
+			return JObject.FromObject(await _autoTaskClient
 				.CreateAsync(itemToCreate)
-				.ConfigureAwait(false);
+				.ConfigureAwait(false));
 		}
 
 		private Entity MakeAutoTaskObject(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)

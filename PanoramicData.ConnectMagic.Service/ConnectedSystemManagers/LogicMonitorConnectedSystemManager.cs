@@ -51,14 +51,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override async Task CreateOutwardsAsync(
+		internal override async Task<JObject> CreateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken
 			)
 		{
 			var endpoint = new SubstitutionString(dataSet.QueryConfig.CreateQuery ?? dataSet.QueryConfig.Query).ToString();
-			var _ = await _logicMonitorClient.PostAsync<JObject, JObject>(
+			return await _logicMonitorClient.PostAsync<JObject, JObject>(
 				connectedSystemItem,
 				endpoint,
 				cancellationToken).ConfigureAwait(false);

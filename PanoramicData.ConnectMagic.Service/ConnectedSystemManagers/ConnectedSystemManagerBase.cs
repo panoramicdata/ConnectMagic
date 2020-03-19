@@ -296,8 +296,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var value = $"DataSet '{dataSet.Name}'";
 			stringBuilder.AppendLine(value);
 
-			var syncActionTypesToUse = Enum.GetValues(typeof(SyncActionType)).Cast<SyncActionType>().Where(sat => syncActions.Any(sa => sa.Type == sat)).ToList();
-			var dataSetPermissions = Enum.GetValues(typeof(DataSetPermission)).Cast<DataSetPermission>().ToList();
+			var syncActionTypesToUse = Enum
+				.GetValues(typeof(SyncActionType))
+				.Cast<SyncActionType>()
+				.Where(syncActionType => syncActions.Any(syncAction => syncAction.Type == syncActionType))
+				.ToList();
+			var dataSetPermissions = Enum
+				.GetValues(typeof(DataSetPermission))
+				.Cast<DataSetPermission>()
+				.Except(new[] { DataSetPermission.InvalidOperation })
+				.ToList();
 
 			var headers = syncActionTypesToUse.Select(ra => new ColumnHeader(ra.ToString(), Alignment.Right)).Prepend(new ColumnHeader(string.Empty)).ToArray();
 			var table = new Table(headers) { Config = TableConfiguration.UnicodeAlt() };
@@ -494,8 +502,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							{
 								if (directionPermissions.Out == DataSetPermission.Allowed)
 								{
-									await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
-									// TODO Create should return created object, call update state afterwards
+									action.ConnectedSystemItem = await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+
+									// Update state to ensure that the new object's id is copied back to state.
+									UpdateState(inwardMappings, action);
 								}
 							}
 							else
@@ -539,65 +549,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								throw new InvalidOperationException($"Cannot perform a {SyncActionType.UpdateBoth} operation without a {nameof(action.ConnectedSystemItem)}");
 							}
 
-							foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
-							{
-								var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
-								var existingStateItemValue = action.StateItem[inwardMapping.StateExpression];
+							UpdateState(inwardMappings, action);
 
-								//if (existingStateItemValue?.ToString() != newStateItemValue?.ToString())
-								if (!JToken.DeepEquals(existingStateItemValue, newStateItemValue))
-
-								{
-									action.StateItem[inwardMapping.StateExpression] = newStateItemValue;
-
-									action.InwardChanges.Add(new FieldChange(inwardMapping.StateExpression, existingStateItemValue, newStateItemValue));
-								}
-							}
-
-							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
-							{
-								// Is a system function defined?
-								if (outwardMapping.SystemFunction != null)
-								{
-									// YES - Evaluate both expressions and if he results don't match, add the function to the list
-									var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
-									var existingConnectedSystemValue = EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State);
-									if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
-									{
-										action.Functions.Add(outwardMapping.SystemFunction);
-										action.OutwardChanges.Add(new FunctionChange(outwardMapping.SystemFunction));
-									}
-								}
-								else
-								{
-									// NO - Do a simple expression to existing value compare and update if required
-									var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
-									var existingConnectedSystemValue = outwardMapping.SystemOutField != null
-										? EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State)
-										: action.ConnectedSystemItem[outwardMapping.SystemExpression];
-									if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
-									{
-										var targetField = outwardMapping.SystemOutField ?? outwardMapping.SystemExpression;
-										action.ConnectedSystemItem[targetField] = newConnectedSystemValue;
-										action.OutwardChanges.Add(new FieldChange(targetField, existingConnectedSystemValue, newConnectedSystemValue));
-									}
-								}
-							}
-							if (action.OutwardChanges.Count != 0)
-							{
-								if (isConnectedSystemsSyncCompletedOnce)
-								{
-									// We are making a change
-									if (directionPermissions.Out == DataSetPermission.Allowed)
-									{
-										await InternalUpdateOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
-									}
-								}
-								else
-								{
-									directionPermissions = new DirectionPermissions(directionPermissions.In, DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded);
-								}
-							}
+							directionPermissions = await UpdateConnectedSystem(
+								dataSet,
+								outwardMappings,
+								isConnectedSystemsSyncCompletedOnce,
+								action,
+								directionPermissions,
+								cancellationToken).ConfigureAwait(false);
 
 							// If nothing was done then we're in sync
 							if (action.InwardChanges.Count == 0 && action.OutwardChanges.Count == 0)
@@ -624,6 +584,80 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
+		private async Task<DirectionPermissions> UpdateConnectedSystem(
+			ConnectedSystemDataSet dataSet,
+			List<Mapping> outwardMappings,
+			bool isConnectedSystemsSyncCompletedOnce,
+			SyncAction action,
+			DirectionPermissions directionPermissions,
+			CancellationToken cancellationToken)
+		{
+			foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
+			{
+				// Is a system function defined?
+				if (outwardMapping.SystemFunction != null)
+				{
+					// YES - Evaluate both expressions and if he results don't match, add the function to the list
+					var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
+					var existingConnectedSystemValue = EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+					if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
+					{
+						action.Functions.Add(outwardMapping.SystemFunction);
+						action.OutwardChanges.Add(new FunctionChange(outwardMapping.SystemFunction));
+					}
+				}
+				else
+				{
+					// NO - Do a simple expression to existing value compare and update if required
+					var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
+					var existingConnectedSystemValue = outwardMapping.SystemOutField != null
+						? EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State)
+						: action.ConnectedSystemItem[outwardMapping.SystemExpression];
+					if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
+					{
+						var targetField = outwardMapping.SystemOutField ?? outwardMapping.SystemExpression;
+						action.ConnectedSystemItem[targetField] = newConnectedSystemValue;
+						action.OutwardChanges.Add(new FieldChange(targetField, existingConnectedSystemValue, newConnectedSystemValue));
+					}
+				}
+			}
+			if (action.OutwardChanges.Count != 0)
+			{
+				if (isConnectedSystemsSyncCompletedOnce)
+				{
+					// We are making a change
+					if (directionPermissions.Out == DataSetPermission.Allowed)
+					{
+						await InternalUpdateOutwardAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
+					}
+				}
+				else
+				{
+					directionPermissions = new DirectionPermissions(directionPermissions.In, DataSetPermission.DeniedAllConnectedSystemsNotYetLoaded);
+				}
+			}
+
+			return directionPermissions;
+		}
+
+		private void UpdateState(List<Mapping> inwardMappings, SyncAction action)
+		{
+			foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
+			{
+				var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
+				var existingStateItemValue = action.StateItem[inwardMapping.StateExpression];
+
+				//if (existingStateItemValue?.ToString() != newStateItemValue?.ToString())
+				if (!JToken.DeepEquals(existingStateItemValue, newStateItemValue))
+
+				{
+					action.StateItem[inwardMapping.StateExpression] = newStateItemValue;
+
+					action.InwardChanges.Add(new FieldChange(inwardMapping.StateExpression, existingStateItemValue, newStateItemValue));
+				}
+			}
+		}
+
 		private List<Mapping> GetOutwardMappingsToProcess(List<Mapping> outwardMappings, SyncAction action)
 		{
 			var outwardMappingsToProcess = outwardMappings
@@ -642,10 +676,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			return inwardMappingsToProcess;
 		}
 
-		private async Task InternalCreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject newConnectedSystemItem, CancellationToken cancellationToken)
+		private async Task<JObject> InternalCreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject newConnectedSystemItem, CancellationToken cancellationToken)
 		{
 			Logger.LogInformation($"Creating item for dataset {dataSet.Name}...");
-			await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+			return await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
 		}
 
 		private async Task InternalUpdateOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
@@ -734,7 +768,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				cancellationToken.ThrowIfCancellationRequested();
 
 				var joinValues = joinMappings
-					.Select(joinMapping => new { expression = joinMapping.SystemExpression, value = EvaluateToJToken(joinMapping.SystemExpression, connectedSystemItem, state)?.ToString() })
+					.Select(joinMapping => new
+					{
+						expression = joinMapping.SystemExpression,
+						value = EvaluateToJToken(joinMapping.SystemExpression, connectedSystemItem, state)?.ToString()
+					})
 					.Where(a => !string.IsNullOrWhiteSpace(a.value))
 					.Select(a => $"{a.expression}={a.value}")
 					.ToList();
@@ -742,6 +780,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				// Is this a duplicate WITHIN the ConnectedSystemItems?
 				List<StateItem>? matchingStateItems = null;
 				string? matchedJoinValue = null;
+				var foundDuplicate = false;
 				foreach (var joinValue in joinValues)
 				{
 					if (!connectedSystemItemsSeenJoinValues.Add(joinValue))
@@ -772,8 +811,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								});
 								break;
 						}
-						// Action determined.  Move to next ConnectedSystemItem.
-						continue;
+						// Action determined.  Mark as duplicate.
+						foundDuplicate = true;
+						break;
 					}
 					if (stateItemJoinDictionary.TryGetValue(joinValue, out matchingStateItems))
 					{
@@ -781,6 +821,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						matchedJoinValue = joinValue;
 						break;
 					}
+				}
+
+				// We are not going to process this join value as it is a duplicate
+				if (foundDuplicate)
+				{
+					continue;
 				}
 
 				// There should be zero or one matches
@@ -1049,7 +1095,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
 		/// <param name="connectedSystemItem">The item, to be created in the ConnectedSystem.</param>
-		internal abstract Task CreateOutwardsAsync(
+		internal abstract Task<JObject> CreateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken

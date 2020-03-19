@@ -68,7 +68,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Create" template with token substitution
-		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
+		internal override Task<JObject> CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		// TODO - Use a query "Delete" template with token substitution

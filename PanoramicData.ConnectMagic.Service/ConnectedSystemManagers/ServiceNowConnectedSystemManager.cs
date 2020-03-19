@@ -59,15 +59,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override async Task CreateOutwardsAsync(
+		internal override async Task<JObject> CreateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken
 			)
 		{
-			var _ = await _serviceNowClient
+			Logger.LogDebug("Creating ServiceNow item");
+			var newConnectedSystemItem = await _serviceNowClient
 				.CreateAsync(dataSet.QueryConfig.Type, connectedSystemItem)
 				.ConfigureAwait(false);
+			Logger.LogDebug($"Created ServiceNow item with sys_id={newConnectedSystemItem["sys_id"]}");
+			return newConnectedSystemItem;
 		}
 
 		/// <inheritdoc />

@@ -22,7 +22,7 @@
     <PackageReference Include="Dapper" Version="2.0.30" />
     <PackageReference Include="DeveloperForce.Force" Version="2.1.0" />
     <PackageReference Include="FixerSharp" Version="1.2.2" />
-    <PackageReference Include="LogicMonitor.Api" Version="2.131.1" />
+    <PackageReference Include="LogicMonitor.Api" Version="2.132.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="1.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.2" />
@@ -34,7 +34,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="PanoramicData.NCalcExtensions" Version="1.14.3" />
+    <PackageReference Include="PanoramicData.NCalcExtensions" Version="1.15.2" />
     <PackageReference Include="PanoramicData.SheetMagic" Version="2.1.1" />
     <PackageReference Include="PanoramicSystems.LoopInterval" Version="1.1.0" />
     <PackageReference Include="Serilog" Version="2.9.0" />

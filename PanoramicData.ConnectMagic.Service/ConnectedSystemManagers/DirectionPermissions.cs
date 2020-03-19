@@ -11,5 +11,8 @@
 		public DataSetPermission In { get; }
 
 		public DataSetPermission Out { get; }
+
+		public override string ToString()
+			=> $"In:{In} Out:{Out}";
 	}
 }

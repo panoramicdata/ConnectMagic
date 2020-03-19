@@ -46,7 +46,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <inheritdoc />
-		internal override Task CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
+		internal override Task<JObject> CreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject connectedSystemItem, CancellationToken cancellationToken)
 			=> throw new NotSupportedException();
 
 		/// <inheritdoc />

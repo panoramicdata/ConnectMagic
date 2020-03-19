@@ -7,16 +7,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		public FieldChange(string field, JToken? oldValue, JToken? newValue)
 		{
 			Field = field;
-			OldValue = oldValue?.ToString() ?? "<NULL>";
-			NewValue = newValue?.ToString() ?? "<NULL>";
+			OldValue = oldValue;
+			NewValue = newValue;
 		}
 
 		public string Field { get; }
 
-		public string OldValue { get; }
+		public JToken? OldValue { get; }
 
-		public string NewValue { get; }
+		public JToken? NewValue { get; }
 
-		public override string ToString() => $"'{Field}': '{OldValue}' => '{NewValue}'";
+		public override string ToString() => $"'{Field}': <{OldValue?.Type}>'{OldValue?.ToString() ?? "<NULL>"}' => <{NewValue?.Type}>'{NewValue?.ToString() ?? "<NULL>"}'";
 	}
 }
