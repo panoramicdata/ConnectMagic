@@ -6,6 +6,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 	{
 		public string AutoTaskPublicText { get; set; } = null!;
 		public string AutoTaskPrivateText { get; set; } = null!;
+		public string AutoTaskIntegrationCode { get; set; } = null!;
 		public string ServiceNowAccount { get; set; } = null!;
 		public string ServiceNowPublicText { get; set; } = null!;
 		public string ServiceNowPrivateText { get; set; } = null!;
@@ -19,6 +20,10 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			if (string.IsNullOrWhiteSpace(AutoTaskPrivateText))
 			{
 				throw new Exception($"{nameof(AutoTaskPrivateText)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(AutoTaskIntegrationCode))
+			{
+				throw new Exception($"{nameof(AutoTaskIntegrationCode)} must be set");
 			}
 			if (string.IsNullOrWhiteSpace(ServiceNowAccount))
 			{

@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace PanoramicData.ConnectMagic.Service.Test
@@ -20,7 +19,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			_logger = loggerFactory.CreateLogger(nameof(AutoTaskUdfTests));
 		}
 
-		[Fact(Skip = "Use this to set UDFs")]
+		// [Fact(Skip = "Uncomment this to set AutoTask UDFs to a serviceNowSysId")]
 		public async void SetCustomerSystemSyncId()
 		{
 			var testCredentials = LoadCredentials();
@@ -28,7 +27,7 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			const long autoTaskTicketId = 141651;
 			const string serviceNowSysId = "6dc72bb9db7a0490d5ed3ce3399619a9";
 
-			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, _logger);
+			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, testCredentials.AutoTaskPrivateText, _logger);
 			var autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
 			autoTaskTicketResponse.Should().NotBeNull();
 			autoTaskTicketResponse.Should().ContainSingle();

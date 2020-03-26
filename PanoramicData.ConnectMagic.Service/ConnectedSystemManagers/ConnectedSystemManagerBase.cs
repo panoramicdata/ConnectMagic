@@ -57,7 +57,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <param name="systemExpression"></param>
 		/// <param name="item"></param>
 		/// <param name="state"></param>
-		internal static JToken EvaluateToJToken(string systemExpression, JObject item, State state)
+		internal static JToken EvaluateToJToken(string systemExpression, JObject? item, State state)
 		{
 			var nCalcExpression = new ConnectMagicExpression(systemExpression);
 			nCalcExpression.Parameters.Add("State", state);
@@ -608,6 +608,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				}
 				else
 				{
+					if (action.ConnectedSystemItem == null)
+					{
+						throw new InvalidOperationException($"{nameof(action.ConnectedSystemItem)} cannot be null when updating it.");
+					}
+
 					// NO - Do a simple expression to existing value compare and update if required
 					var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
 					var existingConnectedSystemValue = outwardMapping.SystemOutField != null
@@ -644,6 +649,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
 			{
+				if (action.StateItem == null)
+				{
+					throw new InvalidOperationException($"{nameof(action.StateItem)} cannot be null when updating state.");
+				}
+
 				var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
 				var existingStateItemValue = action.StateItem[inwardMapping.StateExpression];
 
@@ -947,7 +957,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					_ => throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.")
 				};
 			}
+
+#pragma warning disable IDE0046 // Convert to conditional expression - too complicated to readif we do this suggestion
 			if (!dataSet.Permissions.CanWrite)
+#pragma warning restore IDE0046 // Convert to conditional expression
 			{
 				return type switch
 				{
@@ -960,66 +973,60 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				};
 			}
 
-			switch (type)
+			return type switch
 			{
-				case SyncActionType.CreateState:
-					return new DirectionPermissions(
-						(connectedSystem.Permissions.CanCreateIn, dataSet.Permissions.CanCreateIn) switch
-						{
-							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-							_ => DataSetPermission.Allowed
-						},
-						DataSetPermission.InvalidOperation
-					);
-				case SyncActionType.CreateSystem:
-					return new DirectionPermissions(
-						DataSetPermission.InvalidOperation,
-						(connectedSystem.Permissions.CanCreateOut, dataSet.Permissions.CanCreateOut) switch
-						{
-							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-							_ => DataSetPermission.Allowed
-						}
-					);
-				case SyncActionType.DeleteSystem:
-					return new DirectionPermissions(
-						DataSetPermission.InvalidOperation,
-						(connectedSystem.Permissions.CanDeleteOut, dataSet.Permissions.CanDeleteOut) switch
-						{
-							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-							_ => DataSetPermission.Allowed
-						}
-					);
-				case SyncActionType.DeleteState:
-					return new DirectionPermissions(
-						(connectedSystem.Permissions.CanDeleteIn, dataSet.Permissions.CanDeleteIn) switch
-						{
-							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-							_ => DataSetPermission.Allowed
-						},
-						DataSetPermission.InvalidOperation
-					);
-				case SyncActionType.UpdateBoth:
-					return new DirectionPermissions(
-						(connectedSystem.Permissions.CanUpdateIn, dataSet.Permissions.CanUpdateIn) switch
-						{
-							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-							_ => DataSetPermission.Allowed
-						},
-						(connectedSystem.Permissions.CanUpdateOut, dataSet.Permissions.CanUpdateOut) switch
-						{
-							(false, _) => DataSetPermission.DeniedAtConnectedSystem,
-							(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
-							_ => DataSetPermission.Allowed
-						}
-					);
-				default:
-					throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.");
-			}
+				SyncActionType.CreateState => new DirectionPermissions(
+														(connectedSystem.Permissions.CanCreateIn, dataSet.Permissions.CanCreateIn) switch
+														{
+															(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+															(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+															_ => DataSetPermission.Allowed
+														},
+														DataSetPermission.InvalidOperation
+													  ),
+				SyncActionType.CreateSystem => new DirectionPermissions(
+														DataSetPermission.InvalidOperation,
+														(connectedSystem.Permissions.CanCreateOut, dataSet.Permissions.CanCreateOut) switch
+														{
+															(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+															(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+															_ => DataSetPermission.Allowed
+														}
+													),
+				SyncActionType.DeleteSystem => new DirectionPermissions(
+														DataSetPermission.InvalidOperation,
+														(connectedSystem.Permissions.CanDeleteOut, dataSet.Permissions.CanDeleteOut) switch
+														{
+															(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+															(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+															_ => DataSetPermission.Allowed
+														}
+													),
+				SyncActionType.DeleteState => new DirectionPermissions(
+														(connectedSystem.Permissions.CanDeleteIn, dataSet.Permissions.CanDeleteIn) switch
+														{
+															(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+															(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+															_ => DataSetPermission.Allowed
+														},
+														DataSetPermission.InvalidOperation
+													),
+				SyncActionType.UpdateBoth => new DirectionPermissions(
+														(connectedSystem.Permissions.CanUpdateIn, dataSet.Permissions.CanUpdateIn) switch
+														{
+															(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+															(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+															_ => DataSetPermission.Allowed
+														},
+														(connectedSystem.Permissions.CanUpdateOut, dataSet.Permissions.CanUpdateOut) switch
+														{
+															(false, _) => DataSetPermission.DeniedAtConnectedSystem,
+															(_, false) => DataSetPermission.DeniedAtConnectedSystemDataSet,
+															_ => DataSetPermission.Allowed
+														}
+													),
+				_ => throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed."),
+			};
 		}
 
 		/// <summary>
@@ -1033,6 +1040,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			foreach (var connectedSystemItemProperty in connectedSystemItem.Properties())
 			{
 				var propertyInfo = objectType.GetProperty(connectedSystemItemProperty.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+				if (propertyInfo is null)
+				{
+					throw new ConfigurationException($"Could not locate property {connectedSystemItemProperty.Name}");
+				}
+
 				switch (propertyInfo.PropertyType.Name)
 				{
 					case nameof(String):

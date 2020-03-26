@@ -31,7 +31,7 @@ namespace PanoramicData.ConnectMagic.Service
 		private Task? _startLoopsTask;
 		private readonly TimeSpan _maxFileAge;
 		private readonly List<Task> _connectedSystemTasks;
-		private readonly FileInfo _stateFileInfo;
+		private readonly FileInfo? _stateFileInfo;
 		private readonly ILoggerFactory _loggerFactory;
 
 		/// <summary>
@@ -76,7 +76,10 @@ namespace PanoramicData.ConnectMagic.Service
 				// This is OK, we just don't have access to the event log
 			}
 
-			_stateFileInfo = new FileInfo(_configuration.State.CacheFileName);
+			if (!string.IsNullOrWhiteSpace(_configuration.State.CacheFileName))
+			{
+				_stateFileInfo = new FileInfo(_configuration.State.CacheFileName);
+			}
 			_loggerFactory = loggerFactory;
 		}
 
@@ -135,15 +138,18 @@ namespace PanoramicData.ConnectMagic.Service
 
 			_state = _configuration.State;
 
-			// Load FieldSets
-			try
+			if (_stateFileInfo != null)
 			{
-				var loadedState = State.FromFile(_stateFileInfo);
-				_state.ItemLists = loadedState.ItemLists;
-			}
-			catch (Exception e)
-			{
-				_logger.LogError(e, $"Could not load state from file: '{e.Message}'");
+				// Load State from a file if it exists
+				try
+				{
+					var loadedState = State.FromFile(_stateFileInfo);
+					_state.ItemLists = loadedState.ItemLists;
+				}
+				catch (Exception e)
+				{
+					_logger.LogError(e, $"Could not load state from file: '{e.Message}'");
+				}
 			}
 
 			_state.ConnectedSystemManagers = _configuration
@@ -254,10 +260,13 @@ namespace PanoramicData.ConnectMagic.Service
 				_logger.LogDebug("Cancelled");
 			}
 
-			// Save lastKnownState
 			try
 			{
-				_state?.Save(_stateFileInfo);
+				if (_stateFileInfo != null)
+				{
+					// Save lastKnownState
+					_state.Save(_stateFileInfo);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -276,7 +285,7 @@ namespace PanoramicData.ConnectMagic.Service
 		/// <param name="e"></param>
 		private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
 			=> _eventLogClient?.WriteToEventLog(
-				e.ExceptionObject.ToString(),
+				e?.ExceptionObject?.ToString() ?? string.Empty,
 				EventLogEntryType.Error,
 				(int)EventId.UnhandledException);
 	}

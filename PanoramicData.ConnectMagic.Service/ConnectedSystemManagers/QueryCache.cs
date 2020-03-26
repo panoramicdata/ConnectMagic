@@ -1,10 +1,10 @@
-﻿using System;
+﻿using PanoramicData.ConnectMagic.Service.Interfaces;
+using System;
 using System.Collections.Concurrent;
-using PanoramicData.ConnectMagic.Service.Interfaces;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
-	internal class QueryCache<T> : ICache<T>
+	internal class QueryCache<T> : ICache<T> where T : class
 	{
 		private readonly TimeSpan _timeSpan;
 
@@ -21,18 +21,18 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public void Store(string key, T @object)
 			=> _dictionary[key] = new CacheRecord<T>
-		{
-			ExpiryDateTimeOffset = DateTimeOffset.UtcNow + _timeSpan,
-			Object = @object
-		};
+			{
+				ExpiryDateTimeOffset = DateTimeOffset.UtcNow + _timeSpan,
+				Object = @object
+			};
 
-		public bool TryGet(string key, out T @object)
+		public bool TryGet(string key, out T? @object)
 		{
 			// Is it in the cache?
 			if (_dictionary.TryGetValue(key, out var cacheRecord))
 			{
 				// Yes.  Has it expired?
-				if(cacheRecord.ExpiryDateTimeOffset < DateTimeOffset.UtcNow)
+				if (cacheRecord.ExpiryDateTimeOffset < DateTimeOffset.UtcNow)
 				{
 					// Yes.
 					// Remove from cache.

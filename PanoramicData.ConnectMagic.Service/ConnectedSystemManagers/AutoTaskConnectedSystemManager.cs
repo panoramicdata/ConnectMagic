@@ -23,7 +23,26 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ILoggerFactory loggerFactory)
 			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<AutoTaskConnectedSystemManager>())
 		{
-			_autoTaskClient = new Client(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText, loggerFactory.CreateLogger<Client>());
+			// Ensure we have what we need
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PublicText))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PrivateText))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.ClientSecret))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set to the Integration Code");
+			}
+
+			_autoTaskClient = new Client(
+				connectedSystem.Credentials.PublicText,
+				connectedSystem.Credentials.PrivateText,
+				connectedSystem.Credentials.ClientSecret,
+				loggerFactory.CreateLogger<Client>()
+			);
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}
 
@@ -164,7 +183,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				if (_cache.TryGet(cacheKey, out var @object))
 				{
 					// Yes. Use that
-					connectedSystemItem = @object;
+					connectedSystemItem = @object!;
 				}
 				else
 				{

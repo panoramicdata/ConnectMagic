@@ -57,7 +57,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			CancellationToken cancellationToken
 			)
 		{
-			var endpoint = new SubstitutionString(dataSet.QueryConfig.CreateQuery ?? dataSet.QueryConfig.Query).ToString();
+			var endpoint = new SubstitutionString(
+				dataSet.QueryConfig.CreateQuery
+				?? dataSet.QueryConfig.Query
+				?? throw new ConfigurationException($"In {nameof(ConnectedSystemDataSet)} {dataSet.Name}, one of {nameof(dataSet.QueryConfig.CreateQuery)} or {nameof(dataSet.QueryConfig.Query)} must be set.")
+				).ToString();
 			return await _logicMonitorClient.PostAsync<JObject, JObject>(
 				connectedSystemItem,
 				endpoint,
@@ -70,7 +74,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			JObject connectedSystemItem,
 			CancellationToken cancellationToken)
 		{
-			var endpoint = new SubstitutionString(dataSet.QueryConfig.DeleteQuery ?? dataSet.QueryConfig.Query).ToString();
+			var endpoint = new SubstitutionString(
+				dataSet.QueryConfig.DeleteQuery
+				?? dataSet.QueryConfig.Query
+				?? throw new ConfigurationException($"In {nameof(ConnectedSystemDataSet)} {dataSet.Name}, one of {nameof(dataSet.QueryConfig.DeleteQuery)} or {nameof(dataSet.QueryConfig.Query)} must be set.")
+			).ToString();
 			await _logicMonitorClient.DeleteAsync(endpoint, cancellationToken).ConfigureAwait(false);
 		}
 
@@ -86,7 +94,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			SyncAction syncAction,
 			CancellationToken cancellationToken)
 		{
-			var endpoint = new SubstitutionString(dataSet.QueryConfig.UpdateQuery ?? dataSet.QueryConfig.Query).ToString();
+			var endpoint = new SubstitutionString(
+				dataSet.QueryConfig.UpdateQuery
+				?? dataSet.QueryConfig.Query
+				?? throw new ConfigurationException($"In {nameof(ConnectedSystemDataSet)} {dataSet.Name}, one of {nameof(dataSet.QueryConfig.UpdateQuery)} or {nameof(dataSet.QueryConfig.Query)} must be set.")
+				).ToString();
 			return _logicMonitorClient.PutAsync(endpoint, syncAction.ConnectedSystemItem, cancellationToken);
 		}
 
@@ -114,7 +126,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				if (_cache.TryGet(cacheKey, out var @object))
 				{
 					// Yes. Use that
-					connectedSystemItem = @object;
+					connectedSystemItem = @object!;
 				}
 				else
 				{

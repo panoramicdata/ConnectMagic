@@ -14,36 +14,36 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// Account
 		/// </summary>
 		[DataMember(Name = "Account")]
-		public string Account { get; set; }
+		public string? Account { get; set; }
 
 		/// <summary>
 		/// ClientId
 		/// </summary>
 		[DataMember(Name = "ClientId")]
-		public string ClientId { get; set; }
+		public string? ClientId { get; set; }
 
 		/// <summary>
 		/// ClientSecret
 		/// </summary>
 		[DataMember(Name = "ClientSecret")]
-		public string ClientSecret { get; set; }
+		public string? ClientSecret { get; set; }
 
 		/// <summary>
 		/// Public credential, such as username
 		/// </summary>
 		[DataMember(Name = "PublicText")]
-		public string PublicText { get; set; }
+		public string? PublicText { get; set; }
 
 		/// <summary>
 		/// Private credential, such as password or access key
 		/// </summary>
 		[DataMember(Name = "PrivateText")]
-		public string PrivateText { get; set; }
+		public string? PrivateText { get; set; }
 
 		/// <summary>
 		/// Connection string, commonly used for database connections
 		/// </summary>
 		[DataMember(Name = "ConnectionString")]
-		public string ConnectionString { get; set; }
+		public string? ConnectionString { get; set; }
 	}
 }
