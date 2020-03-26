@@ -1,39 +1,44 @@
 ﻿using AutoTask.Api;
-using AutoTask.Api.Config;
-using AutoTask.Api.Filters;
+using Divergic.Logging.Xunit;
 using FluentAssertions;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PanoramicData.ConnectMagic.Service.Test
 {
 	public class AutoTaskUdfTests
 	{
-		[Fact]
+		private readonly ILogger _logger;
+
+		public AutoTaskUdfTests(ITestOutputHelper testOutputHelper)
+		{
+			var loggerFactory = LogFactory.Create(testOutputHelper);
+			_logger = loggerFactory.CreateLogger(nameof(AutoTaskUdfTests));
+		}
+
+		[Fact(Skip = "Use this to set UDFs")]
 		public async void SetCustomerSystemSyncId()
 		{
 			var testCredentials = LoadCredentials();
 
 			const long autoTaskTicketId = 141651;
 			const string serviceNowSysId = "6dc72bb9db7a0490d5ed3ce3399619a9";
-			var autoTaskClient = new AutoTaskClient(new AutoTaskConfiguration
-			{
-				Username = testCredentials.AutoTaskPublicText,
-				Password = testCredentials.AutoTaskPrivateText
-			});
-			var autoTaskTicketResponse = await autoTaskClient.GetAsync<Ticket>(new Filter { Items = new List<FilterItem> { new FilterItem { Field = nameof(Ticket.id), Operator = Operator.Equals, Value = autoTaskTicketId.ToString() } } });
+
+			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, _logger);
+			var autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
 			autoTaskTicketResponse.Should().NotBeNull();
 			autoTaskTicketResponse.Should().ContainSingle();
-			var autoTaskTicket = autoTaskTicketResponse[0];
+			var autoTaskTicket = autoTaskTicketResponse.Cast<Ticket>().First();
 			autoTaskTicket.id.Should().Be(autoTaskTicketId);
-			autoTaskTicket.Title.Should().Be("Cisco AP wf-52310-xx2 down");
+			//autoTaskTicket.Title.Should().Be("Cisco AP wf-52310-xx2 down");
 			var udf = autoTaskTicket.UserDefinedFields.SingleOrDefault(udf => udf.Name == "Customer System Sync Id");
 			udf.Should().NotBeNull();
 			udf.Value = serviceNowSysId;
-			//await autoTaskClient.
+			await autoTaskClient.UpdateAsync(autoTaskTicket).ConfigureAwait(false);
 		}
 
 		private static TestCredentials LoadCredentials()
