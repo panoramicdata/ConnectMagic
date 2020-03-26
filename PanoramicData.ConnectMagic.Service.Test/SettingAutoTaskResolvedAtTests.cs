@@ -40,12 +40,17 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			udf.Should().NotBeNull();
 			udf.Value.Should().Be(serviceNowSysId);
 
-			autoTaskTicket.ResolvedDateTime = "2020-03-26 13:24:49";
+			var oldLastActivity = autoTaskTicket.LastActivityDate;
+
+			//autoTaskTicket.ResolvedDateTime = "2020-03-26 13:24:49";
+			autoTaskTicket.Status = 29;
 			var updateResponse = await autoTaskClient.UpdateAsync(autoTaskTicket).ConfigureAwait(false);
 
 			// Go and get the ticket again and see if ResolvedDateTime is set
 			autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
 			autoTaskTicket = autoTaskTicketResponse.Cast<Ticket>().First();
+
+			// Problem is that AutoTask IS updating LastActivityDate but NOT setting the ResolvedDateTime
 		}
 
 		private static TestCredentials LoadCredentials()
