@@ -5,27 +5,29 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace PanoramicData.ConnectMagic.Service.Test
 {
-	public class AutoTaskUdfTests
+	public class SettingAutoTaskResolvedAtTests
 	{
 		private readonly ILogger _logger;
 
-		public AutoTaskUdfTests(ITestOutputHelper testOutputHelper)
+		public SettingAutoTaskResolvedAtTests(ITestOutputHelper testOutputHelper)
 		{
 			var loggerFactory = LogFactory.Create(testOutputHelper);
 			_logger = loggerFactory.CreateLogger(nameof(AutoTaskUdfTests));
 		}
 
-		// [Fact(Skip = "Uncomment this to set AutoTask UDFs to a serviceNowSysId")]
-		public async void SetCustomerSystemSyncId()
+		// Uncomment this to run
+		[Fact()]
+		public async void SetResolvedDateTime_Fails()
 		{
 			var testCredentials = LoadCredentials();
 
-			const long autoTaskTicketId = 141651;
-			const string serviceNowSysId = "6dc72bb9db7a0490d5ed3ce3399619a9";
+			const long autoTaskTicketId = 149843;
+			const string serviceNowSysId = "8f20e71cdbfa08504d1c16f35b961996";
 
 			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, testCredentials.AutoTaskIntegrationCode, _logger);
 			var autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
@@ -36,8 +38,14 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			//autoTaskTicket.Title.Should().Be("Cisco AP wf-52310-xx2 down");
 			var udf = autoTaskTicket.UserDefinedFields.SingleOrDefault(udf => udf.Name == "Customer System Sync Id");
 			udf.Should().NotBeNull();
-			udf.Value = serviceNowSysId;
-			await autoTaskClient.UpdateAsync(autoTaskTicket).ConfigureAwait(false);
+			udf.Value.Should().Be(serviceNowSysId);
+
+			autoTaskTicket.ResolvedDateTime = "2020-03-26 13:24:49";
+			var updateResponse = await autoTaskClient.UpdateAsync(autoTaskTicket).ConfigureAwait(false);
+
+			// Go and get the ticket again and see if ResolvedDateTime is set
+			autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
+			autoTaskTicket = autoTaskTicketResponse.Cast<Ticket>().First();
 		}
 
 		private static TestCredentials LoadCredentials()
