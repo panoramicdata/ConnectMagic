@@ -20,6 +20,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal abstract class ConnectedSystemManagerBase : IConnectedSystemManager, IDisposable
 	{
+		private const string StateVariableName = "_state_";
+
 		/// <summary>
 		/// The connected system
 		/// </summary>
@@ -54,13 +56,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// NCalc evaluation
 		/// </summary>
-		/// <param name="systemExpression"></param>
+		/// <param name="expression"></param>
 		/// <param name="item"></param>
 		/// <param name="state"></param>
-		internal static JToken EvaluateToJToken(string systemExpression, JObject item, State state)
+		internal static JToken EvaluateToJToken(string expression, JObject item, State state)
 		{
-			var nCalcExpression = new ConnectMagicExpression(systemExpression);
-			nCalcExpression.Parameters.Add("State", state);
+			var nCalcExpression = new ConnectMagicExpression(expression);
+			nCalcExpression.Parameters.Add(StateVariableName, state);
 			nCalcExpression.Parameters.Add("_", item);
 			foreach (var property in item?.Properties() ?? Enumerable.Empty<JProperty>())
 			{
@@ -86,14 +88,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// NCalc evaluation
 		/// </summary>
-		/// <param name="systemExpression"></param>
+		/// <param name="expression"></param>
 		/// <param name="stateItem"></param>
 		/// <param name="connectedSystemItem"></param>
 		/// <param name="state"></param>
-		internal static object EvaluateConditionalExpression(string systemExpression, StateItem? stateItem, JObject? connectedSystemItem, State state)
+		internal static object EvaluateConditionalExpression(string expression, StateItem? stateItem, JObject? connectedSystemItem, State state)
 		{
-			var nCalcExpression = new ConnectMagicExpression(systemExpression);
-			nCalcExpression.Parameters.Add("State", state);
+			var nCalcExpression = new ConnectMagicExpression(expression);
+			nCalcExpression.Parameters.Add(StateVariableName, state);
 			nCalcExpression.Parameters.Add("connectMagic.stateItemLastModifiedEpochMs", stateItem?.LastModified.ToUnixTimeSeconds() * 1000);
 			nCalcExpression.Parameters.Add("connectMagic.stateItem", stateItem);
 			nCalcExpression.Parameters.Add("connectMagic.systemItem", connectedSystemItem);
@@ -944,7 +946,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					SyncActionType.CreateSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem),
 					SyncActionType.DeleteSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystem),
 					SyncActionType.UpdateBoth => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystem, DataSetPermission.WriteDisabledAtConnectedSystem),
-					_ => throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.")
+					_ => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.InvalidOperation)
 				};
 			}
 			if (!dataSet.Permissions.CanWrite)
@@ -956,7 +958,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					SyncActionType.CreateSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet),
 					SyncActionType.DeleteSystem => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.WriteDisabledAtConnectedSystemDataSet),
 					SyncActionType.UpdateBoth => new DirectionPermissions(DataSetPermission.WriteDisabledAtConnectedSystemDataSet, DataSetPermission.WriteDisabledAtConnectedSystemDataSet),
-					_ => throw new ArgumentOutOfRangeException($"{nameof(SyncActionType)} {type} not allowed.")
+					_ => new DirectionPermissions(DataSetPermission.InvalidOperation, DataSetPermission.InvalidOperation)
 				};
 			}
 
