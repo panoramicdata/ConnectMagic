@@ -5,6 +5,7 @@ using FixerSharp;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
+using PanoramicData.ConnectMagic.Service.Extensions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			_certifyClient = new CertifyClient(connectedSystem.Credentials.PublicText, connectedSystem.Credentials.PrivateText);
 
 			// FixerSharp for exchange rate conversion, if configured
-			if (connectedSystem.Configuration?.ContainsKey(FixerApiKey) == true)
+			if (connectedSystem.Configuration.ContainsKey(FixerApiKey))
 			{
 				var fixerApiKey = connectedSystem.Configuration[FixerApiKey];
 				Fixer.SetApiKey(fixerApiKey);
@@ -46,6 +47,17 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			List<JObject> connectedSystemItems;
 			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
+
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Type))
+			{
+				throw new ConfigurationException($"In {dataSet.Name}, {nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Type)} must be set.");
+			}
+
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Query))
+			{
+				throw new ConfigurationException($"In {dataSet.Name}, {nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Query)} must be set.");
+			}
+
 			var type = dataSet.QueryConfig.Type;
 			var query = new SubstitutionString(dataSet.QueryConfig.Query).ToString();
 
@@ -81,9 +93,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					case "expenses":
 						var propertyFilters = new List<Filter>();
 
-						string startDate = null;
-						string endDate = null;
-						string batchId = null;
+						string? startDate = null;
+						string? endDate = null;
+						string? batchId = null;
 						uint? processed = null;
 						uint? includeDisapproved = null;
 						var allFilters = configItemsExceptFirst.Select(ci => new Filter(ci));
@@ -149,12 +161,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							// Filter on this criteria
 							expenses = propertyFilter.Operator switch
 							{
-								Operator.Equals => expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() == propertyFilter.Value),
-								Operator.NotEquals => expenses.Where(e => matchingPropertyInfo.GetValue(e).ToString() != propertyFilter.Value),
-								Operator.LessThanOrEquals => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) <= 0),
-								Operator.LessThan => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) < 0),
-								Operator.GreaterThanOrEquals => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) >= 0),
-								Operator.GreaterThan => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).ToString(), propertyFilter.Value) > 0),
+								Operator.Equals => expenses.Where(e => matchingPropertyInfo.GetValue(e).EmptyStringIfNull() == propertyFilter.Value),
+								Operator.NotEquals => expenses.Where(e => matchingPropertyInfo.GetValue(e).EmptyStringIfNull() != propertyFilter.Value),
+								Operator.LessThanOrEquals => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).EmptyStringIfNull(), propertyFilter.Value) <= 0),
+								Operator.LessThan => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).EmptyStringIfNull(), propertyFilter.Value) < 0),
+								Operator.GreaterThanOrEquals => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).EmptyStringIfNull(), propertyFilter.Value) >= 0),
+								Operator.GreaterThan => expenses.Where(e => string.Compare(matchingPropertyInfo.GetValue(e).EmptyStringIfNull(), propertyFilter.Value) > 0),
 								_ => throw new NotSupportedException($"Operator '{propertyFilter.Operator}' not supported.")
 							};
 						}
@@ -227,6 +239,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			CancellationToken cancellationToken
 			)
 		{
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Type))
+			{
+				throw new ConfigurationException($"In {dataSet.Name}, {nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Type)} must be set.");
+			}
+
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Query))
+			{
+				throw new ConfigurationException($"In {dataSet.Name}, {nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Query)} must be set.");
+			}
+
 			// Split out the parameters in the query
 			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
@@ -271,7 +293,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						Logger.LogError(ex, ex.Message);
 						throw;
 					}
-					break;
 				default:
 					throw new NotSupportedException($"Certify class {type} not supported.");
 			}
@@ -284,44 +305,54 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			CancellationToken cancellationToken
 			)
 		{
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Query))
+			{
+				throw new ConfigurationException($"{nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Query)} must be set.");
+			}
+			if (syncAction.ConnectedSystemItem == null)
+			{
+				throw new InvalidOperationException($"Cannot perform update when the {nameof(syncAction.ConnectedSystemItem)} is not present.");
+			}
+
 			var connectedSystemItem = syncAction.ConnectedSystemItem;
 			var type = dataSet.QueryConfig.Type;
+
 			var parameters = dataSet.QueryConfig.Query.Split('|');
 			switch (type)
 			{
 				case "exprptglds":
+				{
+					if (!uint.TryParse(parameters[0], out var index))
 					{
-						if (!uint.TryParse(parameters[0], out var index))
-						{
-							throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
-						}
-
-						// Get the existing entry
-						var id = connectedSystemItem.Value<Guid>("ID");
-						var existingPage = await _certifyClient
-							.ExpenseReportGlds
-							.GetAsync(index, id)
-							.ConfigureAwait(false);
-						var existing = existingPage.ExpenseReportGlds.SingleOrDefault();
-						if (existing == null)
-						{
-							throw new ConfigurationException($"Couldn't find Certify exprptglds entry with id {id}.");
-						}
-
-						SetPropertiesFromJObject(existing, connectedSystemItem);
-						// Loop over the connectedSystemItem properties
-						// Find each property on the target class and set the value if the property was found otherwise throw an exception
-						// Update Certify
-
-						Logger.LogInformation($"Updating entry {existing.Name} in Certify");
-
-						_ = await _certifyClient
-							.ExpenseReportGlds
-							.UpdateAsync(index, existing)
-							.ConfigureAwait(false);
-
-						break;
+						throw new ConfigurationException($"Certify index {parameters[0]} could not be parsed as a UINT.");
 					}
+
+					// Get the existing entry
+					var id = connectedSystemItem.Value<Guid>("ID");
+					var existingPage = await _certifyClient
+						.ExpenseReportGlds
+						.GetAsync(index, id)
+						.ConfigureAwait(false);
+					var existing = existingPage.ExpenseReportGlds.SingleOrDefault();
+					if (existing == null)
+					{
+						throw new ConfigurationException($"Couldn't find Certify exprptglds entry with id {id}.");
+					}
+
+					SetPropertiesFromJObject(existing, connectedSystemItem);
+					// Loop over the connectedSystemItem properties
+					// Find each property on the target class and set the value if the property was found otherwise throw an exception
+					// Update Certify
+
+					Logger.LogInformation($"Updating entry {existing.Name} in Certify");
+
+					_ = await _certifyClient
+						.ExpenseReportGlds
+						.UpdateAsync(index, existing)
+						.ConfigureAwait(false);
+
+					break;
+				}
 				default:
 					throw new NotSupportedException($"Certify class {type} not supported.");
 			}
@@ -334,6 +365,16 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			CancellationToken cancellationToken
 			)
 		{
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Type))
+			{
+				throw new ConfigurationException($"In {dataSet.Name}, {nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Type)} must be set.");
+			}
+
+			if (string.IsNullOrWhiteSpace(dataSet.QueryConfig.Query))
+			{
+				throw new ConfigurationException($"In {dataSet.Name}, {nameof(dataSet.QueryConfig)} {nameof(dataSet.QueryConfig.Query)} must be set.");
+			}
+
 			var type = dataSet.QueryConfig.Type;
 			var parameters = dataSet.QueryConfig.Query.Split('|');
 			switch (type)
@@ -382,71 +423,71 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			switch (type)
 			{
 				case "user":
+				{
+					var criterion = parameters[0];
+					var criterionParameters = criterion.Split("==");
+					if (criterionParameters.Length != 2 || criterionParameters[0] != "EmployeeID")
 					{
-						var criterion = parameters[0];
-						var criterionParameters = criterion.Split("==");
-						if (criterionParameters.Length != 2 || criterionParameters[0] != "EmployeeID")
-						{
-							throw new NotSupportedException("Only EmployeeID Certify user parameter currently supported.");
-						}
-						if (!int.TryParse(criterionParameters[1], out var employeeId))
-						{
-							throw new ConfigurationException($"EmployeeID Certify user parameter '{criterionParameters[0]}' is not an integer.");
-						}
-						// It's a valid integer
-
-						var user = (await _certifyClient
-							.Users
-							.GetAllAsync()
-							.ConfigureAwait(false))
-							.SingleOrDefault(u => u.EmployeeId == employeeId.ToString());
-						if (user == default)
-						{
-							throw new Exception($"Certify user with EmployeeID={employeeId} not found.");
-						}
-						// We have the user
-						var propertyInfos = typeof(User).GetProperties();
-						var propertyInfo = propertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase));
-						if (propertyInfo == default)
-						{
-							throw new ConfigurationException($"Certify users don't have a property '{field}'.");
-						}
-						// We have the PropertyInfo
-						return propertyInfo.GetValue(user);
+						throw new NotSupportedException("Only EmployeeID Certify user parameter currently supported.");
 					}
+					if (!int.TryParse(criterionParameters[1], out var employeeId))
+					{
+						throw new ConfigurationException($"EmployeeID Certify user parameter '{criterionParameters[0]}' is not an integer.");
+					}
+					// It's a valid integer
+
+					var user = (await _certifyClient
+						.Users
+						.GetAllAsync()
+						.ConfigureAwait(false))
+						.SingleOrDefault(u => u.EmployeeId == employeeId.ToString());
+					if (user == default)
+					{
+						throw new Exception($"Certify user with EmployeeID={employeeId} not found.");
+					}
+					// We have the user
+					var propertyInfos = typeof(User).GetProperties();
+					var propertyInfo = propertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase));
+					if (propertyInfo == default)
+					{
+						throw new ConfigurationException($"Certify users don't have a property '{field}'.");
+					}
+					// We have the PropertyInfo
+					return propertyInfo.GetValue(user);
+				}
 				case "expensereport":
+				{
+					var criterion = parameters[0];
+					var criterionParameters = criterion.Split("==");
+					if (criterionParameters.Length != 2 || criterionParameters[0] != "ID")
 					{
-						var criterion = parameters[0];
-						var criterionParameters = criterion.Split("==");
-						if (criterionParameters.Length != 2 || criterionParameters[0] != "ID")
-						{
-							throw new NotSupportedException("Only ID Certify ExpenseReport parameter currently supported.");
-						}
-						if (!Guid.TryParse(criterionParameters[1], out var expenseReportId))
-						{
-							throw new ConfigurationException($"ID Certify ExpenseReport parameter '{criterionParameters[0]}' is not a Guid.");
-						}
-						// It's a valid Guid
-
-						var expenseReport = (await _certifyClient
-							.ExpenseReports.GetAsync(expenseReportId, null)
-							.ConfigureAwait(false))
-							.ExpenseReports
-							.SingleOrDefault();
-						if (expenseReport == default)
-						{
-							throw new Exception($"Certify ExpenseReport with ID={expenseReportId} not found.");
-						}
-						// We have the ExpenseReport
-						var propertyInfos = typeof(ExpenseReport).GetProperties();
-						var propertyInfo = propertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase));
-						if (propertyInfo == default)
-						{
-							throw new ConfigurationException($"Certify ExpenseReports don't have a property '{field}'.");
-						}
-						// We have the PropertyInfo
-						return propertyInfo.GetValue(expenseReport);
+						throw new NotSupportedException("Only ID Certify ExpenseReport parameter currently supported.");
 					}
+					if (!Guid.TryParse(criterionParameters[1], out var expenseReportId))
+					{
+						throw new ConfigurationException($"ID Certify ExpenseReport parameter '{criterionParameters[0]}' is not a Guid.");
+					}
+					// It's a valid Guid
+
+					var expenseReport = (await _certifyClient
+						.ExpenseReports.GetAsync(expenseReportId, null)
+						.ConfigureAwait(false))
+						.ExpenseReports
+						.SingleOrDefault();
+					if (expenseReport == default)
+					{
+						throw new Exception($"Certify ExpenseReport with ID={expenseReportId} not found.");
+					}
+					// We have the ExpenseReport
+					var propertyInfos = typeof(ExpenseReport).GetProperties();
+					var propertyInfo = propertyInfos.SingleOrDefault(pi => string.Equals(pi.Name, field, StringComparison.InvariantCultureIgnoreCase));
+					if (propertyInfo == default)
+					{
+						throw new ConfigurationException($"Certify ExpenseReports don't have a property '{field}'.");
+					}
+					// We have the PropertyInfo
+					return propertyInfo.GetValue(expenseReport);
+				}
 				default:
 					throw new NotSupportedException($"Query of type '{type}' not supported.");
 			}

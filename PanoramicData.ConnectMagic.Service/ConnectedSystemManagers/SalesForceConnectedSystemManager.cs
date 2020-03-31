@@ -19,6 +19,28 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			ILoggerFactory loggerFactory)
 			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<SalesforceConnectedSystemManager>())
 		{
+			// Ensure we have what we need
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.Account))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.Account)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.ClientId))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientId)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.ClientSecret))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PublicText))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} must be set");
+			}
+			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PrivateText))
+			{
+				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} must be set");
+			}
+
 			_salesforceClient = new SalesforceClient(
 				connectedSystem.Credentials.Account,
 				connectedSystem.Credentials.ClientId,
@@ -66,6 +88,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			object? valueIfMultipleMatchesFound,
 			CancellationToken cancellationToken)
 		{
+			if (string.IsNullOrWhiteSpace(queryConfig.Query))
+			{
+				throw new ConfigurationException($"{nameof(queryConfig.Query)} must be set");
+			}
+
 			var substitutedQuery = new SubstitutionString(queryConfig.Query).ToString();
 			var connectedSystemItems = await _salesforceClient
 				.GetAllJObjectsAsync(substitutedQuery)

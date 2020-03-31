@@ -39,7 +39,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// Any system-specific configuration
 		/// </summary>
 		[DataMember(Name = "Configuration")]
-		public Dictionary<string, string> Configuration { get; set; }
+		public Dictionary<string, string> Configuration { get; set; } = new Dictionary<string, string>();
 
 		/// <summary>
 		/// DataSets available on the connected system

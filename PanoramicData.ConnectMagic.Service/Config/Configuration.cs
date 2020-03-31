@@ -39,7 +39,7 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		public List<ConnectedSystem> ConnectedSystems { get; set; } = new List<ConnectedSystem>();
 
 		[DataMember(Name = "State")]
-		public State? State { get; set; }
+		public State State { get; set; } = new State();
 
 		[DataMember(Name = "MaxFileAgeHours")]
 		public double MaxFileAgeHours { get; set; } = 72;
@@ -52,8 +52,10 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			NameShouldNotBeNullOrWhiteSpace();
 			ThereShouldBeAtLeastOneEnabledConnectedSystem();
 			AllConnectedSystemsShouldHaveCredentials();
+			AllConnectedSystemsShouldHaveConfiguration();
 			AllConnectedSystemsShouldHaveAtLeastOneDataset();
 			AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping();
+			AllConnectedSystemsDataSetsShouldHaveQueryConfigSet();
 			AllConnectedSystemsDataSetsShouldHaveOneOrMoreJoinMappingAndAllShouldBeValid();
 		}
 
@@ -78,11 +80,22 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			}
 		}
 
+		private void AllConnectedSystemsShouldHaveConfiguration()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				if (connectedSystem.Configuration is null)
+				{
+					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Configuration} must not be null");
+				}
+			}
+		}
+
 		private void AllConnectedSystemsShouldHaveCredentials()
 		{
 			foreach (var connectedSystem in ConnectedSystems)
 			{
-				if (connectedSystem.Credentials == null)
+				if (connectedSystem.Credentials is null)
 				{
 					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no Credentials set");
 				}
@@ -91,6 +104,21 @@ namespace PanoramicData.ConnectMagic.Service.Config
 				switch (connectedSystem.Type)
 				{
 					case SystemType.AutoTask:
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PublicText))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} set");
+						}
+
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.PrivateText))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} set");
+						}
+
+						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.ClientSecret))
+						{
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} set with the Integration Code");
+						}
+						break;
 					case SystemType.SalesForce:
 					case SystemType.Certify:
 					case SystemType.LogicMonitor:
@@ -137,7 +165,7 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		{
 			foreach (var connectedSystem in ConnectedSystems)
 			{
-				if (connectedSystem.Datasets == null || connectedSystem.Datasets.Count == 0)
+				if (connectedSystem.Datasets is null || connectedSystem.Datasets.Count == 0)
 				{
 					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Datasets)} set");
 				}
@@ -150,9 +178,23 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			{
 				foreach (var dataSet in connectedSystem.Datasets)
 				{
-					if (dataSet.Mappings == null || dataSet.Mappings.Count == 0)
+					if (dataSet.Mappings is null || dataSet.Mappings.Count == 0)
 					{
 						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(ConnectedSystemDataSet.Mappings)} set in {dataSet.Name}");
+					}
+				}
+			}
+		}
+
+		private void AllConnectedSystemsDataSetsShouldHaveQueryConfigSet()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				foreach (var dataSet in connectedSystem.Datasets)
+				{
+					if (dataSet.QueryConfig is null)
+					{
+						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name}'s {nameof(ConnectedSystemDataSet.QueryConfig)} must not be null");
 					}
 				}
 			}

@@ -17,6 +17,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public JToken? NewValue { get; }
 
-		public override string ToString() => $"'{Field}': <{OldValue?.Type}>'{OldValue?.ToString() ?? "<NULL>"}' => <{NewValue?.Type}>'{NewValue?.ToString() ?? "<NULL>"}'";
+		public override string ToString() => $"'{Field}': {GetJTokenDescription(OldValue)} => {GetJTokenDescription(NewValue)}";
+
+		private string GetJTokenDescription(JToken? jToken)
+			=> jToken is null
+			? "null"
+			: jToken.Type == JTokenType.Null
+				? "<Null>"
+				: $"<{jToken.Type}>'{jToken}'";
 	}
 }

@@ -136,7 +136,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				if (_cache.TryGet(cacheKey, out var @object))
 				{
 					// Yes. Use that
-					connectedSystemItem = @object;
+					connectedSystemItem = @object!;
 				}
 				else
 				{

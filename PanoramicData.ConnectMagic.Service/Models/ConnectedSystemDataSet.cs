@@ -21,7 +21,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// The language for this will vary per system
 		/// </summary>
 		[DataMember(Name = "QueryConfig")]
-		public QueryConfig? QueryConfig { get; set; }
+		public QueryConfig QueryConfig { get; set; } = new QueryConfig();
 
 		/// <summary>
 		/// Whether the DataSet is enabled
@@ -67,7 +67,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		/// <summary>
 		/// Permissions
 		/// </summary>
-		public Permissions Permissions { get; set; }
+		public Permissions Permissions { get; set; } = new Permissions();
 
 		/// <summary>
 		/// Whether to delete all but the first item when duplicates are found

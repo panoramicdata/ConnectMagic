@@ -1,5 +1,6 @@
 ﻿using PanoramicData.ConnectMagic.Service.Ncalc;
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
@@ -18,12 +19,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// <summary>
 		/// Always resturns a string.  If the NCalc expression returns a null, returns an empty string.
 		/// </summary>
-		/// <returns></returns>
 		public override string ToString()
 		{
 			var result = _inputText;
-			var tokenMatches = tokenRegex.Matches(_inputText);
-			foreach (Match tokenMatch in tokenMatches)
+			var tokenMatches = tokenRegex.Matches(_inputText).Cast<Match>();
+			foreach (var tokenMatch in tokenMatches)
 			{
 				var tokenType = tokenMatch.Groups[1].ToString();
 				var expressionText = tokenMatch.Groups[2].ToString();
