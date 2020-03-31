@@ -116,7 +116,7 @@ namespace PanoramicData.ConnectMagic.Service.Config
 
 						if (string.IsNullOrWhiteSpace(connectedSystem.Credentials.ClientSecret))
 						{
-							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} set with the Integration Code");
+							throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} set with the Integration Code");
 						}
 						break;
 					case SystemType.SalesForce:
