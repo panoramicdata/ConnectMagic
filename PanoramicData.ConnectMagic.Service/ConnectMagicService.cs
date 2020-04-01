@@ -129,7 +129,7 @@ namespace PanoramicData.ConnectMagic.Service
 		public Task StartAsync(CancellationToken cancellationToken)
 		{
 			_logger.LogInformation($"Starting {Program.ProductName} {ThisAssembly.AssemblyFileVersion} on {Environment.MachineName}...");
-			_logger.LogInformation($"Loaded configuration \"{_configuration.Name}\"");
+			_logger.LogInformation($"Loaded configuration \"{_configuration.Name}\":\"{_configuration.Description}\"");
 
 			// Add an unhandled exception handler
 			var currentDomain = AppDomain.CurrentDomain;
