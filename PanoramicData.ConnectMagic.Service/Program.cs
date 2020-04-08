@@ -27,7 +27,6 @@ namespace PanoramicData.ConnectMagic.Service
 		/// Either provide the path to the appsettings.json file as the sole parameter, or 'appsettings.json' the binary folder will be used.
 		/// </summary>
 		/// <param name="args"></param>
-		/// <returns></returns>
 		public async static Task<int> Main(string[] args)
 		{
 			try
@@ -104,11 +103,12 @@ namespace PanoramicData.ConnectMagic.Service
 
 		private static void ConfigureLogging(HostBuilderContext context, ILoggingBuilder loggingBuilder)
 		{
-			//Serilog.Debugging.SelfLog.Enable(msg =>
-			//{
-			//	Debug.WriteLine(msg);
-			//	Console.Error.WriteLine(msg);
-			//});
+			Serilog.Debugging.SelfLog.Enable(msg =>
+				{
+					Debug.WriteLine(msg);
+					Console.Error.WriteLine(msg);
+				}
+			);
 
 			// Set up SeriLog
 			var config = context.Configuration.GetSection("Logging");
@@ -118,25 +118,6 @@ namespace PanoramicData.ConnectMagic.Service
 				.WriteTo.Debug()
 #endif
 				.MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
-
-			// ------------ THIS NOW DONE IN REGULAR CONFIG -------------
-			// Get slack config from appsettings
-			//var slackMinimumLogLevelText = context.Configuration.GetSection("Logging")["SlackMinimumLogLevel"];
-			//if (!Enum.TryParse<LogEventLevel>(slackMinimumLogLevelText, out var slackMinimumLevel))
-			//{
-			//	slackMinimumLevel = LogEventLevel.Warning;
-			//}
-
-			//var slackUrl = context.Configuration.GetSection("Logging")["SlackUrl"];
-			//if (slackUrl != null)
-			//{
-			//	loggerConfiguration.WriteTo.Slack(
-			//		slackUrl,
-			//		null,
-			//		slackMinimumLevel,
-			//		null);
-			//}
-			// ------------ THIS NOW DONE IN REGULAR CONFIG -------------
 
 			Log.Logger = loggerConfiguration.CreateLogger();
 
@@ -152,23 +133,5 @@ namespace PanoramicData.ConnectMagic.Service
 				.AddSingleton<ConnectMagicService>()
 				.AddHostedService<ConnectMagicService>()
 				;
-
-		//private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
-		//{
-		//	var exitCode = 0;
-		//	try
-		//	{
-		//		if (e?.ExceptionObject != null)
-		//		{
-		//			File.WriteAllText($"%TEMP%\\{ProductName}-Service-CrashLog.txt", e.ExceptionObject.ToString());
-		//		}
-		//	}
-		//	catch
-		//	{
-		//		exitCode |= 1;
-		//	}
-
-		//	Environment.Exit(exitCode);
-		//}
 	}
 }

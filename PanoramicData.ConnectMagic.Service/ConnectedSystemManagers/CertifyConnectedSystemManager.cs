@@ -276,12 +276,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							.CreateAsync(index, expenseReportGld)
 							.ConfigureAwait(false);
 
-						var created = await _certifyClient
+						var createdPage = await _certifyClient
 							.ExpenseReportGlds
 							.GetAsync(index, createResult.Id)
 							.ConfigureAwait(false);
 
-						return JObject.FromObject(created);
+						return JObject.FromObject(createdPage.ExpenseReportGlds[0]);
 					}
 					catch (Refit.ApiException ex)
 					{

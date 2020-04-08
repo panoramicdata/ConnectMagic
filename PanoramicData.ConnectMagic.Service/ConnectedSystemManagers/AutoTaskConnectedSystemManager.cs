@@ -26,15 +26,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Ensure we have what we need
 			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PublicText))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} must be set");
 			}
 			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PrivateText))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} must be set");
 			}
 			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.ClientSecret))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set to the Integration Code");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set to the Integration Code");
 			}
 
 			_autoTaskClient = new Client(

@@ -12,7 +12,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	public class SalesforceClient : IDisposable
 	{
-		private readonly string _url;
+		private readonly string? _url;
 		private readonly string _clientId;
 		private readonly string _clientSecret;
 		private readonly string _userName;
@@ -21,7 +21,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private AuthenticationClient? _authenticationClient;
 
 		public SalesforceClient(
-			string url,
+			string? url,
 			string clientId,
 			string clientSecret,
 			string userName,
@@ -45,7 +45,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					return _client;
 				}
 				_authenticationClient = new AuthenticationClient();
-				if (string.IsNullOrWhiteSpace(_url))
+				if (_url is null)
 				{
 					_authenticationClient
 					 .UsernamePasswordAsync(_clientId, _clientSecret, _userName, _password)

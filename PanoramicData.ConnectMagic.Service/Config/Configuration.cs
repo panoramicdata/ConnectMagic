@@ -1,4 +1,5 @@
-﻿using PanoramicData.ConnectMagic.Service.Exceptions;
+﻿using NCalc;
+using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -38,6 +39,8 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		[DataMember(Name = "ConnectedSystems")]
 		public List<ConnectedSystem> ConnectedSystems { get; set; } = new List<ConnectedSystem>();
 
+		public IEnumerable<ConnectedSystem> EnabledConnectedSystems => ConnectedSystems.Where(cs => cs.IsEnabled);
+
 		[DataMember(Name = "State")]
 		public State State { get; set; } = new State();
 
@@ -57,6 +60,37 @@ namespace PanoramicData.ConnectMagic.Service.Config
 			AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping();
 			AllConnectedSystemsDataSetsShouldHaveQueryConfigSet();
 			AllConnectedSystemsDataSetsShouldHaveOneOrMoreJoinMappingAndAllShouldBeValid();
+			AllNcalcExpressionsShouldBeValid();
+		}
+
+		private void AllNcalcExpressionsShouldBeValid()
+		{
+			var errors = new List<string>();
+			foreach (var connectedSystem in EnabledConnectedSystems)
+			{
+				foreach (var csDataSet in connectedSystem.EnabledDatasets)
+				{
+					for (var index = 0; index < csDataSet.Mappings.Count; index++)
+					{
+						var mapping = csDataSet.Mappings[index];
+						var systemExpression = new Expression(mapping.SystemExpression);
+						if (systemExpression.HasErrors())
+						{
+							errors.Add($"{connectedSystem.Name}:{csDataSet.Name} mapping index {index + 1} has an invalid SystemExpression: {systemExpression.Error}");
+						}
+
+						var stateExpression = new Expression(mapping.StateExpression);
+						if (stateExpression.HasErrors())
+						{
+							errors.Add($"{connectedSystem.Name}:{csDataSet.Name} mapping index {index + 1} has an invalid StateExpression: {stateExpression.Error}");
+						}
+					}
+				}
+			}
+			if (errors.Count > 0)
+			{
+				throw new ConfigurationException($"Configuration contains mapping expression errors:\n{string.Join("\n", errors)}\n");
+			}
 		}
 
 		private void NameShouldNotBeNullOrWhiteSpace()
