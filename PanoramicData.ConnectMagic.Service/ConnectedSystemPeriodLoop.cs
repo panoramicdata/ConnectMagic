@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PanoramicData.ConnectMagic.Service.Interfaces;
+using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicSystems;
 using System;
 using System.Diagnostics;
@@ -12,6 +13,9 @@ namespace PanoramicData.ConnectMagic.Service
 	internal class ConnectedSystemPeriodLoop : LoopInterval
 	{
 		private readonly IConnectedSystemManager _connectedSystemManager;
+		private readonly TimeSpan _hangProtectionTimeout = TimeSpan.FromMinutes(30);
+		private ConnectedSystemDataSet? _hangProtectionCurrentDataSet;
+		private bool _hangProtectionTimeoutTimeIsElapsed;
 
 		public ConnectedSystemPeriodLoop(
 			IConnectedSystemManager connectedSystemManager,
@@ -39,13 +43,35 @@ namespace PanoramicData.ConnectMagic.Service
 
 			foreach (var dataSet in _connectedSystemManager.ConnectedSystem.EnabledDatasets)
 			{
+				_hangProtectionTimeoutTimeIsElapsed = false;
+				var stopwatch = Stopwatch.StartNew();
+				var timer = new System.Timers.Timer(_hangProtectionTimeout.TotalMilliseconds)
+				{
+					AutoReset = false,
+				};
+				timer.Elapsed += Timer_Elapsed;
+				timer.Start();
+				_hangProtectionCurrentDataSet = dataSet;
+
 				await _connectedSystemManager
 				.RefreshDataSetAsync(dataSet, cancellationToken)
 				.ConfigureAwait(false);
+
+				timer.Stop();
+				if (_hangProtectionTimeoutTimeIsElapsed)
+				{
+					Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet.Name}' completed after {stopwatch.Elapsed.TotalSeconds:N0}s.");
+				}
 			}
 
 			// This should only be updated if the above went as planned
 			_connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;
+		}
+
+		private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+		{
+			Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet?.Name ?? "?"}' waited more than {_hangProtectionTimeout.TotalSeconds:N0}s to process.");
+			_hangProtectionTimeoutTimeIsElapsed = true;
 		}
 	}
 }
