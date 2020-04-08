@@ -336,7 +336,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					 .ToArray());
 				}
 			}
-			stringBuilder.AppendLine(table.ToString());
+			if (syncActions.Count > 0)
+			{
+				stringBuilder.AppendLine(table.ToString());
+			}
+			else
+			{
+				stringBuilder.AppendLine("****** NO ITEMS ******");
+			}
 			return stringBuilder.ToString();
 		}
 
@@ -406,11 +413,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					{
 						properties[$"st.{property}"] = sa.StateItem?.Value<object>(property);
 					}
-					return new Extended<SyncAction>()
-					{
-						Item = sa,
-						Properties = properties
-					};
+					return new Extended<SyncAction>(sa, properties);
 				}).ToList(),
 				addSheetOptions: new AddSheetOptions
 				{
