@@ -20,25 +20,25 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<SalesforceConnectedSystemManager>())
 		{
 			// Ensure we have what we need
-			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.Account))
+			if (connectedSystem!.Credentials.Account == "")
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.Account)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.Account)} must be set to a url when specified, otherwise omit this configuration item.");
 			}
-			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.ClientId))
+			if (string.IsNullOrWhiteSpace(connectedSystem!.Credentials.ClientId))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientId)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientId)} must be set");
 			}
-			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.ClientSecret))
+			if (string.IsNullOrWhiteSpace(connectedSystem!.Credentials.ClientSecret))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set");
 			}
-			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PublicText))
+			if (string.IsNullOrWhiteSpace(connectedSystem!.Credentials.PublicText))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PublicText)} must be set");
 			}
-			if (string.IsNullOrWhiteSpace(connectedSystem?.Credentials?.PrivateText))
+			if (string.IsNullOrWhiteSpace(connectedSystem!.Credentials.PrivateText))
 			{
-				throw new ConfigurationException($"ConnectedSystem '{nameof(connectedSystem.Name)}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} must be set");
+				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.PrivateText)} must be set");
 			}
 
 			_salesforceClient = new SalesforceClient(
