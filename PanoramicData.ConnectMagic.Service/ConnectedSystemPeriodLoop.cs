@@ -53,14 +53,27 @@ namespace PanoramicData.ConnectMagic.Service
 				timer.Start();
 				_hangProtectionCurrentDataSet = dataSet;
 
-				await _connectedSystemManager
-				.RefreshDataSetAsync(dataSet, cancellationToken)
-				.ConfigureAwait(false);
-
-				timer.Stop();
-				if (_hangProtectionTimeoutTimeIsElapsed)
+				try
 				{
-					Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet.Name}' completed after {stopwatch.Elapsed.TotalSeconds:N0}s.");
+					await _connectedSystemManager
+					.RefreshDataSetAsync(dataSet, cancellationToken)
+					.ConfigureAwait(false);
+					if (_hangProtectionTimeoutTimeIsElapsed)
+					{
+						Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet.Name}' completed after {stopwatch.Elapsed.TotalSeconds:N0}s.");
+					}
+				}
+				catch
+				{
+					if (_hangProtectionTimeoutTimeIsElapsed)
+					{
+						Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet.Name}' errored after {stopwatch.Elapsed.TotalSeconds:N0}s.");
+					}
+					throw;
+				}
+				finally
+				{
+					timer.Stop();
 				}
 			}
 

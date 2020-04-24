@@ -19,13 +19,13 @@ namespace PanoramicData.ConnectMagic.Service.Test
 			_logger = loggerFactory.CreateLogger(nameof(AutoTaskUdfTests));
 		}
 
-		// [Fact(Skip = "Uncomment this to set AutoTask UDFs to a serviceNowSysId")]
-		public async void SetCustomerSystemSyncId()
+		// Uncomment this to set AutoTask UDFs to a serviceNowSysId
+		// [Theory]
+		// [InlineData(141658, "05716009dbbec8504d1c16f35b9619ae")]
+		// [InlineData(141868, "c1a94982db764490d5ed3ce339961913")]
+		public async void SetCustomerSystemSyncId(long autoTaskTicketId, string serviceNowSysId)
 		{
 			var testCredentials = LoadCredentials();
-
-			const long autoTaskTicketId = 141651;
-			const string serviceNowSysId = "6dc72bb9db7a0490d5ed3ce3399619a9";
 
 			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, testCredentials.AutoTaskIntegrationCode, _logger);
 			var autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);

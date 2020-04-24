@@ -5,7 +5,6 @@ using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using PanoramicData.ConnectMagic.Service.Ncalc;
-using PanoramicData.NCalcExtensions;
 using PanoramicData.SheetMagic;
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal abstract class ConnectedSystemManagerBase : IConnectedSystemManager, IDisposable
 	{
-		private const string StateVariableName = "_state_";
+		internal const string StateVariableName = "_state_";
 
 		/// <summary>
 		/// The connected system
@@ -166,10 +165,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Filter
 			if (dataSet.QueryConfig?.Filter != null)
 			{
-				var ncalcExpression = new ExtendedExpression(dataSet.QueryConfig.Filter);
+				var ncalcExpression = new ConnectMagicExpression(dataSet.QueryConfig.Filter);
+				var initialCount = connectedSystemItems.Count;
 				connectedSystemItems = connectedSystemItems.Where(csi =>
 				{
 					ncalcExpression.Parameters = csi.ToObject<Dictionary<string, object>>();
+					ncalcExpression.Parameters!.Add(StateVariableName, State);
 					var isMatchObject = ncalcExpression.Evaluate();
 					if (!(isMatchObject is bool isMatch))
 					{
@@ -177,6 +178,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					}
 					return isMatch;
 				}).ToList();
+				Logger.LogDebug($"Filtered {initialCount:N0} {dataSet.Name} items down to {connectedSystemItems.Count:N0}");
 			}
 
 			var syncActions = new List<SyncAction>();
@@ -247,8 +249,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						unseenStateItems,
 						Logger,
 						cancellationToken);
-
-					// _logger.LogInformation(GetLogTable(dataSet, syncActions));
 
 					await ProcessActionListAsync(
 						dataSet,
@@ -338,11 +338,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 			if (syncActions.Count > 0)
 			{
-				stringBuilder.AppendLine(table.ToString());
+				stringBuilder.Append(table.ToString());
 			}
 			else
 			{
-				stringBuilder.AppendLine("****** NO ITEMS ******");
+				stringBuilder.Append("****** NO ITEMS ******");
 			}
 			return stringBuilder.ToString();
 		}
@@ -499,7 +499,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
 							{
 								var newConnectedSystemItemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
-								newConnectedSystemItem[outwardMapping.SystemExpression] = newConnectedSystemItemValue;
+								newConnectedSystemItem[outwardMapping.SystemOutField ?? outwardMapping.SystemExpression] = newConnectedSystemItemValue;
 
 								action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemOutField ?? outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
 							}

@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
-using PanoramicData.NCalcExtensions;
+using PanoramicData.ConnectMagic.Service.Ncalc;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -156,7 +156,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					_cache.Store(cacheKey, connectedSystemItem);
 				}
 
-				var expression = new ExtendedExpression(field);
+				var expression = new ConnectMagicExpression(field);
 				expression.Parameters["result"] = connectedSystemItem;
 				try
 				{

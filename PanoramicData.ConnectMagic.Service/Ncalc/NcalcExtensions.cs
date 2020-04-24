@@ -1,7 +1,9 @@
 using NCalc;
 using Newtonsoft.Json.Linq;
+using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
+using System.Linq;
 using System.Text;
 
 namespace PanoramicData.ConnectMagic.Service.Ncalc
@@ -123,6 +125,100 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						functionArgs.Result = jObject;
 						return;
 					}
+				// stateLookup('EdinburghAirportServiceRequests', 'sn_sys_id', sn_element_id, 'at_id')
+				case "stateLookup":
+					{
+						const int stateContainsParameterCount = 4;
+						if (functionArgs.Parameters.Length != stateContainsParameterCount)
+						{
+							throw new ArgumentException($"Expected {stateContainsParameterCount} arguments");
+						}
+						// We have the right parameter count
+						// Use the first one to obtain state.
+						var state = (State)functionArgs.Parameters[0].Parameters[ConnectedSystemManagerBase.StateVariableName];
+
+						var argumentIndex = -1;
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetName))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet name.");
+						}
+
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetLookupField))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet lookup field.");
+						}
+
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is object stateDataSetValue))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be present.");
+						}
+
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetResultField))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet result field.");
+						}
+
+						if (!state.ItemLists.TryGetValue(stateDataSetName, out var itemList))
+						{
+							throw new ArgumentException($"State DataSet {stateDataSetName} not found.");
+						}
+						// We have the itemList
+
+						var stateDataSetValueAsJToken = ConvertObjectToJToken(stateDataSetValue);
+						var matchingItems = itemList
+							.Where(i => i.TryGetValue(stateDataSetLookupField, out JToken? stateValue) && JToken.DeepEquals(stateValue, stateDataSetValueAsJToken))
+							.ToList();
+
+						switch (matchingItems.Count)
+						{
+							case 0:
+								throw new ArgumentException($"Item {stateDataSetLookupField} in {stateDataSetName} with value {stateDataSetValue} not found.");
+							case 1:
+								var matchingItem = matchingItems[0];
+								if (!matchingItem.TryGetValue(stateDataSetResultField, out JToken? result))
+								{
+									throw new ArgumentException($"Item {stateDataSetLookupField} in {stateDataSetName} with value {stateDataSetValue} does not have field {stateDataSetResultField}.");
+								}
+								functionArgs.Result = result;
+								break;
+							default:
+								throw new ArgumentException($"Item {stateDataSetLookupField} in {stateDataSetName} with value {stateDataSetValue} found {matchingItems.Count} items - expected 1.");
+						}
+						return;
+					}
+				case "stateContains":
+					{
+						const int stateContainsParameterCount = 3;
+						if (functionArgs.Parameters.Length != stateContainsParameterCount)
+						{
+							throw new ArgumentException($"Expected {stateContainsParameterCount} arguments");
+						}
+						// We have the right parameter count
+						// Use the first one to obtain state.
+						var state = (State)functionArgs.Parameters[0].Parameters[ConnectedSystemManagerBase.StateVariableName];
+
+						var argumentIndex = -1;
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetName))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet name.");
+						}
+
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetField))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet field.");
+						}
+
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is object stateDataSetValue))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be present.");
+						}
+
+						var stateDataSetValueAsJToken = ConvertObjectToJToken(stateDataSetValue);
+
+						functionArgs.Result = state.ItemLists.TryGetValue(stateDataSetName, out var itemList)
+							&& itemList.Any(il => il.TryGetValue(stateDataSetField, out var stateValue) && JToken.DeepEquals(stateValue, stateDataSetValueAsJToken));
+						return;
+					}
 				case "queryLookup":
 					{
 						const int minParameterCount = 5;
@@ -133,6 +229,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						}
 
 						var argumentIndex = -1;
+						// TODO - obtain state from first parameter, like in stateContains.
 						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is State state))
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State.");
@@ -189,5 +286,9 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 					}
 			}
 		}
+
+		private static JToken ConvertObjectToJToken(object @object) => @object is JToken jToken
+								? jToken
+								: JToken.FromObject(@object ?? JValue.CreateNull());
 	}
 }

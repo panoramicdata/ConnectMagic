@@ -63,7 +63,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var autoTaskResult = await _autoTaskClient
 				.GetAllAsync(substitutedQuery)
 				.ConfigureAwait(false);
-			Logger.LogDebug($"Got {autoTaskResult.Count()} results for {dataSet.Name}.");
+			Logger.LogDebug($"Got {autoTaskResult.Count():N0} results for {dataSet.Name}.");
 			// Convert to JObjects for easier generic manipulation
 			var connectedSystemItems = autoTaskResult
 				.Select(entity => JObject.FromObject(entity))
@@ -112,14 +112,42 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			const string UserDefinedFieldPrefix = "UserDefinedFields.";
 
 			// Set the UserDefinedFields
-			foreach (var connectedSystemItemUdfName in connectedSystemItemPropertyNames.Where(n => n.StartsWith(UserDefinedFieldPrefix)))
+			var udfNamesToSet = connectedSystemItemPropertyNames
+				.Where(n => n.StartsWith(UserDefinedFieldPrefix))
+				.ToList();
+
+			// Do we have UDFs to update?
+			if (udfNamesToSet.Count > 0)
 			{
-				var targetFieldName = connectedSystemItemUdfName.Substring(UserDefinedFieldPrefix.Length);
+				// Yes
 
-				var targetField = entity.UserDefinedFields.SingleOrDefault(udf => udf.Name == targetFieldName)
-					?? throw new ConfigurationException($"Could not find UserDefinedField {targetFieldName} on Entity.");
+				// It is possible that the entity does not have a UserDefinedFields property set if it is either:
+				// - being created from scratch
+				// - or had all UDFs set to null
+				// Is this the case?
+				if (entity.UserDefinedFields == null)
+				{
+					// Yes - they are not present.  Create a new array.
+					entity.UserDefinedFields = udfNamesToSet.Select(udfName => new UserDefinedField
+					{
+						Name = udfName.Substring(UserDefinedFieldPrefix.Length),
+						Value = connectedSystemItem[udfName]!.ToString()
+					}
+					).ToArray();
+				}
+				else
+				{
+					// No - they ARE present - just update them.
+					foreach (var connectedSystemItemUdfName in udfNamesToSet)
+					{
+						var targetFieldName = connectedSystemItemUdfName.Substring(UserDefinedFieldPrefix.Length);
 
-				targetField.Value = connectedSystemItem[connectedSystemItemUdfName]!.ToString();
+						var targetField = entity.UserDefinedFields.SingleOrDefault(udf => udf.Name == targetFieldName)
+							?? throw new ConfigurationException($"Could not find UserDefinedField {targetFieldName} on Entity.");
+
+						targetField.Value = connectedSystemItem[connectedSystemItemUdfName]!.ToString();
+					}
+				}
 			}
 
 			return entity;
