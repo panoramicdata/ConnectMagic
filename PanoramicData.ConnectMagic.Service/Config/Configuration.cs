@@ -29,6 +29,13 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		public string Description { get; set; } = string.Empty;
 
 		/// <summary>
+		/// The list of state dataset names
+		/// </summary>
+		[Required]
+		[MinLength(1)]
+		public List<string> StateDataSets { get; set; } = new List<string>();
+
+		/// <summary>
 		/// The configuration version - format is free but suggest either increasing version number or date/time based versioning
 		/// </summary>
 		public string Version { get; set; } = "v1";
@@ -53,14 +60,36 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		internal void Validate()
 		{
 			NameShouldNotBeNullOrWhiteSpace();
+			StateDataSetsShouldBeUnique();
+			StateDataSetsShouldBeReferenced();
 			ThereShouldBeAtLeastOneEnabledConnectedSystem();
 			AllConnectedSystemsShouldHaveCredentials();
 			AllConnectedSystemsShouldHaveConfiguration();
 			AllConnectedSystemsShouldHaveAtLeastOneDataset();
+			AllConnectedSystemsShouldReferenceAnExistingStateDataSet();
 			AllConnectedSystemsDataSetsShouldHaveAtLeastOneMapping();
 			AllConnectedSystemsDataSetsShouldHaveQueryConfigSet();
 			AllConnectedSystemsDataSetsShouldHaveOneOrMoreJoinMappingAndAllShouldBeValid();
 			AllNcalcExpressionsShouldBeValid();
+		}
+
+		private void StateDataSetsShouldBeUnique()
+		{
+			if (StateDataSets.Distinct().Count() != StateDataSets.Count)
+			{
+				throw new ConfigurationException("Configuration contains duplicate state datasets.\n");
+			}
+		}
+
+		private void StateDataSetsShouldBeReferenced()
+		{
+			var unreferencedStateDataSets = StateDataSets
+				.Where(stateDataSetName => !EnabledConnectedSystems.Any(cs => cs.EnabledDatasets.Any(ds => ds.StateDataSetName == stateDataSetName)))
+				.ToList();
+			if (unreferencedStateDataSets.Count > 0)
+			{
+				throw new ConfigurationException($"There are unreferenced State DataSets: {string.Join(", ", unreferencedStateDataSets)}.\n");
+			}
 		}
 
 		private void AllNcalcExpressionsShouldBeValid()
@@ -202,6 +231,19 @@ namespace PanoramicData.ConnectMagic.Service.Config
 				if (connectedSystem.Datasets is null || connectedSystem.Datasets.Count == 0)
 				{
 					throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name} has no {nameof(connectedSystem.Datasets)} set");
+				}
+			}
+		}
+		private void AllConnectedSystemsShouldReferenceAnExistingStateDataSet()
+		{
+			foreach (var connectedSystem in ConnectedSystems)
+			{
+				foreach (var connectedSystemDataSet in connectedSystem.Datasets)
+				{
+					if (!StateDataSets.Contains(connectedSystemDataSet.StateDataSetName))
+					{
+						throw new ConfigurationException($"ConnectedSystem {connectedSystem.Name}' DataSet '{connectedSystemDataSet.Name}' references non-existent StateDataSet {connectedSystemDataSet.StateDataSetName}.");
+					}
 				}
 			}
 		}
