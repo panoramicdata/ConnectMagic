@@ -1132,7 +1132,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			}
 		}
 
-
 		/// <summary>
 		/// Stats
 		/// </summary
