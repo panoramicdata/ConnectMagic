@@ -84,7 +84,7 @@ namespace PanoramicData.ConnectMagic.Service.Config
 		private void StateDataSetsShouldBeReferenced()
 		{
 			var unreferencedStateDataSets = StateDataSets
-				.Where(stateDataSetName => !EnabledConnectedSystems.Any(cs => cs.EnabledDatasets.Any(ds => ds.StateDataSetName == stateDataSetName)))
+				.Where(stateDataSetName => !ConnectedSystems.Any(cs => cs.EnabledDatasets.Any(ds => ds.StateDataSetName == stateDataSetName)))
 				.ToList();
 			if (unreferencedStateDataSets.Count > 0)
 			{
