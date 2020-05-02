@@ -52,23 +52,25 @@ namespace PanoramicData.ConnectMagic.Service.Test
 		//[Fact]
 		public async void DateTest()
 		{
-			var autoTaskTicketId = 149891;
+			const int autoTaskTicketId = 149891;
 
 			var testCredentials = LoadCredentials();
 
 			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, testCredentials.AutoTaskIntegrationCode, _logger);
 			var autoTaskTicketResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>Ticket</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
+			autoTaskTicketResponse.Should().NotBeNull();
 		}
 
 		//[Fact]
 		public async void DateTest2()
 		{
-			var autoTaskTicketNoteId = 31936570;
+			const int autoTaskTicketNoteId = 31936570;
 
 			var testCredentials = LoadCredentials();
 
 			var autoTaskClient = new Client(testCredentials.AutoTaskPublicText, testCredentials.AutoTaskPrivateText, testCredentials.AutoTaskIntegrationCode, _logger);
 			var autoTaskTicketNoteResponse = await autoTaskClient.GetAllAsync($"<queryxml><entity>TicketNote</entity><query><condition operator=\"and\"><field>id<expression op=\"equals\">{autoTaskTicketNoteId}</expression></field></condition></query></queryxml>").ConfigureAwait(false);
+			autoTaskTicketNoteResponse.Should().NotBeNull();
 		}
 	}
 }
