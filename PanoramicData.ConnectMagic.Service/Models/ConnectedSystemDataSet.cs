@@ -155,6 +155,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 					mapping.StateExpression = mapping.StateExpression.Replace(token, value);
 					mapping.SystemExpression = mapping.SystemExpression.Replace(token, value);
 					mapping.ConditionExpression = mapping.ConditionExpression?.Replace(token, value);
+					mapping.FunctionExpression = mapping.FunctionExpression?.Replace(token, value);
 				}
 			}
 		}

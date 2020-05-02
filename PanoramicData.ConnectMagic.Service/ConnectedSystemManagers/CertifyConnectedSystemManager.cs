@@ -500,5 +500,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			// Nothing to be done.
 		}
+
+		public override Task PatchAsync(
+			string entityClass,
+			string entityId,
+			Dictionary<string, object> patches,
+			CancellationToken cancellationToken
+			)
+			=> throw new NotSupportedException();
 	}
 }

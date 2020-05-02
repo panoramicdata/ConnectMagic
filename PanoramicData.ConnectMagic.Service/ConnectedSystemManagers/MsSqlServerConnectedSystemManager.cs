@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -77,6 +78,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		// TODO - Use a query "Update" template with token substitution
 		internal override Task UpdateOutwardsAsync(ConnectedSystemDataSet dataSet, SyncAction syncAction, CancellationToken cancellationToken)
+			=> throw new NotSupportedException();
+
+		public override Task PatchAsync(
+			string entityClass,
+			string entityId,
+			Dictionary<string, object> patches,
+			CancellationToken cancellationToken
+			)
 			=> throw new NotSupportedException();
 
 		public override Task ClearCacheAsync()

@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.Exceptions;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -104,6 +105,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				_ => throw new ConfigurationException($"Lookup found {connectedSystemItems.Count} records using query '{queryConfig.Query}'.  Expected 1.")
 			};
 		}
+
+		public override Task PatchAsync(
+			string entityClass,
+			string entityId,
+			Dictionary<string, object> patches,
+			CancellationToken cancellationToken
+			)
+			=> throw new NotSupportedException();
 
 		public override Task ClearCacheAsync()
 			=> Task.CompletedTask;

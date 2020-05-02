@@ -5,6 +5,7 @@ using PanoramicData.ConnectMagic.Service.Interfaces;
 using PanoramicData.ConnectMagic.Service.Models;
 using ServiceNow.Api;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -103,11 +104,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw new InvalidOperationException($"{nameof(syncAction.ConnectedSystemItem)} must not be null when Updating Outwards.");
 			}
 
-			if (syncAction.Functions.Count != 0)
-			{
-				throw new NotSupportedException("Implement functions");
-			}
-
 			// Handle simple update
 			await _serviceNowClient
 				.UpdateAsync(
@@ -191,6 +187,20 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				Logger.LogError(e, "Failed to Lookup");
 				throw;
 			}
+		}
+
+		public override async Task PatchAsync(
+			string entityClass,
+			string entityId,
+			Dictionary<string, object> patches,
+			CancellationToken cancellationToken
+			)
+		{
+			var patchObject = JObject.FromObject(patches);
+			patchObject["sys_id"] = entityId;
+			await _serviceNowClient
+				.PatchAsync(entityClass, patchObject)
+				.ConfigureAwait(false);
 		}
 
 		public override void Dispose()

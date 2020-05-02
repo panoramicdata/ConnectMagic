@@ -42,9 +42,9 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public string StateExpression { get; set; } = string.Empty;
 
 		/// <summary>
-		/// The option system function to execute if there is a difference between the evaluation of SystemExpression and the evaluation of StateExpression
+		/// The option function to execute if there is a difference between the evaluation of SystemExpression and the evaluation of StateExpression
 		/// </summary>
-		public string? SystemFunction { get; set; }
+		public string? FunctionExpression { get; set; }
 
 		/// <summary>
 		/// If present, used to target the outbound object field

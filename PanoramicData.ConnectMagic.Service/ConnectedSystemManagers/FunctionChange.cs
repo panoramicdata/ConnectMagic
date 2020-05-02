@@ -9,6 +9,6 @@
 
 		public string Function { get; }
 
-		public override string ToString() => Function;
+		public override string ToString() => $"Function: '{Function}'";
 	}
 }

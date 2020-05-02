@@ -56,8 +56,8 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			return state;
 		}
 
-		internal async Task<object?> QueryLookupAsync(
-			string queryLookupConnectedSystemName,
+		internal async Task<object?> QueryConnectedSystemAsync(
+			string connectedSystemName,
 			QueryConfig queryConfig,
 			string queryLookupField,
 			bool valueIfZeroMatchesFoundSets,
@@ -66,9 +66,9 @@ namespace PanoramicData.ConnectMagic.Service.Models
 			object? valueIfMultipleMatchesFound,
 			CancellationToken cancellationToken)
 		{
-			if (!ConnectedSystemManagers.TryGetValue(queryLookupConnectedSystemName, out var connectedSystemManager))
+			if (!ConnectedSystemManagers.TryGetValue(connectedSystemName, out var connectedSystemManager))
 			{
-				throw new ConfigurationException($"Could not find QueryLookup connected system manager for connected system {queryLookupConnectedSystemName}");
+				throw new ConfigurationException($"Could not find queryLookup() connected system manager for connected system {connectedSystemName}");
 			}
 			return await connectedSystemManager.QueryLookupAsync(
 				queryConfig,
@@ -77,6 +77,26 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				valueIfZeroMatchesFound,
 				valueIfMultipleMatchesFoundSets,
 				valueIfMultipleMatchesFound,
+				cancellationToken
+				).ConfigureAwait(false);
+		}
+
+		internal async Task PatchConnectedSystemAsync(
+			string connectedSystemName,
+			string entityClass,
+			string entityId,
+			Dictionary<string, object> patchObject,
+			CancellationToken cancellationToken)
+		{
+			if (!ConnectedSystemManagers.TryGetValue(connectedSystemName, out var connectedSystemManager))
+			{
+				throw new ConfigurationException($"Could not find Patch connected system manager for connected system {connectedSystemName}");
+			}
+
+			await connectedSystemManager.PatchAsync(
+				entityClass,
+				entityId,
+				patchObject,
 				cancellationToken
 				).ConfigureAwait(false);
 		}

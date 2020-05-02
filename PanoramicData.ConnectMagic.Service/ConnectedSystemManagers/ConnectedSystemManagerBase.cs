@@ -495,19 +495,27 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 
 							// Create in the target system
-							var newConnectedSystemItem = new JObject();
+							action.ConnectedSystemItem = new JObject();
 							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
 							{
-								var newConnectedSystemItemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
-								newConnectedSystemItem[outwardMapping.SystemOutField ?? outwardMapping.SystemExpression] = newConnectedSystemItemValue;
-
-								action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemOutField ?? outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
+								// Is a system function defined?
+								if (outwardMapping.FunctionExpression != null)
+								{
+									action.Functions.Add(outwardMapping.FunctionExpression);
+									action.OutwardChanges.Add(new FunctionChange(outwardMapping.FunctionExpression));
+								}
+								else
+								{
+									var newConnectedSystemItemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
+									action.ConnectedSystemItem[outwardMapping.SystemOutField ?? outwardMapping.SystemExpression] = newConnectedSystemItemValue;
+									action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemOutField ?? outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
+								}
 							}
 							if (isConnectedSystemsSyncCompletedOnce)
 							{
 								if (directionPermissions.Out == DataSetPermission.Allowed)
 								{
-									action.ConnectedSystemItem = await InternalCreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+									action.ConnectedSystemItem = await InternalCreateOutwardsAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
 
 									// Update state to ensure that the new object's id is copied back to state.
 									UpdateState(inwardMappings, action);
@@ -600,15 +608,15 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
 			{
 				// Is a system function defined?
-				if (outwardMapping.SystemFunction != null)
+				if (outwardMapping.FunctionExpression != null)
 				{
 					// YES - Evaluate both expressions and if he results don't match, add the function to the list
 					var newConnectedSystemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
 					var existingConnectedSystemValue = EvaluateToJToken(outwardMapping.SystemExpression, action.ConnectedSystemItem, State);
 					if (!JToken.DeepEquals(existingConnectedSystemValue, newConnectedSystemValue))
 					{
-						action.Functions.Add(outwardMapping.SystemFunction);
-						action.OutwardChanges.Add(new FunctionChange(outwardMapping.SystemFunction));
+						action.Functions.Add(outwardMapping.FunctionExpression);
+						action.OutwardChanges.Add(new FunctionChange(outwardMapping.FunctionExpression));
 					}
 				}
 				else
@@ -691,21 +699,49 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			return inwardMappingsToProcess;
 		}
 
-		private async Task<JObject> InternalCreateOutwardsAsync(ConnectedSystemDataSet dataSet, JObject newConnectedSystemItem, CancellationToken cancellationToken)
+		private async Task<JObject?> InternalCreateOutwardsAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
 		{
 			Logger.LogInformation($"Creating item for dataset {dataSet.Name}...");
-			return await CreateOutwardsAsync(dataSet, newConnectedSystemItem, cancellationToken).ConfigureAwait(false);
+
+			// First execute the Create
+			JObject? createResultObject = null;
+			if (action.OutwardChanges.OfType<FieldChange>().Any())
+			{
+				createResultObject = await CreateOutwardsAsync(dataSet, action.ConnectedSystemItem!, cancellationToken).ConfigureAwait(false);
+			}
+
+			// After successful ConnectedSystem change, execute the functions
+			if (action.OutwardChanges.OfType<FunctionChange>().Any())
+			{
+				ExecuteFunctions(action);
+			}
+			return createResultObject;
 		}
 
 		private async Task InternalUpdateOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
 		{
 			Logger.LogInformation($"Updating item for dataset {dataSet.Name}...");
-			await UpdateOutwardsAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
+
+			if (action.OutwardChanges.OfType<FieldChange>().Any())
+			{
+				await UpdateOutwardsAsync(dataSet, action, cancellationToken).ConfigureAwait(false);
+			}
+
+			if (action.OutwardChanges.OfType<FunctionChange>().Any())
+			{
+				ExecuteFunctions(action);
+			}
 		}
 
 		private async Task InternalDeleteOutwardAsync(ConnectedSystemDataSet dataSet, SyncAction action, CancellationToken cancellationToken)
 		{
 			Logger.LogInformation($"Deleting item for dataset {dataSet.Name}...");
+
+			if (action.OutwardChanges.OfType<FunctionChange>().Any())
+			{
+				throw new NotSupportedException("FunctionChange not supported for Delete.");
+			}
+
 			await DeleteOutwardsAsync(
 				dataSet,
 				action.ConnectedSystemItem ?? throw new InvalidOperationException("Cannot delete from then ConnectedSystem without a ConnectedSystemItem"),
@@ -1086,6 +1122,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		/// <summary>
+		/// Executes functions
+		/// </summary>
+		internal void ExecuteFunctions(SyncAction syncAction)
+		{
+			foreach (var functionChange in syncAction.OutwardChanges.OfType<FunctionChange>())
+			{
+				EvaluateConditionalExpression(functionChange.Function, syncAction.StateItem, syncAction.ConnectedSystemItem, State);
+			}
+		}
+
+
+		/// <summary>
+		/// Stats
+		/// </summary
+		public ConnectedSystemStats Stats { get; } = new ConnectedSystemStats();
+
+		/// <summary>
 		/// Deletes a specific item
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
@@ -1100,7 +1153,6 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		/// Updates a specific item
 		/// </summary>
 		/// <param name="dataSet">The DataSet</param>
-		/// <param name="connectedSystemItem">The item, as updated to be pushed to the ConnectedSystem.</param>
 		internal abstract Task UpdateOutwardsAsync(
 			ConnectedSystemDataSet dataSet,
 			SyncAction syncAction,
@@ -1150,9 +1202,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 		public abstract void Dispose();
 
-		/// <summary>
-		/// Stats
-		/// </summary
-		public ConnectedSystemStats Stats { get; } = new ConnectedSystemStats();
+		public abstract Task PatchAsync(
+			string entityClass,
+			string entityId,
+			Dictionary<string, object> patches,
+			CancellationToken cancellationToken);
 	}
 }

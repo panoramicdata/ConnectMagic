@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using PanoramicData.ConnectMagic.Service.ConnectedSystemManagers;
 using PanoramicData.ConnectMagic.Service.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -10,13 +11,21 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 {
 	public static class NcalcExtensions
 	{
+		public const string QueryLookupFunctionName = "queryLookup";
+		public const string UppercaseEmailFunctionName = "upperCaseEmail";
+		public const string CastFunctionName = "cast";
+		public const string JObjectFunctionName = "jobject";
+		public const string StateLookupFunctionName = "stateLookup";
+		public const string StateContainsFunctionName = "stateContains";
+		public const string PatchFunctionName = "systemPatch";
+
 #pragma warning disable RCS1224 // Make method an extension method.
 		public static void Extend(string functionName, FunctionArgs functionArgs)
 #pragma warning restore RCS1224 // Make method an extension method.
 		{
 			switch (functionName)
 			{
-				case "upperCaseEmail":
+				case UppercaseEmailFunctionName:
 					{
 						const int upperCaseEmailParameterCount = 1;
 						if (functionArgs.Parameters.Length != upperCaseEmailParameterCount)
@@ -59,7 +68,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						functionArgs.Result = stringBuilder.ToString();
 						return;
 					}
-				case "cast":
+				case CastFunctionName:
 					{
 						const int castParameterCount = 2;
 						if (functionArgs.Parameters.Length != castParameterCount)
@@ -101,7 +110,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 				//	functionArgs.Result = outputDateTime;
 				//	return;
 				//}
-				case "jobject":
+				case JObjectFunctionName:
 					{
 						const int jobjectParameterCount = 1;
 						if (functionArgs.Parameters.Length != jobjectParameterCount)
@@ -126,7 +135,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						return;
 					}
 				// stateLookup('EdinburghAirportServiceRequests', 'sn_sys_id', sn_element_id, 'at_id')
-				case "stateLookup":
+				case StateLookupFunctionName:
 					{
 						const int stateContainsParameterCount = 4;
 						if (functionArgs.Parameters.Length != stateContainsParameterCount)
@@ -186,7 +195,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						}
 						return;
 					}
-				case "stateContains":
+				case StateContainsFunctionName:
 					{
 						const int stateContainsParameterCount = 3;
 						if (functionArgs.Parameters.Length != stateContainsParameterCount)
@@ -219,13 +228,13 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 							&& itemList.Any(il => il.TryGetValue(stateDataSetField, out var stateValue) && JToken.DeepEquals(stateValue, stateDataSetValueAsJToken));
 						return;
 					}
-				case "queryLookup":
+				case QueryLookupFunctionName:
 					{
 						const int minParameterCount = 5;
 						const int maxParameterCount = 7;
 						if (functionArgs.Parameters.Length < minParameterCount || functionArgs.Parameters.Length > maxParameterCount)
 						{
-							throw new ArgumentException($"Expected between {minParameterCount} and {maxParameterCount} arguments in queryLookup.");
+							throw new ArgumentException($"Expected between {minParameterCount} and {maxParameterCount} arguments in {QueryLookupFunctionName}.");
 						}
 
 						var argumentIndex = -1;
@@ -273,7 +282,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 							valueIfMultipleMatchesFoundSets = true;
 						}
 
-						functionArgs.Result = state.QueryLookupAsync(
+						functionArgs.Result = state.QueryConnectedSystemAsync(
 							queryLookupConnectedSystemName,
 							new QueryConfig { Type = queryLookupType, Query = queryLookupQuery },
 							queryLookupField,
@@ -282,6 +291,62 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 							valueIfMultipleMatchesFoundSets,
 							valueIfMultipleMatchesFound,
 							default).GetAwaiter().GetResult();
+						return;
+					}
+				case PatchFunctionName:
+					{
+						const int minParameterCount = 5;
+						if (functionArgs.Parameters.Length < minParameterCount || functionArgs.Parameters.Length % 2 != 1)
+						{
+							throw new ArgumentException($"Expected an odd number of at least {minParameterCount} arguments in {PatchFunctionName}.");
+						}
+						// We have the right parameter count
+
+						// Use the first one to obtain state.
+						var state = (State)functionArgs.Parameters[0].Parameters[ConnectedSystemManagerBase.StateVariableName];
+
+						var argumentIndex = -1;
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string patchConnectedSystemName))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be the name of a Connected System.");
+						}
+
+						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string patchEntityClass))
+						{
+							throw new ArgumentException($"Expected argument {argumentIndex} to be an entity class.");
+						}
+
+						// The source could be a string or an int.  We always send the string representation to the connected system.
+						var patchEntityId = functionArgs.Parameters[++argumentIndex].Evaluate()?.ToString()
+							?? throw new ArgumentException($"Expected argument {argumentIndex} to be non-null.");
+
+						var patches = new Dictionary<string, object>();
+						while (argumentIndex < functionArgs.Parameters.Length - 1)
+						{
+							if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string patchField))
+							{
+								throw new ArgumentException($"Expected argument {argumentIndex} to be a field name.");
+							}
+
+							patches[patchField] = functionArgs.Parameters[++argumentIndex].Evaluate();
+						}
+						// We now have all parameters
+
+						try
+						{
+							state.PatchConnectedSystemAsync(
+							patchConnectedSystemName,
+							patchEntityClass,
+							patchEntityId,
+							patches,
+							default).GetAwaiter().GetResult();
+							functionArgs.Result = true;
+						}
+						catch
+						{
+							functionArgs.Result = false;
+						}
+
 						return;
 					}
 			}
