@@ -32,7 +32,7 @@ namespace PanoramicData.ConnectMagic.Service
 
 		public override async Task ExecuteAsync(CancellationToken cancellationToken)
 		{
-			Logger.LogInformation($"{_connectedSystemManager.ConnectedSystem.Type}: Refreshing DataSets");
+			Logger.LogInformation("Refreshing DataSets");
 
 			// Note when we last started
 			_connectedSystemManager.Stats.LastSyncStarted = DateTimeOffset.UtcNow;
@@ -56,19 +56,20 @@ namespace PanoramicData.ConnectMagic.Service
 				try
 				{
 					await _connectedSystemManager
-					.RefreshDataSetAsync(dataSet, cancellationToken)
-					.ConfigureAwait(false);
+						.RefreshDataSetAsync(dataSet, cancellationToken)
+						.ConfigureAwait(false);
 					if (_hangProtectionTimeoutTimeIsElapsed)
 					{
-						Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet.Name}' completed after {stopwatch.Elapsed.TotalSeconds:N0}s.");
+						Logger.LogWarning($"DataSet '{dataSet.Name}' completed after {stopwatch.Elapsed.TotalSeconds:N0}s.");
+					}
+					else
+					{
+						Logger.LogDebug($"DataSet '{dataSet.Name}' completed after {stopwatch.Elapsed.TotalSeconds:N0}s.");
 					}
 				}
 				catch
 				{
-					if (_hangProtectionTimeoutTimeIsElapsed)
-					{
-						Logger.LogWarning($"DataSet '{_hangProtectionCurrentDataSet.Name}' errored after {stopwatch.Elapsed.TotalSeconds:N0}s.");
-					}
+					Logger.LogError($"DataSet '{dataSet.Name}' errored after {stopwatch.Elapsed.TotalSeconds:N0}s.");
 					throw;
 				}
 				finally
@@ -79,6 +80,8 @@ namespace PanoramicData.ConnectMagic.Service
 
 			// This should only be updated if the above went as planned
 			_connectedSystemManager.Stats.LastSyncCompleted = DateTimeOffset.UtcNow;
+
+			Logger.LogInformation("Refreshing DataSets complete");
 		}
 
 		private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)

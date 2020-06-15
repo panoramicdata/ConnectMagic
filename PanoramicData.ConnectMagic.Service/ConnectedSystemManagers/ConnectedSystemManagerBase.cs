@@ -8,6 +8,7 @@ using PanoramicData.ConnectMagic.Service.Ncalc;
 using PanoramicData.SheetMagic;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -211,6 +212,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				}
 
 				// Get a lock on the state item list
+				Logger.LogInformation($"Acquiring lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name}");
+				var lockStopwatch = Stopwatch.StartNew();
 				var gotLock = await stateItemList
 					.Lock
 					.WaitAsync(StateItemListLockTimeout, cancellationToken)
@@ -218,10 +221,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				if (!gotLock)
 				{
 					// We didn't get a lock due to timeout - try again next time
-					Logger.LogInformation($"Timed out waiting to lock StateDataSet {dataSet.StateDataSetName}");
+					Logger.LogInformation($"Acquiring lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name} timed out after {StateItemListLockTimeout.TotalSeconds}s.");
 					return null;
 				}
-				Logger.LogInformation($"Acquired lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name}");
+				Logger.LogDebug($"Acquiring lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name} complete after {lockStopwatch.ElapsedMilliseconds:N0}ms.");
 				// We got a lock
 
 				// Clone the DataSet, so we can remove items that we have seen in the ConnectedSystem
@@ -272,6 +275,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					stateItemList
 						.Lock
 						.Release();
+					Logger.LogDebug($"Releasing lock on {dataSet.StateDataSetName} for connect system manager {ConnectedSystem.Name} complete.");
 
 					WriteSyncActionOutput(
 						GetFileInfo(connectedSystem, dataSet, isConnectedSystemsSyncCompletedOnce),

@@ -21,7 +21,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			: base(connectedSystem, state, maxFileAge, loggerFactory.CreateLogger<SalesforceConnectedSystemManager>())
 		{
 			// Ensure we have what we need
-			if (connectedSystem!.Credentials.Account == "")
+			if (connectedSystem!.Credentials.Account == string.Empty)
 			{
 				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.Account)} must be set to a url when specified, otherwise omit this configuration item.");
 			}

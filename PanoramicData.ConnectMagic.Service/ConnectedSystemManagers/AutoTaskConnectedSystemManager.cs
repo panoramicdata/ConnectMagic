@@ -38,11 +38,23 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw new ConfigurationException($"ConnectedSystem '{connectedSystem!.Name}'s {nameof(connectedSystem.Credentials)} {nameof(connectedSystem.Credentials.ClientSecret)} must be set to the Integration Code");
 			}
 
+			// If the user provides an account, it's to set the server Id
+			// This avoids the buggy AutoTask getZoneInfo call and improves performance
+			ClientOptions? clientOptions = string.IsNullOrWhiteSpace(connectedSystem.Credentials.Account)
+				? null
+				: new ClientOptions
+				{
+					ServerId = int.TryParse(connectedSystem.Credentials.Account, out var serverId)
+						? serverId
+						: throw new ConfigurationException("Incorrectly-configured AutoTask Account Server Id")
+				};
+
 			_autoTaskClient = new Client(
 				connectedSystem.Credentials.PublicText,
 				connectedSystem.Credentials.PrivateText,
 				connectedSystem.Credentials.ClientSecret,
-				loggerFactory.CreateLogger<Client>()
+				loggerFactory.CreateLogger<Client>(),
+				clientOptions
 			);
 			_cache = new QueryCache<JObject>(TimeSpan.FromMinutes(1));
 		}

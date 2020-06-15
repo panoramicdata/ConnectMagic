@@ -171,27 +171,46 @@ namespace PanoramicData.ConnectMagic.Service
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			// Create ConnectedSystemPeriodLoops
+			_logger.LogInformation("Initial sync starting");
+
+			// Execute them all at least once.
+			while (!_state.IsConnectedSystemsSyncCompletedOnce())
+			{
+				// Create ConnectedSystemPeriodLoops for Connected System Managers that are not fully synced with State.
+				var connectedSystemPeriodStartupLoops = _state
+					.ConnectedSystemManagers
+					.Where(csm => csm.Value.Stats.LastSyncCompleted == DateTimeOffset.MinValue)
+					.Select(connectedSystemManagerKvp => new ConnectedSystemPeriodLoop(connectedSystemManagerKvp.Value, _loggerFactory.CreateLogger<ConnectedSystemPeriodLoop>()))
+					.ToList();
+
+				try
+				{
+					foreach (var connectedSystemPeriodLoop in connectedSystemPeriodStartupLoops)
+					{
+						await connectedSystemPeriodLoop
+							.ExecuteAsync(_cancellationTokenSource.Token)
+							.ConfigureAwait(false);
+					}
+
+					_logger.LogInformation("Initial sync complete");
+					// The syncs have all executed at least once.
+				}
+				catch (Exception e)
+				{
+					const int delaySeconds = 10;
+					_logger.LogError(e, $"Initial sync failed.  Retrying in {delaySeconds}s...");
+					await Task
+						.Delay(TimeSpan.FromSeconds(delaySeconds))
+						.ConfigureAwait(false);
+				}
+			}
+			_logger.LogDebug("**********************************************************************************");
+			// We completed an initial sync
+
 			var connectedSystemPeriodLoops = _state
 				.ConnectedSystemManagers
-				.Values
-				.Select(connectedSystemManager => new ConnectedSystemPeriodLoop(connectedSystemManager, _loggerFactory.CreateLogger<ConnectedSystemPeriodLoop>()))
+				.Select(connectedSystemManagerKvp => new ConnectedSystemPeriodLoop(connectedSystemManagerKvp.Value, _loggerFactory.CreateLogger<ConnectedSystemPeriodLoop>()))
 				.ToList();
-
-			// Execute them all once
-			_logger.LogInformation("Initial sync starting");
-			var tasks = new List<Task>();
-			foreach (var connectedSystemPeriodLoop in connectedSystemPeriodLoops)
-			{
-				tasks.Add(connectedSystemPeriodLoop.ExecuteAsync(_cancellationTokenSource.Token));
-			}
-			// ...waiting for them all to finish.
-			await Task
-				.WhenAll(tasks)
-				.ConfigureAwait(false);
-			_logger.LogInformation("Initial sync complete");
-			_logger.LogDebug("**********************************************************************************");
-			// The sync code has all executed once.
 
 			// Immediately start looping, with the configured delays from now on.
 			foreach (var connectedSystemPeriodLoop in connectedSystemPeriodLoops)
