@@ -16,6 +16,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Atlassian.SDK" Version="12.4.0" />
 		<PackageReference Include="AutoTask.Api" Version="1.6.9" />
 		<PackageReference Include="BetterConsoleTables" Version="1.1.2" />
 		<PackageReference Include="Certify.Api" Version="1.2.4" />
