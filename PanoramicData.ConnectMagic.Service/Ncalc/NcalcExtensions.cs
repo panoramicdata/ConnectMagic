@@ -19,9 +19,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 		public const string StateContainsFunctionName = "stateContains";
 		public const string PatchFunctionName = "systemPatch";
 
-#pragma warning disable RCS1224 // Make method an extension method.
 		public static void Extend(string functionName, FunctionArgs functionArgs)
-#pragma warning restore RCS1224 // Make method an extension method.
 		{
 			switch (functionName)
 			{
@@ -32,7 +30,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						{
 							throw new ArgumentException($"Expected {upperCaseEmailParameterCount} arguments");
 						}
-						if (!(functionArgs.Parameters[0].Evaluate() is string inputEmailAddress))
+						if (functionArgs.Parameters[0].Evaluate() is not string inputEmailAddress)
 						{
 							throw new ArgumentException("Expected first argument to be an email address.");
 						}
@@ -76,7 +74,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 							throw new ArgumentException($"Expected {castParameterCount} arguments");
 						}
 						var inputObject = functionArgs.Parameters[0].Evaluate();
-						if (!(functionArgs.Parameters[1].Evaluate() is string castTypeString))
+						if (functionArgs.Parameters[1].Evaluate() is not string castTypeString)
 						{
 							throw new ArgumentException("Expected second argument to be a string.");
 						}
@@ -117,7 +115,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						{
 							throw new ArgumentException($"Expected {jobjectParameterCount} arguments");
 						}
-						if (!(functionArgs.Parameters[0].Evaluate() is string inputJobjectString))
+						if (functionArgs.Parameters[0].Evaluate() is not string inputJobjectString)
 						{
 							throw new ArgumentException("Expected first argument to be a string.");
 						}
@@ -147,22 +145,22 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						var state = (State)functionArgs.Parameters[0].Parameters[ConnectedSystemManagerBase.StateVariableName];
 
 						var argumentIndex = -1;
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetName))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string stateDataSetName)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet name.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetLookupField))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string stateDataSetLookupField)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet lookup field.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is object stateDataSetValue))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not object stateDataSetValue)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be present.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetResultField))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string stateDataSetResultField)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet result field.");
 						}
@@ -207,17 +205,17 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						var state = (State)functionArgs.Parameters[0].Parameters[ConnectedSystemManagerBase.StateVariableName];
 
 						var argumentIndex = -1;
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetName))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string stateDataSetName)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet name.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string stateDataSetField))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string stateDataSetField)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State DataSet field.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is object stateDataSetValue))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not object stateDataSetValue)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be present.");
 						}
@@ -239,27 +237,27 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 
 						var argumentIndex = -1;
 						// TODO - obtain state from first parameter, like in stateContains.
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is State state))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not State state)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the State.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string queryLookupConnectedSystemName))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string queryLookupConnectedSystemName)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the name of a Connected System.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string queryLookupType))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string queryLookupType)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be a query type.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string queryLookupQuery))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string queryLookupQuery)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be a query string.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string queryLookupField))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string queryLookupField)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be a field name.");
 						}
@@ -306,12 +304,12 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						var state = (State)functionArgs.Parameters[0].Parameters[ConnectedSystemManagerBase.StateVariableName];
 
 						var argumentIndex = -1;
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string patchConnectedSystemName))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string patchConnectedSystemName)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be the name of a Connected System.");
 						}
 
-						if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string patchEntityClass))
+						if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string patchEntityClass)
 						{
 							throw new ArgumentException($"Expected argument {argumentIndex} to be an entity class.");
 						}
@@ -323,7 +321,7 @@ namespace PanoramicData.ConnectMagic.Service.Ncalc
 						var patches = new Dictionary<string, object>();
 						while (argumentIndex < functionArgs.Parameters.Length - 1)
 						{
-							if (!(functionArgs.Parameters[++argumentIndex].Evaluate() is string patchField))
+							if (functionArgs.Parameters[++argumentIndex].Evaluate() is not string patchField)
 							{
 								throw new ArgumentException($"Expected argument {argumentIndex} to be a field name.");
 							}

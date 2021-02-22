@@ -74,7 +74,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var substitutedQuery = query.ToString();
 			// Send the query off to AutoTask
 			var autoTaskResult = await _autoTaskClient
-				.GetAllAsync(substitutedQuery)
+				.GetAllAsync(substitutedQuery, cancellationToken)
 				.ConfigureAwait(false);
 			Logger.LogDebug($"Got {autoTaskResult.Count():N0} results for {dataSet.Name}.");
 			// Convert to JObjects for easier generic manipulation
@@ -100,11 +100,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// TODO - Handle functions
 			var itemToCreate = MakeAutoTaskObject(dataSet, connectedSystemItem);
 			return JObject.FromObject(await _autoTaskClient
-				.CreateAsync(itemToCreate)
+				.CreateAsync(itemToCreate, cancellationToken)
 				.ConfigureAwait(false));
 		}
 
-		private Entity MakeAutoTaskObject(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
+		private static Entity MakeAutoTaskObject(ConnectedSystemDataSet dataSet, JObject connectedSystemItem)
 		{
 			var type = Type.GetType($"AutoTask.Api.{dataSet.QueryConfig.Type}, {typeof(Entity).Assembly.FullName}")
 				?? throw new ConfigurationException($"AutoTask type {dataSet.QueryConfig.Type} not supported.");
@@ -143,7 +143,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// Yes - they are not present.  Create a new array.
 					entity.UserDefinedFields = udfNamesToSet.Select(udfName => new UserDefinedField
 					{
-						Name = udfName.Substring(UserDefinedFieldPrefix.Length),
+						Name = udfName[UserDefinedFieldPrefix.Length..],
 						Value = connectedSystemItem[udfName]!.ToString()
 					}
 					).ToArray();
@@ -153,7 +153,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// No - they ARE present - just update them.
 					foreach (var connectedSystemItemUdfName in udfNamesToSet)
 					{
-						var targetFieldName = connectedSystemItemUdfName.Substring(UserDefinedFieldPrefix.Length);
+						var targetFieldName = connectedSystemItemUdfName[UserDefinedFieldPrefix.Length..];
 
 						var targetField = entity.UserDefinedFields.SingleOrDefault(udf => udf.Name == targetFieldName)
 							?? throw new ConfigurationException($"Could not find UserDefinedField {targetFieldName} on Entity.");
@@ -176,7 +176,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var entity = MakeAutoTaskObject(dataSet, connectedSystemItem);
 			Logger.LogDebug($"Deleting item with id {entity.id}");
 			await _autoTaskClient
-				.DeleteAsync(entity)
+				.DeleteAsync(entity, cancellationToken)
 				.ConfigureAwait(false);
 		}
 
@@ -200,7 +200,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			// Handle simple update
 			var existingItem = MakeAutoTaskObject(dataSet, syncAction.ConnectedSystemItem);
 			var _ = await _autoTaskClient
-				.UpdateAsync(existingItem)
+				.UpdateAsync(existingItem, cancellationToken)
 				.ConfigureAwait(false);
 		}
 
@@ -231,7 +231,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// No.
 
 					var autoTaskResult = (await _autoTaskClient
-								.QueryAsync(queryConfig.Query)
+								.QueryAsync(queryConfig.Query, cancellationToken)
 								.ConfigureAwait(false))
 								.ToList();
 

@@ -42,7 +42,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				case "Issue":
 					var issues = await _jiraClient
 						.Issues
-						.GetIssuesFromJqlAsync(dataSet.QueryConfig.Query)
+						.GetIssuesFromJqlAsync(dataSet.QueryConfig.Query, token: cancellationToken)
 						.ConfigureAwait(false);
 
 					connectedSystemItems = issues
@@ -73,7 +73,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 			var newIssueId = await _jiraClient
 				.Issues
-				.CreateIssueAsync(connectedSystemItem.ToObject<Issue>())
+				.CreateIssueAsync(connectedSystemItem.ToObject<Issue>(), cancellationToken)
 				.ConfigureAwait(false);
 
 			Logger.LogDebug($"Created Jira {dataSet.QueryConfig.Type} with id={newIssueId}");
@@ -94,7 +94,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw new ConfigurationException($"Cannot delete ServiceNow item with sysId: '{id}'");
 			}
 			await _jiraClient
-				.Issues.DeleteIssueAsync(id)
+				.Issues.DeleteIssueAsync(id, cancellationToken)
 				.ConfigureAwait(false);
 		}
 
@@ -212,10 +212,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		public override void Dispose()
-		{
-			throw new NotImplementedException();
-			//=> _jiraClient?.Dispose();
-		}
+			=> throw new NotImplementedException();
 
 		public override Task ClearCacheAsync()
 			=> throw new NotImplementedException();

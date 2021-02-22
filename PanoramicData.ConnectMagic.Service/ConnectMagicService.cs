@@ -200,7 +200,7 @@ namespace PanoramicData.ConnectMagic.Service
 					const int delaySeconds = 10;
 					_logger.LogError(e, $"Initial sync failed.  Retrying in {delaySeconds}s...");
 					await Task
-						.Delay(TimeSpan.FromSeconds(delaySeconds))
+						.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken)
 						.ConfigureAwait(false);
 				}
 			}

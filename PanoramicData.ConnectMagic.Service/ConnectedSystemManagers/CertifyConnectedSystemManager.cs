@@ -77,8 +77,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							.ConfigureAwait(false);
 
 						connectedSystemItems = expenseReportGlds
-							.Select(entity => JObject.FromObject(entity))
-							.ToList();
+							.ConvertAll(entity => JObject.FromObject(entity))
+;
 						break;
 					case "expensereports":
 						var expenseReports = await _certifyClient
@@ -87,8 +87,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							.ConfigureAwait(false);
 
 						connectedSystemItems = expenseReports
-							.Select(entity => JObject.FromObject(entity))
-							.ToList();
+							.ConvertAll(entity => JObject.FromObject(entity))
+;
 						break;
 					case "expenses":
 						var propertyFilters = new List<Filter>();
@@ -190,8 +190,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						}
 
 						connectedSystemItems = expensesList
-							.Select(entity => JObject.FromObject(entity))
-							.ToList();
+							.ConvertAll(entity => JObject.FromObject(entity))
+;
 
 						break;
 					default:
@@ -212,7 +212,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				.ConfigureAwait(false);
 		}
 
-		private static readonly Dictionary<string, double> _exchangeRateCache = new Dictionary<string, double>();
+		private static readonly Dictionary<string, double> _exchangeRateCache = new();
 
 		private static async Task<double> GetExchangeRateOnDateAsync(string currency, DateTime date)
 		{
@@ -224,7 +224,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			return _exchangeRateCache[key];
 		}
 
-		private uint? GetBoolUint(string configItemName, string value)
+		private static uint? GetBoolUint(string configItemName, string value)
 			=> value switch
 			{
 				"0" => 0,
@@ -273,12 +273,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 						var createResult = await _certifyClient
 							.ExpenseReportGlds
-							.CreateAsync(index, expenseReportGld)
+							.CreateAsync(index, expenseReportGld, cancellationToken)
 							.ConfigureAwait(false);
 
 						var createdPage = await _certifyClient
 							.ExpenseReportGlds
-							.GetAsync(index, createResult.Id)
+							.GetAsync(index, createResult.Id, cancellationToken)
 							.ConfigureAwait(false);
 
 						return JObject.FromObject(createdPage.ExpenseReportGlds[0]);
@@ -331,7 +331,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						var id = connectedSystemItem.Value<Guid>("ID");
 						var existingPage = await _certifyClient
 							.ExpenseReportGlds
-							.GetAsync(index, id)
+							.GetAsync(index, id, cancellationToken)
 							.ConfigureAwait(false);
 						var existing = existingPage.ExpenseReportGlds.SingleOrDefault();
 						if (existing == null)
@@ -348,7 +348,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 						_ = await _certifyClient
 							.ExpenseReportGlds
-							.UpdateAsync(index, existing)
+							.UpdateAsync(index, existing, cancellationToken)
 							.ConfigureAwait(false);
 
 						break;
@@ -395,7 +395,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 					_ = await _certifyClient
 						.ExpenseReportGlds
-						.UpdateAsync(index, expenseReportGld)
+						.UpdateAsync(index, expenseReportGld, cancellationToken)
 						.ConfigureAwait(false);
 					break;
 				default:
@@ -470,7 +470,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						// It's a valid Guid
 
 						var expenseReport = (await _certifyClient
-							.ExpenseReports.GetAsync(expenseReportId, null)
+							.ExpenseReports.GetAsync(expenseReportId, null, cancellationToken)
 							.ConfigureAwait(false))
 							.ExpenseReports
 							.SingleOrDefault();

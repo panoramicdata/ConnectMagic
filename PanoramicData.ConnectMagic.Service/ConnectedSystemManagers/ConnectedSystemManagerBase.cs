@@ -173,7 +173,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					ncalcExpression.Parameters = csi.ToObject<Dictionary<string, object>>();
 					ncalcExpression.Parameters!.Add(StateVariableName, State);
 					var isMatchObject = ncalcExpression.Evaluate();
-					if (!(isMatchObject is bool isMatch))
+					if (isMatchObject is not bool isMatch)
 					{
 						throw new ConfigurationException($"QueryConfig Filter '{dataSet.QueryConfig.Filter}' did not evaluate to a bool.");
 					}
@@ -294,9 +294,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		}
 
 		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet, bool isConnectedSystemsSyncCompletedOnce)
-			=> new FileInfo($"Output/{(isConnectedSystemsSyncCompletedOnce ? "" : "INITIAL LOAD ")}{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
+			=> new($"Output/{(isConnectedSystemsSyncCompletedOnce ? "" : "INITIAL LOAD ")}{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
 
-		private string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
+		private static string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
 		{
 			var stringBuilder = new StringBuilder();
 			var value = $"DataSet '{dataSet.Name}'";
@@ -406,7 +406,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				}
 			}
 			spreadsheet.AddSheet(
-				syncActions.Select(sa =>
+				syncActions.ConvertAll(sa =>
 				{
 					var properties = new Dictionary<string, object?>();
 					foreach (var property in allConnectedSystemPropertyKeys.OrderBy(p => p))
@@ -418,7 +418,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						properties[$"st.{property}"] = sa.StateItem?.Value<object>(property);
 					}
 					return new Extended<SyncAction>(sa, properties);
-				}).ToList(),
+				}),
 				addSheetOptions: new AddSheetOptions
 				{
 					ExcludeProperties = new HashSet<string>
@@ -476,7 +476,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 							// Creating an object in State
 							var newStateItem = new StateItem(new JObject());
-							await newStateItem.Lock.WaitAsync().ConfigureAwait(false);
+							await newStateItem.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 							foreach (var inwardMapping in GetInwardMappingsToProcess(inwardMappings, action))
 							{
 								var newStateItemValue = EvaluateToJToken(inwardMapping.SystemExpression, action.ConnectedSystemItem, State);
@@ -1003,9 +1003,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				};
 			}
 
-#pragma warning disable IDE0046 // Convert to conditional expression - too complicated to readif we do this suggestion
 			if (!dataSet.Permissions.CanWrite)
-#pragma warning restore IDE0046 // Convert to conditional expression
 			{
 				return type switch
 				{
