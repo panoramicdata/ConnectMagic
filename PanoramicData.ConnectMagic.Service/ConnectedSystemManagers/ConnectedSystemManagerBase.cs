@@ -262,7 +262,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 						isConnectedSystemsSyncCompletedOnce,
 						cancellationToken).ConfigureAwait(false);
 
-					Logger.LogInformation(GetLogTable(dataSet, syncActions));
+					Logger.LogInformation(GetLogTable(connectedSystem, dataSet, syncActions));
 				}
 				catch (Exception ex) when (ex is OperationCanceledException || ex is TaskCanceledException)
 				{
@@ -296,10 +296,14 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		protected static FileInfo GetFileInfo(ConnectedSystem connectedSystem, DataSet dataSet, bool isConnectedSystemsSyncCompletedOnce)
 			=> new($"Output/{(isConnectedSystemsSyncCompletedOnce ? "" : "INITIAL LOAD ")}{connectedSystem.Name} - {dataSet.Name} - {DateTimeOffset.UtcNow:yyyy-MM-ddTHHmmssZ}.xlsx");
 
-		private static string GetLogTable(ConnectedSystemDataSet dataSet, List<SyncAction> syncActions)
+		private static string GetLogTable(
+			ConnectedSystem connectedSystem,
+			ConnectedSystemDataSet dataSet,
+			List<SyncAction> syncActions
+			)
 		{
 			var stringBuilder = new StringBuilder();
-			var value = $"DataSet '{dataSet.Name}'";
+			var value = $"{connectedSystem.Name}: DataSet '{dataSet.Name}'";
 			stringBuilder.AppendLine(value);
 
 			var syncActionTypesToUse = Enum
@@ -588,7 +592,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				catch (Exception e)
 				{
 					action.Type = SyncActionType.RemedyErrorDuringProcessing;
-					action.Comment = e.ToString();
+					action.Comment += "\nException:" + e.ToString();
 				}
 				finally
 				{
