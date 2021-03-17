@@ -51,16 +51,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Update="ConnectMagicService.cs">
-			<SubType>Component</SubType>
-		</Compile>
+		<Compile Update="ConnectMagicService.cs" />
 		<Compile Update="ConnectMagicService.Designer.cs">
 			<SubType>Component</SubType>
 		</Compile>
 		<Compile Update="Program.cs" />
-		<Compile Update="ServiceBaseLifetime.cs">
-			<SubType>Component</SubType>
-		</Compile>
+		<Compile Update="ServiceBaseLifetime.cs" />
 	</ItemGroup>
 
 </Project>
