@@ -2,12 +2,12 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<TargetFramework>net5.0</TargetFramework>
 		<ApplicationIcon>PanoramicData.ico</ApplicationIcon>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<Company>Panoramic Data Limited</Company>
 		<Authors>Panoramic Data Limited</Authors>
-		<LangVersion>default</LangVersion>
+		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
@@ -16,38 +16,39 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AutoTask.Api" Version="1.6.9" />
+		<PackageReference Include="Atlassian.SDK" Version="12.4.0" />
+		<PackageReference Include="AutoTask.Api" Version="1.6.11" />
 		<PackageReference Include="BetterConsoleTables" Version="1.1.2" />
 		<PackageReference Include="Certify.Api" Version="1.2.4" />
-		<PackageReference Include="Dapper" Version="2.0.35" />
+		<PackageReference Include="Dapper" Version="2.0.78" />
 		<PackageReference Include="DeveloperForce.Force" Version="2.1.0" />
 		<PackageReference Include="FixerSharp" Version="1.2.2" />
-		<PackageReference Include="LogicMonitor.Api" Version="2.136.1" />
-		<PackageReference Include="Microsoft.Data.SqlClient" Version="1.1.3" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.5" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
-		<PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.5" />
+		<PackageReference Include="LogicMonitor.Api" Version="2.147.4" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
 		<PackageReference Include="NCalc.NetCore" Version="1.0.1" />
-		<PackageReference Include="Nerdbank.GitVersioning" Version="3.1.91">
+		<PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-		<PackageReference Include="PanoramicData.NCalcExtensions" Version="1.16.13" />
-		<PackageReference Include="PanoramicData.SheetMagic" Version="3.0.5" />
+		<PackageReference Include="PanoramicData.NCalcExtensions" Version="1.17.2" />
+		<PackageReference Include="PanoramicData.SheetMagic" Version="3.0.41" />
 		<PackageReference Include="PanoramicSystems.LoopInterval" Version="1.2.0" />
-		<PackageReference Include="Serilog" Version="2.9.0" />
+		<PackageReference Include="Serilog" Version="2.10.0" />
 		<PackageReference Include="Serilog.Enrichers.Environment" Version="2.1.3" />
 		<PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="3.1.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-		<PackageReference Include="Serilog.Sinks.Debug" Version="1.0.1" />
+		<PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
 		<PackageReference Include="Serilog.Sinks.Slack.Core" Version="0.1.5-beta" />
-		<PackageReference Include="ServiceNow.Api" Version="1.2.20" />
+		<PackageReference Include="ServiceNow.Api" Version="1.2.27" />
 		<PackageReference Include="SolarWinds.Api" Version="0.2.0" />
-		<PackageReference Include="System.ServiceProcess.ServiceController" Version="4.7.0" />
+		<PackageReference Include="System.ServiceProcess.ServiceController" Version="5.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -7,7 +7,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class SubstitutionString
 	{
-		private static readonly Regex tokenRegex = new Regex("{{(.+?):(.+?)}}");
+		private static readonly Regex tokenRegex = new("{{(.+?):(.+?)}}");
 
 		private readonly string _inputText;
 

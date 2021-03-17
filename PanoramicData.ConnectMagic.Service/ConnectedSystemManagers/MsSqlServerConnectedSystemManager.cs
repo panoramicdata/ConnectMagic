@@ -31,7 +31,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			using var connection = new SqlConnection(_connectedSystem.Credentials.ConnectionString);
 
 			Logger.LogDebug($"Opening MS SQL connection for {_connectedSystem.Name}...");
-			await connection.OpenAsync().ConfigureAwait(false);
+			await connection
+				.OpenAsync(cancellationToken)
+				.ConfigureAwait(false);
 
 			Logger.LogDebug($"Refreshing DataSet {dataSet.Name}");
 
@@ -47,8 +49,8 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 
 			// Convert to JObjects for easier generic manipulation
 			var connectedSystemItems = results
-				.Select(entity => JObject.FromObject(entity))
-				.ToList();
+				.ConvertAll(entity => JObject.FromObject(entity))
+;
 
 			await ProcessConnectedSystemItemsAsync(
 				dataSet,

@@ -96,7 +96,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 				mapping.Validate(Name);
 			}
 
-			if (Mappings.Count(m => m.Direction != MappingType.None) == 0)
+			if (!Mappings.Any(m => m.Direction != MappingType.None))
 			{
 				throw new ConfigurationException($"{nameof(ConnectedSystemDataSet)} {Name}'s non-{nameof(MappingType.None)} {nameof(Mapping.Direction)} {nameof(Mappings)} must not be empty.");
 			}

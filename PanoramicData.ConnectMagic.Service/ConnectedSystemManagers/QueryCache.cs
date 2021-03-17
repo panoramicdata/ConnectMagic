@@ -9,7 +9,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		private readonly TimeSpan _timeSpan;
 
 		private readonly ConcurrentDictionary<string, CacheRecord<T>> _dictionary
-			= new ConcurrentDictionary<string, CacheRecord<T>>();
+			= new();
 
 		public QueryCache(TimeSpan timeSpan)
 		{

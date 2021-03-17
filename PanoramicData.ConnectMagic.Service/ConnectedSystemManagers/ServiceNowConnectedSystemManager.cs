@@ -47,7 +47,11 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var substitutedQuery = query.ToString();
 			// Send the query off to ServiceNow
 			var connectedSystemItems = await _serviceNowClient
-				.GetAllByQueryAsync(dataSet.QueryConfig.Type, substitutedQuery, extraQueryString: dataSet.QueryConfig.Options)
+				.GetAllByQueryAsync(
+					dataSet.QueryConfig.Type,
+					substitutedQuery,
+					extraQueryString: dataSet.QueryConfig.Options,
+					cancellationToken: cancellationToken)
 				.ConfigureAwait(false);
 			Logger.LogDebug($"Got {connectedSystemItems.Count} results for {dataSet.Name}.");
 
@@ -68,7 +72,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 		{
 			Logger.LogDebug("Creating ServiceNow item");
 			var newConnectedSystemItem = await _serviceNowClient
-				.CreateAsync(dataSet.QueryConfig.Type, connectedSystemItem)
+				.CreateAsync(
+					dataSet.QueryConfig.Type,
+					connectedSystemItem, cancellationToken
+					)
 				.ConfigureAwait(false);
 			Logger.LogDebug($"Created ServiceNow item with sys_id={newConnectedSystemItem["sys_id"]}");
 			return newConnectedSystemItem;
@@ -88,7 +95,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 				throw new ConfigurationException($"Cannot delete ServiceNow item with sysId: '{sysId}'");
 			}
 			await _serviceNowClient
-				.DeleteAsync(dataSet.QueryConfig.Type, sysId)
+				.DeleteAsync(
+					dataSet.QueryConfig.Type,
+					sysId,
+					cancellationToken)
 				.ConfigureAwait(false);
 		}
 
@@ -139,9 +149,12 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 					// No.
 
 					var serviceNowResult = (await _serviceNowClient
-								.GetAllByQueryAsync(queryConfig.Type, queryConfig.Query)
-								.ConfigureAwait(false))
-								.ToList();
+						.GetAllByQueryAsync(
+							queryConfig.Type,
+							queryConfig.Query,
+							cancellationToken: cancellationToken)
+						.ConfigureAwait(false))
+						.ToList();
 
 					switch (serviceNowResult.Count)
 					{
@@ -199,7 +212,10 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			var patchObject = JObject.FromObject(patches);
 			patchObject["sys_id"] = entityId;
 			await _serviceNowClient
-				.PatchAsync(entityClass, patchObject)
+				.PatchAsync(
+					entityClass,
+					patchObject,
+					cancellationToken)
 				.ConfigureAwait(false);
 		}
 

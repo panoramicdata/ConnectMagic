@@ -6,7 +6,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 {
 	internal class Filter
 	{
-		private static readonly Regex Regex = new Regex("^(?<name>.+?)(?<operator>>=|<=|!=|>|<|==)(?<value>.*?)$");
+		private static readonly Regex Regex = new("^(?<name>.+?)(?<operator>>=|<=|!=|>|<|==)(?<value>.*?)$");
 
 		public Filter(string filter)
 		{
@@ -24,7 +24,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			Value = match.Groups["value"].Value;
 		}
 
-		private Operator GetOperator(string operatorString)
+		private static Operator GetOperator(string operatorString)
 			=> operatorString switch
 			{
 				"<" => Operator.LessThan,

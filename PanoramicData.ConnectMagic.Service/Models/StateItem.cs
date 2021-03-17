@@ -23,7 +23,7 @@ namespace PanoramicData.ConnectMagic.Service.Models
 		public DateTimeOffset LastModified { get; private set; } = DateTimeOffset.UtcNow;
 
 		internal static StateItem FromObject(StateItem stateItem)
-			=> new StateItem(JObject.FromObject(stateItem));
+			=> new(JObject.FromObject(stateItem));
 
 		public new JToken? this[string key]
 		{
