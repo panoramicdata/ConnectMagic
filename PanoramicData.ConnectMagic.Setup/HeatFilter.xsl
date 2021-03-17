@@ -24,7 +24,7 @@
 
 	<xsl:key
 		name="FilesToRemove"
-		match="wix:Component[user:endswith(wix:File/@Source, 'PanoramicData.ConnectMagic.Service.dll') or user:endswith(wix:File/@Source, '.exe') or user:endswith(wix:File/@Source, '.exe.config') or user:endswith(wix:File/@Source, '.dll.config')]"
+		match="wix:Component[user:endswith(wix:File/@Source, 'PanoramicData.ConnectMagic.Service.dll') or user:endswith(wix:File/@Source, 'PanoramicData.ConnectMagic.Service.exe') or user:endswith(wix:File/@Source, '.exe.config') or user:endswith(wix:File/@Source, '.dll.config')]"
 		use="@Id"
 	/>
 
