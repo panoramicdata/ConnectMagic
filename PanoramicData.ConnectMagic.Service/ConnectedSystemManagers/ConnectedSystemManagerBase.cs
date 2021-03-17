@@ -118,7 +118,7 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 			{
 				if (ex.Message.StartsWith("Parameter was not defined"))
 				{
-					throw new ArgumentException($"{ex.Message}. Available parameters: {string.Join(", ", nCalcExpression.Parameters.Keys.OrderBy(k => k))}", ex);
+					throw new ArgumentException($"{ex.Message} evaluating `{expression}`. Available parameters: {string.Join(", ", nCalcExpression.Parameters.Keys.OrderBy(k => k).Select(k => $"{k}={nCalcExpression.Parameters[k] ?? "<NULL>"}"))}", ex);
 				}
 				throw;
 			}
@@ -503,7 +503,9 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 							}
 
 							// Create in the target system
-							action.ConnectedSystemItem = new JObject();
+
+							// Create a temporary new object.  This leaves action.ConnectedSystemItem as null during evaluation
+							var newConnectedSystemObject = new JObject();
 							foreach (var outwardMapping in GetOutwardMappingsToProcess(outwardMappings, action))
 							{
 								// Is a system function defined?
@@ -515,10 +517,13 @@ namespace PanoramicData.ConnectMagic.Service.ConnectedSystemManagers
 								else
 								{
 									var newConnectedSystemItemValue = EvaluateToJToken(outwardMapping.StateExpression, action.StateItem, State);
-									action.ConnectedSystemItem[outwardMapping.SystemOutField ?? outwardMapping.SystemExpression] = newConnectedSystemItemValue;
+									newConnectedSystemObject[outwardMapping.SystemOutField ?? outwardMapping.SystemExpression] = newConnectedSystemItemValue;
 									action.OutwardChanges.Add(new FieldChange(outwardMapping.SystemOutField ?? outwardMapping.SystemExpression, null, newConnectedSystemItemValue));
 								}
 							}
+							// Save our new item
+							action.ConnectedSystemItem = newConnectedSystemObject;
+
 							if (isConnectedSystemsSyncCompletedOnce)
 							{
 								if (directionPermissions.Out == DataSetPermission.Allowed)
